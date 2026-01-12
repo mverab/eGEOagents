@@ -1,0 +1,13 @@
+Current rewriting prompt:
+---
+{{current_prompt}}
+---
+
+Recent training batch results (summary):
+{{batch_summary}}
+
+Prompt history (most recent last):
+{{history}}
+
+Produce an improved prompt.
+Return ONLY JSON.

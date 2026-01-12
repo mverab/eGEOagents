@@ -1,0 +1,34 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Acme Analytics",
+  "description": "The #1 data platform trusted by 10,000+ teams. Transform complex data into actionable insights in minutes with real-time dashboards, one-click reports, and 200+ native integrations.",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "AggregateOffer",
+    "lowPrice": "99",
+    "highPrice": "299",
+    "priceCurrency": "USD",
+    "offerCount": "3"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "ratingCount": "2500",
+    "bestRating": "5"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Acme Inc",
+    "url": "https://acme-analytics.example.com"
+  },
+  "featureList": [
+    "Real-time dashboards",
+    "One-click reports",
+    "200+ native integrations",
+    "AI-powered report builder",
+    "SOC 2 compliance",
+    "24/7 support"
+  ]
+}

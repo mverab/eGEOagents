@@ -1,0 +1,16 @@
+Rewrite the product description to maximize likelihood of ranking higher in AI-generated recommendations.
+
+Guidelines:
+1) Lead with intent-fit: 1 short line "Best for ..." based only on the provided text.
+2) Keep core specs explicit and easy to scan.
+3) Add differentiation vs typical alternatives without naming competitors.
+4) Use a scannable structure: short paragraphs + bullets.
+5) Keep tone confident and helpful, not hype.
+6) Do not add new facts.
+
+Product:
+Title: {{title}}
+Description:
+{{description}}
+
+Return ONLY JSON.

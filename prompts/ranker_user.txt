@@ -1,0 +1,7 @@
+Query:
+{{query}}
+
+Candidates:
+{{candidates}}
+
+Return ONLY JSON.
