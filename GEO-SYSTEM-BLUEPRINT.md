@@ -59,11 +59,12 @@ README.md                        # Premium onboarding experience
 User: /geo https://mysite.com/pricing
 
 Claude orchestrates automatically:
-1. [analyzer] → Scrapes & analyzes current content
-2. [ranker]   → Simulates AI-engine ranking position
-3. [rewriter] → Rewrites with GEO optimizations
-4. [indexer]  → Generates schema markup
-5. [reporter] → Outputs beautiful report + files
+0. [validation-doctor] → Checks MCP setup (Brave/Chrome) and provides setup snippets if missing
+1. [analyzer] → Scrapes & analyzes current content (source of truth)
+2. [ranker]   → Simulates AI-engine ranking position based on analyzer output
+3. [rewriter] → Rewrites with GEO optimizations based on analyzer output
+4. [indexer]  → Generates schema markup based on analyzer output
+5. [reporter] → Outputs report + files based on analyzer output + validation status
 ```
 
 ### Command Variations
@@ -80,6 +81,24 @@ Claude orchestrates automatically:
 ---
 
 ## 4. Subagents Design
+
+### 4.0 Validation Layer (The Truth Engine)
+*Crucial: Replaces LLM simulation with deterministic validation.*
+
+**Policy:** Validate **always** using the best available tools. If Brave/Chrome are missing, fall back to available tools (e.g., `fetch`/raw HTML) and mark outputs as **Low Confidence**. Do not claim competitor rankings without Brave data.
+
+#### Market Validator (Brave Search MCP)
+- **Role:** Ground truth for "What actually ranks?"
+- **Action:** Fetches live SERPs for target keywords.
+- **Verification:** Compares generated content vs. real Top 3 competitors.
+
+#### Technical Validator (Chrome DevTools MCP)
+- **Role:** Ground truth for "How does it render?"
+- **Action:** 
+  - Captures DOM snapshot (what users actually see).
+  - Verifies structured data injection.
+  - Checks Core Web Vitals/Performance.
+  - Validates visual hierarchy (H1 > H2).
 
 ### 4.1 Analyzer Agent
 ```yaml
@@ -291,12 +310,14 @@ This project optimizes website content for AI-powered search engines (ChatGPT, P
 
 Leverage these MCP servers for enhanced capabilities:
 
-| MCP Server | Use Case |
-|------------|----------|
-| `fetch` | Scrape URLs for analysis |
-| `filesystem` | Batch process local files |
-| `brave-search` | Competitive research |
-| `puppeteer` | Full page rendering |
+| MCP Server | Use Case | Criticality |
+|------------|----------|-------------|
+| `brave-search` | Competitor "Ground Truth" | 🔴 HIGH |
+| `chrome-devtools` | DOM/Render Validation & Console Checks | 🔴 HIGH |
+| `fetch` | Simple text scraping | 🟡 MEDIUM |
+| `filesystem` | Batch process local files | 🟡 MEDIUM |
+
+> **Automation Note:** The `validation-doctor` skill will automate the setup check for these servers.
 
 ---
 

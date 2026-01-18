@@ -13,30 +13,34 @@ Execute full GEO optimization pipeline.
 
 ## Workflow
 
-1. **Analyze** - Extract and score current content
-2. **Rank** - Simulate baseline AI-engine ranking
-3. **Rewrite** - Optimize content with GEO features
-4. **Index** - Generate schema markup
-5. **Report** - Compile comprehensive results
+0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
+1. **Analyze** - Extract and score current content (source of truth)
+2. **Rank** - Simulate baseline AI-engine ranking based on analyzer output
+3. **Rewrite** - Optimize content using analyzer findings
+4. **Index** - Generate schema markup using analyzer findings
+5. **Report** - Compile results using analyzer output + validation status
 
 ## Execution
 
 ```
 Analyzing: $ARGUMENTS.target
 
-Step 1/5: Content Analysis
+Step 0/6: MCP Validation
+→ Running validation-doctor...
+
+Step 1/6: Content Analysis
 → Delegating to geo-analyzer...
 
-Step 2/5: Ranking Simulation  
+Step 2/6: Ranking Simulation  
 → Delegating to geo-ranker...
 
-Step 3/5: Content Optimization
+Step 3/6: Content Optimization
 → Delegating to geo-rewriter...
 
-Step 4/5: Schema Generation
+Step 4/6: Schema Generation
 → Delegating to geo-indexer...
 
-Step 5/5: Report Compilation
+Step 5/6: Report Compilation
 → Generating final report...
 ```
 

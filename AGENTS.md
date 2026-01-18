@@ -29,15 +29,29 @@ That's it. The system handles everything automatically.
 - JSON-LD for schema markup
 - YAML frontmatter for metadata
 
+## MCP Requirements
+
+For **fully validated** results (ground truth competitors + rendered DOM), use these MCP servers. If they're missing, the system should still run but must mark outputs as **Low Confidence**.
+
+| Server | Purpose | Criticality |
+|--------|---------|-------------|
+| `brave-search` | Market validation (competitor analysis) | 🔴 HIGH |
+| `chrome-devtools` | Technical validation (DOM/rendering) | 🔴 HIGH |
+
+Use the `validation-doctor` skill to check or install these dependencies.
+
 ## Agent Instructions
 
 ### When Optimizing Content
 
-1. Always analyze before rewriting
-2. Preserve brand voice and factual accuracy
-3. Apply the 10 GEO universal features
-4. Generate schema markup for all pages
-5. Provide before/after comparison
+1. **VALIDATE ALWAYS:** Use `brave-search` for competitor ground truth and `chrome-devtools` for rendered DOM when available.
+   - If missing, validate with available tools (e.g., `fetch`/raw HTML) and clearly label outputs as **Low Confidence**.
+   - Do not claim competitor rankings without Brave data.
+2. Always analyze before rewriting
+3. Preserve brand voice and factual accuracy
+4. Apply the 10 GEO universal features
+5. Generate schema markup for all pages
+6. Provide before/after comparison
 
 ### The 10 GEO Features
 
