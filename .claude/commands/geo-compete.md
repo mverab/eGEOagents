@@ -13,15 +13,16 @@ Competitive analysis for AI-engine rankings.
 
 ## Workflow
 
+0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
 1. **Query Analysis** - Understand user intent
-2. **Competitor Simulation** - Model typical competitors
+2. **Competitor Discovery** - Use Brave results when available; otherwise fallback to best-effort (Low Confidence)
 3. **Gap Analysis** - Identify differentiation opportunities
 4. **Strategy** - Recommend positioning
 
 ## Output
 
 Competitive analysis report:
-- Predicted top 5 results for query
+- Top results for query (Brave-backed; otherwise **Low Confidence**)
 - Strengths/weaknesses of each
 - Your positioning opportunities
 - Specific differentiation strategies

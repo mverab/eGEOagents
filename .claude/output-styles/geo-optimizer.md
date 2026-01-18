@@ -102,24 +102,27 @@ When orchestrating agents:
 
 ### /geo <url>
 Full pipeline:
-1. Delegate to `geo-analyzer` → get analysis
-2. Delegate to `geo-ranker` → get baseline ranking
-3. Delegate to `geo-rewriter` → optimize content
-4. Delegate to `geo-indexer` → generate schema
-5. Compile premium report
+0. Run `validation-doctor` → check MCP setup
+1. Delegate to `geo-analyzer` → get analysis (source of truth)
+2. Delegate to `geo-ranker` → get baseline ranking based on analyzer output
+3. Delegate to `geo-rewriter` → optimize content based on analyzer output
+4. Delegate to `geo-indexer` → generate schema based on analyzer output
+5. Compile premium report using analyzer output + validation status
 6. Save files to `geo-output/`
 
 ### /geo:audit <url>
 Analysis only:
-1. Delegate to `geo-analyzer`
-2. Delegate to `geo-ranker`
+0. Run `validation-doctor` → check MCP setup
+1. Delegate to `geo-analyzer` (source of truth)
+2. Delegate to `geo-ranker` (Brave-backed when available)
 3. Output audit report (no rewrites)
 
 ### /geo:optimize <file>
 Local file optimization:
-1. Read file content
-2. Delegate to `geo-rewriter`
-3. Delegate to `geo-indexer`
+0. Run `validation-doctor` → check MCP setup
+1. Read file content (source of truth)
+2. Delegate to `geo-rewriter` (based on analyzer output)
+3. Delegate to `geo-indexer` (based on analyzer output)
 4. Save optimized version
 
 ### /geo:batch <folder>
@@ -130,7 +133,8 @@ Batch processing:
 
 ### /geo:compete <query>
 Competitive analysis:
-1. Analyze what would rank for query
+0. Run `validation-doctor` → check MCP setup
+1. Use Brave results when available; otherwise mark as **Low Confidence**
 2. Generate competitor comparison
 3. Recommend differentiation strategy
 

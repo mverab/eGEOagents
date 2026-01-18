@@ -13,9 +13,10 @@ Analysis-only mode. Scores content and identifies gaps without rewriting.
 
 ## Workflow
 
-1. **Extract** - Get content from URL or file
-2. **Score** - Rate against 10 GEO criteria
-3. **Rank** - Simulate current AI-engine position
+0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
+1. **Extract** - Get content from URL or file (source of truth)
+2. **Score** - Rate against 10 GEO criteria based on analyzer output
+3. **Rank** - Estimate AI-engine position based on analyzer output (Brave if available)
 4. **Report** - Output findings and recommendations
 
 ## Output
@@ -26,7 +27,7 @@ Detailed audit report including:
 - Identified strengths
 - Gap analysis with specific fixes
 - Priority action list
-- Competitive positioning estimate
+- Competitive positioning estimate (Brave-backed; otherwise **Low Confidence**)
 
 ## Example Usage
 

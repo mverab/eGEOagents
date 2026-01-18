@@ -16,8 +16,9 @@ Batch process all content files in a folder.
 
 ## Workflow
 
+0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
 1. **Scan** - Find all matching files in folder
-2. **Process** - Run optimization on each file
+2. **Process** - Run `/geo:optimize` on each file (analyzer-based)
 3. **Summarize** - Generate batch report
 
 ## Output

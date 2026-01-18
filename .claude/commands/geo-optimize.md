@@ -13,9 +13,10 @@ Quick optimization of local content files.
 
 ## Workflow
 
-1. **Read** - Load file content
-2. **Rewrite** - Apply GEO optimization
-3. **Schema** - Generate appropriate markup
+0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
+1. **Analyze** - Read and score file content (source of truth)
+2. **Rewrite** - Apply GEO optimization based on analyzer output
+3. **Schema** - Generate appropriate markup based on analyzer output
 4. **Save** - Output optimized version
 
 ## Output
