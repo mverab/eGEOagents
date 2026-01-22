@@ -1,0 +1,14 @@
+/.claude
+/.windsurf
+/docs
+#openspec
+/geo-output/*
+!/geo-output/.gitkeep
+!/geo-output/README.txt
+!/geo-output/report.md
+!/geo-output/optimized/
+/geo-output/optimized/*
+!/geo-output/optimized/aiflowork-com-optimized.md
+!/geo-output/schema/
+/geo-output/schema/*
+!/geo-output/schema/IMPLEMENTATION.md
