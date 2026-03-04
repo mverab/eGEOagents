@@ -1,6 +1,6 @@
 ---
 name: schema-generator
-description: Generate structured data and schema markup for content. Triggers on "schema", "structured data", "JSON-LD", "markup", "rich snippets", "generate schema".
+description: Generate JSON-LD schema markup for pages and content types with an implementation checklist. Use when users ask for schema, structured data, rich snippets, or markup.
 ---
 
 # Schema Generator Skill

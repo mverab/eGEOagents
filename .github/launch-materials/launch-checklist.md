@@ -9,13 +9,13 @@ Use this checklist to ensure everything is ready for the E-GEO launch.
 ### Repository Setup
 - [ ] Repository description set (60 chars max)
   ```
-  Zero-effort Generative Engine Optimization. Rank higher in ChatGPT, Perplexity, Claude, and Gemini with one command. Based on published research.
+  Generative Engine Optimization skills for AI agents. Optimize content for ChatGPT, Perplexity, Claude, and Gemini.
   ```
 - [ ] Topics configured (8-10 relevant tags)
   ```
-  geo, generative-engine-optimization, ai-search, chatgpt-optimization, perplexity, claude, llm, content-optimization, seo, schema-markup
+  geo, generative-engine-optimization, ai-search, agent-skills, claude-code, codex, cursor, windsurf, llm, content-optimization, schema-markup
   ```
-- [ ] About URL configured (arXiv paper link)
+- [ ] About URL configured (skills.sh source page)
 - [ ] Discussions enabled
 - [ ] Social preview image uploaded
 

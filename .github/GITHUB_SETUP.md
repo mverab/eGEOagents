@@ -11,7 +11,7 @@ The following actions must be completed manually on GitHub:
 **Settings → General → Description**
 
 ```
-Zero-effort Generative Engine Optimization. Rank higher in ChatGPT, Perplexity, Claude, and Gemini with one command. Based on published research.
+Generative Engine Optimization skills for AI agents. Optimize content for ChatGPT, Perplexity, Claude, and Gemini.
 ```
 
 ### 2. Repository Topics
@@ -19,7 +19,7 @@ Zero-effort Generative Engine Optimization. Rank higher in ChatGPT, Perplexity, 
 **Settings → General → Topics** (Add 8-10 topics)
 
 ```
-geo, generative-engine-optimization, ai-search, chatgpt-optimization, perplexity, claude, llm, content-optimization, seo, schema-markup
+geo, generative-engine-optimization, ai-search, agent-skills, claude-code, codex, cursor, windsurf, llm, content-optimization, schema-markup
 ```
 
 ### 3. Website URL
@@ -27,7 +27,7 @@ geo, generative-engine-optimization, ai-search, chatgpt-optimization, perplexity
 **Settings → General → Website**
 
 ```
-https://arxiv.org/abs/2511.20867
+https://skills.sh/mverab/egeoagents
 ```
 
 ### 4. Enable Discussions
@@ -47,7 +47,7 @@ E-GEO: Generative Engine Optimization
 **Settings → About → Description**
 
 ```
-🌍 Zero-effort Generative Engine Optimization for AI-powered search engines. Optimize your content for ChatGPT, Perplexity, Claude, and Gemini with one command. Based on published research (arXiv:2511.20867).
+🌍 Generative Engine Optimization skills for AI agents. Optimize content for ChatGPT, Perplexity, Claude, and Gemini with practical command workflows.
 ```
 
 ### 6. Social Image
@@ -72,6 +72,22 @@ gh release create v1.0.0 --title "v1.0.0: Initial Release" --notes-file .github/
 
 Or manually create on GitHub: **Releases → Draft a new release**
 
+## GitHub CLI Shortcuts
+
+Set description and website:
+
+```bash
+gh repo edit mverab/eGEOagents \
+  --description "Generative Engine Optimization skills for AI agents. Optimize content for ChatGPT, Perplexity, Claude, and Gemini." \
+  --homepage "https://skills.sh/mverab/egeoagents"
+```
+
+Set topics:
+
+```bash
+gh repo edit mverab/eGEOagents --add-topic geo --add-topic generative-engine-optimization --add-topic ai-search --add-topic agent-skills --add-topic claude-code --add-topic codex --add-topic cursor --add-topic windsurf --add-topic llm --add-topic content-optimization --add-topic schema-markup
+```
+
 ---
 
 ## Topics Breakdown
@@ -81,12 +97,13 @@ Or manually create on GitHub: **Releases → Draft a new release**
 | `geo` | Primary category |
 | `generative-engine-optimization` | Full keyword |
 | `ai-search` | AI search optimization |
-| `chatgpt-optimization` | ChatGPT targeting |
-| `perplexity` | Perplexity AI |
-| `claude` | Anthropic Claude |
+| `agent-skills` | Agent skills ecosystem signal |
+| `claude-code` | Claude Code discoverability |
+| `codex` | OpenAI Codex discoverability |
+| `cursor` | Cursor discoverability |
+| `windsurf` | Windsurf discoverability |
 | `llm` | Large Language Models |
 | `content-optimization` | Content strategy |
-| `seo` | Related to SEO |
 | `schema-markup` | Technical SEO |
 
 ---
@@ -97,7 +114,7 @@ Before making the repository public:
 
 - [ ] Repository description set (60 chars max)
 - [ ] Topics configured (8-10 relevant tags)
-- [ ] About URL configured (arXiv paper link)
+- [ ] About URL configured (skills.sh source page)
 - [ ] Discussions enabled
 - [ ] Release v1.0.0 published
 - [ ] README badges link to correct repository

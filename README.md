@@ -11,9 +11,9 @@
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
-  <a href="https://github.com/mverab/egeo-claude-agents/stargazers"><img src="https://img.shields.io/github/stars/mverab/egeo-claude-agents?style=social" alt="GitHub Stars" /></a>
-  <a href="https://github.com/mverab/egeo-claude-agents/network/members"><img src="https://img.shields.io/github/forks/mverab/egeo-claude-agents?style=social" alt="GitHub Forks" /></a>
-  <a href="https://github.com/mverab/egeo-claude-agents/issues"><img src="https://img.shields.io/github/issues/mverab/egeo-claude-agents" alt="Issues" /></a>
+  <a href="https://github.com/mverab/eGEOagents/stargazers"><img src="https://img.shields.io/github/stars/mverab/eGEOagents?style=social" alt="GitHub Stars" /></a>
+  <a href="https://github.com/mverab/eGEOagents/network/members"><img src="https://img.shields.io/github/forks/mverab/eGEOagents?style=social" alt="GitHub Forks" /></a>
+  <a href="https://github.com/mverab/eGEOagents/issues"><img src="https://img.shields.io/github/issues/mverab/eGEOagents" alt="Issues" /></a>
   <a href="https://arxiv.org/abs/2511.20867"><img src="https://img.shields.io/badge/arXiv-2511.20867-b31b1b.svg" alt="Research Paper" /></a>
 </p>
 
@@ -29,7 +29,7 @@
 
 <br />
 
-[**📖 Docs**](docs/getting-started.md) • [**🐛 Issues**](https://github.com/mverab/egeo-claude-agents/issues) • [**💬 Discussions**](https://github.com/mverab/egeo-claude-agents/discussions) • [**📝 Research Paper**](https://arxiv.org/abs/2511.20867)
+[**📖 Docs**](docs/getting-started.md) • [**🐛 Issues**](https://github.com/mverab/eGEOagents/issues) • [**💬 Discussions**](https://github.com/mverab/eGEOagents/discussions) • [**📝 Research Paper**](https://arxiv.org/abs/2511.20867)
 
 ---
 
@@ -87,7 +87,7 @@ geo-output/
 Copy the `.claude/` folder to your project:
 
 ```bash
-cp -r /path/to/egeo-claude-agents/.claude .
+cp -r /path/to/eGEOagents/.claude .
 ```
 
 ### 2. Activate
@@ -105,6 +105,33 @@ Run your first optimization:
 ```
 /geo https://yoursite.com
 ```
+
+---
+
+## 🧩 Install as Skills (skills.sh)
+
+Install the complete skill collection:
+
+```bash
+npx skills add https://github.com/mverab/eGEOagents
+```
+
+Install one skill only:
+
+```bash
+npx skills add https://github.com/mverab/eGEOagents --skill competitive-analysis
+```
+
+Validate parser discovery before shipping updates:
+
+```bash
+npx skills add https://github.com/mverab/eGEOagents --list
+```
+
+Verify indexing pages:
+
+- Collection: [skills.sh/mverab/egeoagents](https://skills.sh/mverab/egeoagents)
+- Owner: [skills.sh/mverab](https://skills.sh/mverab)
 
 ---
 
@@ -281,6 +308,7 @@ E-GEO uses **4 specialized AI agents** orchestrated by Claude Code:
 | 📖 **[Getting Started](docs/getting-started.md)** | Step-by-step tutorial |
 | ⚙️ **[How It Works](docs/how-it-works.md)** | Technical deep dive |
 | ❓ **[FAQ](docs/faq.md)** | Common questions answered |
+| 🧩 **[skills.sh Playbook](docs/skills-sh-playbook.md)** | Listing, ranking, and metadata checklist |
 | 📝 **[Usage Guide](USAGE.md)** | Complete command reference |
 | 📝 **[Research Paper](https://arxiv.org/abs/2511.20867)** | The science behind E-GEO |
 
@@ -291,7 +319,7 @@ E-GEO uses **4 specialized AI agents** orchestrated by Claude Code:
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 **Quick ways to contribute:**
-- Report bugs via [issues](https://github.com/mverab/egeo-claude-agents/issues)
+- Report bugs via [issues](https://github.com/mverab/eGEOagents/issues)
 - Submit pull requests for features
 - Improve documentation
 - Share your GEO results
@@ -306,8 +334,8 @@ MIT License - use it, modify it, sell with it. See [LICENSE](LICENSE) for detail
 
 ## 🙋 Support & Community
 
-- **Issues:** [GitHub Issues](https://github.com/mverab/egeo-claude-agents/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/mverab/egeo-claude-agents/discussions)
+- **Issues:** [GitHub Issues](https://github.com/mverab/eGEOagents/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/mverab/eGEOagents/discussions)
 - **Research:** [E-GEO Paper (arXiv:2511.20867)](https://arxiv.org/abs/2511.20867)
 
 ---
@@ -318,7 +346,7 @@ MIT License - use it, modify it, sell with it. See [LICENSE](LICENSE) for detail
 
 ```bash
 # Install
-cp -r egeo-claude-agents/.claude .
+cp -r eGEOagents/.claude .
 
 # Activate (in Claude Code)
 /output-style geo-optimizer
@@ -329,7 +357,7 @@ cp -r egeo-claude-agents/.claude .
 
 <br />
 
-<a href="https://github.com/mverab/egeo-claude-agents">
+<a href="https://github.com/mverab/eGEOagents">
   <img src="https://img.shields.io/badge/⭐-Star%20on%20GitHub-yellow?style=for-the-badge&logo=github" alt="Star on GitHub" />
 </a>
 

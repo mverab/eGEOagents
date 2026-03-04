@@ -1,6 +1,6 @@
 ---
 name: competitive-analysis
-description: Analyze how competitors would rank in AI search results for a given topic or query. Triggers on "analyze competition", "competitor analysis", "what ranks for", "who would rank", "competitive landscape".
+description: Analyze AI-search competitors for a query and recommend ranking strategy. Use when users ask competitor analysis, who ranks, or competitive landscape.
 ---
 
 # Competitive Analysis Skill

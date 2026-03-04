@@ -1,6 +1,6 @@
 ---
 name: content-scoring
-description: Score content against GEO optimization criteria. Triggers on "score this", "rate content", "GEO score", "how does this rank", "evaluate content", "content score".
+description: Score content against the 10 GEO criteria with evidence and prioritized fixes. Use when users ask to score, rate, evaluate, or estimate ranking strength.
 ---
 
 # Content Scoring Skill

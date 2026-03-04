@@ -1,6 +1,6 @@
 ---
 name: validation-doctor
-description: Diagnose MCP validation dependencies (Brave Search, Chrome DevTools) and output exact setup snippets.
+description: Check Brave Search and Chrome DevTools MCP availability and provide exact setup snippets. Use when validation dependencies are missing or uncertain.
 ---
 
 # Validation Doctor
