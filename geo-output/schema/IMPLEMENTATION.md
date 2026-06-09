@@ -206,7 +206,7 @@ const reviews = customerReviews.map(r => ({ // From reviews API
 
 ## File Locations
 
-All schema files: `/Users/mverab/egeo-claude-agents/geo-output/schema/`
+All schema files: `/Users/mverab/eGEOagents/geo-output/schema/`
 
 Upload to your web server at: `https://aiflowork.com/schema/`
 
