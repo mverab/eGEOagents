@@ -14,11 +14,12 @@ Execute full GEO optimization pipeline.
 ## Workflow
 
 0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
-1. **Analyze** - Extract and score current content (source of truth)
-2. **Rank** - Simulate baseline AI-engine ranking based on analyzer output
-3. **Rewrite** - Optimize content using analyzer findings
-4. **Index** - Generate schema markup using analyzer findings
-5. **Report** - Compile results using analyzer output + validation status
+1. **Frontmatter Detection** - If the target is a local file containing frontmatter (YAML/TOML blocks), extract and preserve it completely unchanged. Only pass the remaining body content to the analyzer and rewriter.
+2. **Analyze** - Extract and score current content body (source of truth)
+3. **Rank** - Simulate baseline AI-engine ranking based on analyzer output
+4. **Rewrite** - Optimize content using analyzer findings. If the target was a local file with frontmatter, prepend the original unmodified frontmatter block to the optimized content body when saving.
+5. **Index** - Generate schema markup using analyzer findings
+6. **Report** - Compile results using analyzer output + validation status
 
 ## Execution
 
