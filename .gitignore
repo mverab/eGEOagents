@@ -1,6 +1,5 @@
 /.claude
 /.windsurf
-/docs
 #openspec
 /geo-output/*
 !/geo-output/.gitkeep

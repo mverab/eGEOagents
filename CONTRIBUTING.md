@@ -60,8 +60,8 @@ We welcome AI-assisted contributions! When submitting PRs:
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/mverab/egeo-claude-agents.git
-   cd egeo-claude-agents
+   git clone https://github.com/mverab/eGEOagents.git
+   cd eGEOagents
    ```
 3. Create a virtual environment:
    ```bash
@@ -171,7 +171,7 @@ docs/
 ## Getting Help
 
 - **Documentation:** Start with [README.md](README.md) and [docs/](docs/)
-- **Issues:** Search [existing issues](https://github.com/mverab/egeo-claude-agents/issues)
+- **Issues:** Search [existing issues](https://github.com/mverab/eGEOagents/issues)
 - **Discussions:** Use GitHub Discussions for questions
 - **Research:** Read the E-GEO paper for methodology context
 

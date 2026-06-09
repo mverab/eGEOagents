@@ -27,8 +27,10 @@ E-GEO Open Source Launch - QA Verification
 | GitHub Discussions | Repository link | ✅ Valid |
 
 ### Action Items
-- [ ] Replace placeholder `YOUR_USERNAME` in CONTRIBUTING.md with actual username
-- [ ] Verify GitHub repository URLs before launch
+- [x] Fix links to old repo slug (`egeo-claude-agents`) in CONTRIBUTING.md, release notes, and launch materials
+- [x] Create docs/ directory with getting-started.md, how-it-works.md, faq.md, skills-sh-playbook.md
+- [ ] Create GitHub Release v1.0.0
+- [ ] Create 5 "good first issue" issues on GitHub
 
 ---
 
@@ -153,9 +155,10 @@ Schema examples exist in `geo-output/schema/IMPLEMENTATION.md`
 - [ ] Add topics to repository (8-10 from GITHUB_SETUP.md)
 - [ ] Configure About section with arXiv URL
 - [ ] Enable Discussions
+- [x] Create docs/ directory with all referenced files
 - [ ] Create Release v1.0.0 using release notes
 - [ ] Create 5 "good first issue" issues from template
-- [ ] Replace `YOUR_USERNAME` placeholders with actual username
+- [x] Fix all links to old repo slug (`egeo-claude-agents`)
 
 ### Before Launch
 - [ ] Test Quick Start on clean machine
