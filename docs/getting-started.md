@@ -18,13 +18,12 @@
 
 ```bash
 git clone https://github.com/mverab/eGEOagents.git
-cd eGEOagents
 ```
 
 Copy the `.claude/` folder to your project:
 
 ```bash
-cp -r eGEOagents/.claude .
+cp -r eGEOagents/.claude /path/to/your/project
 ```
 
 ### Option 2: Install as skills (skills.sh)

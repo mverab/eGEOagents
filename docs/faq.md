@@ -96,7 +96,7 @@ Currently:
 - `Product`
 - `FAQPage`
 
-More types are planned. See [Issue #1](https://github.com/mverab/eGEOagents/issues) for contributing new schema types.
+More types are planned. See [GitHub Issues](https://github.com/mverab/eGEOagents/issues) to request or contribute new schema types.
 
 ### Where do I put the generated schema?
 
