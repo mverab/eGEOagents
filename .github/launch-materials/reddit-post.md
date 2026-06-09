@@ -50,7 +50,7 @@ E-GEO implements the research as 4 specialized AI agents:
 - Works with Claude Code
 - No fabrication policy (no fake stats/testimonials)
 
-GitHub: https://github.com/mverab/egeo-claude-agents
+GitHub: https://github.com/mverab/eGEOagents
 
 ## Discussion
 

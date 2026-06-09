@@ -81,7 +81,7 @@ Same facts. Optimized for AI engines.
 
 📚 Full documentation + research citations
 
-GitHub: https://github.com/mverab/egeo-claude-agents
+GitHub: https://github.com/mverab/eGEOagents
 
 ## Tweet 8 (CTA)
 

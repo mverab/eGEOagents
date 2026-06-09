@@ -31,7 +31,7 @@ It's based on published research (arXiv:2511.20867) identifying 10 universal fea
 
 **Open source**, MIT licensed, works with Claude Code.
 
-GitHub: https://github.com/mverab/egeo-claude-agents
+GitHub: https://github.com/mverab/eGEOagents
 
 What do you think? Is GEO the next SEO?
 
