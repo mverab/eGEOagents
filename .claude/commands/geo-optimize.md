@@ -35,6 +35,6 @@ Quick optimization of local content files.
 
 ```
 /geo:optimize ./content/homepage.md
-/geo:optimize ./content/homepage.md --format html
-/geo:optimize ./blog/new-post.md --format markdown
+/geo:optimize ./content/homepage.md html
+/geo:optimize ./blog/new-post.md markdown
 ```

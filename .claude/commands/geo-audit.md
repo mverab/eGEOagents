@@ -14,7 +14,7 @@ Analysis-only mode. Scores content and identifies gaps without rewriting.
 ## Workflow
 
 0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
-1. **Extract** - Get content from URL or file (source of truth)
+1. **Extract** - Get content from URL or file (source of truth). If the target is a local file with frontmatter (YAML/TOML), ignore the frontmatter block when analyzing and scoring.
 2. **Score** - Rate against 10 GEO criteria based on analyzer output
 3. **Rank** - Estimate AI-engine position based on analyzer output (Brave if available)
 4. **Report** - Output findings and recommendations

@@ -14,7 +14,7 @@ Execute full GEO optimization pipeline.
 ## Workflow
 
 0. **Validate MCPs** - Run `validation-doctor`; if missing, provide setup snippets
-1. **Frontmatter Detection** - If the target is a local file containing frontmatter (YAML/TOML blocks), extract and preserve it completely unchanged. Only pass the remaining body content to the analyzer and rewriter.
+1. **Frontmatter Extraction** - If the target is a local file containing frontmatter (YAML/TOML blocks), extract and preserve it completely unchanged. Only pass the remaining body content to the analyzer and rewriter.
 2. **Analyze** - Extract and score current content body (source of truth)
 3. **Rank** - Simulate baseline AI-engine ranking based on analyzer output
 4. **Rewrite** - Optimize content using analyzer findings. If the target was a local file with frontmatter, prepend the original unmodified frontmatter block to the optimized content body when saving.
@@ -26,22 +26,25 @@ Execute full GEO optimization pipeline.
 ```
 Analyzing: $ARGUMENTS.target
 
-Step 0/6: MCP Validation
+Step 0/7: MCP Validation
 → Running validation-doctor...
 
-Step 1/6: Content Analysis
+Step 1/7: Frontmatter Extraction
+→ Extracting and preserving frontmatter if present...
+
+Step 2/7: Content Analysis
 → Delegating to geo-analyzer...
 
-Step 2/6: Ranking Simulation  
+Step 3/7: Ranking Simulation
 → Delegating to geo-ranker...
 
-Step 3/6: Content Optimization
+Step 4/7: Content Optimization
 → Delegating to geo-rewriter...
 
-Step 4/6: Schema Generation
+Step 5/7: Schema Generation
 → Delegating to geo-indexer...
 
-Step 5/6: Report Compilation
+Step 6/7: Report Compilation
 → Generating final report...
 ```
 
@@ -50,7 +53,7 @@ Step 5/6: Report Compilation
 Save results to `geo-output/` folder:
 - `report.md` - Executive summary with scores
 - `analysis.json` - Raw analysis data
-- `optimized/[name].md` - Rewritten content
+- `optimized/[name].[ext]` - Rewritten content (`.md` or `.html` depending on format)
 - `schema/[name].json` - JSON-LD markup
 - `checklist.md` - Implementation steps
 
