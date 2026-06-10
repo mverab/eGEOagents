@@ -22,7 +22,7 @@ For URLs, extract:
 - Existing schema markup
 - Key phrases and topics
 
-For files, read and parse the content directly.
+For files, read and parse the content directly. If the file contains frontmatter (YAML/TOML headers), ignore the frontmatter block when analyzing and scoring the body content.
 
 ### 2. GEO Signal Detection
 Score each of the 10 GEO features (0-10):

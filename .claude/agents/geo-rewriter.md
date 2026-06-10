@@ -28,6 +28,7 @@ Transform content to rank higher in AI-powered search engines while preserving b
 - All factual claims (verify or flag if uncertain)
 - Core messaging and value proposition
 - Existing keywords and SEO elements
+- Existing markdown frontmatter (YAML/TOML headers); do not modify, strip, or rewrite them. (In the standard pipeline, frontmatter is extracted before content reaches this agent, but preserve it if encountered.)
 
 ### Must Avoid
 - Fabricating statistics or testimonials
