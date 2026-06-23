@@ -154,8 +154,8 @@ Select appropriate schema type based on content:
   "url": "",
   "logo": "",
   "sameAs": [
-    "https://www.linkedin.com/company/",
-    "https://twitter.com/"
+    "",
+    ""
   ],
   "address": {
     "@type": "PostalAddress",
@@ -168,7 +168,8 @@ Select appropriate schema type based on content:
   "contactPoint": {
     "@type": "ContactPoint",
     "contactType": "customer service",
-    "email": ""
+    "email": "",
+    "telephone": ""
   }
 }
 ```
