@@ -144,6 +144,36 @@ Select appropriate schema type based on content:
 }
 ```
 
+### Organization / Company
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "",
+  "description": "",
+  "url": "",
+  "logo": "",
+  "sameAs": [
+    "",
+    ""
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "",
+    "addressLocality": "",
+    "addressRegion": "",
+    "postalCode": "",
+    "addressCountry": ""
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer service",
+    "email": "",
+    "telephone": ""
+  }
+}
+```
+
 ## Rules
 - Always output valid JSON-LD
 - Include implementation instructions
