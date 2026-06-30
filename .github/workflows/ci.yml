@@ -74,3 +74,19 @@ jobs:
             --dataset eval/datasets/geo_smoke.jsonl \
             --limit 5 \
             --verbose
+
+      # 6. Smoke test the standalone `egeo` runtime CLI (MOCK client, offline)
+      - name: Smoke test egeo CLI (MOCK client)
+        env:
+          GEO_EVAL_MOCK: "1"
+        run: |
+          # List runtime adapters (python/cli + claude-code descriptor)
+          python -m egeo runtimes
+          # evaluate must reuse geo_eval.py and produce identical results
+          python -m egeo evaluate \
+            --dataset eval/datasets/geo_smoke.jsonl \
+            --limit 3
+          # Full optimize pipeline -> writes report + optimized content + schema
+          python -m egeo optimize examples/sample-input.md --out-dir /tmp/egeo-smoke
+          # The emitted JSON-LD must validate with the same checker used above
+          python scripts/validate_jsonld.py /tmp/egeo-smoke/schema/*.json
