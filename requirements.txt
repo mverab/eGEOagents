@@ -1,0 +1,5 @@
+# Python dependencies for the eGEOagents quality gates & evaluation harness.
+# Used by CI (.github/workflows/ci.yml, qa-monthly.yml) and local development.
+
+pyyaml>=6.0        # SKILL.md frontmatter parsing (scripts/validate_skills.py)
+jsonschema>=4.0    # JSON-LD envelope validation (scripts/validate_jsonld.py)

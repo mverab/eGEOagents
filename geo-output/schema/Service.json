@@ -1,0 +1,35 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": "[FILL: service name]",
+  "description": "[FILL: GEO-optimized description of the service and the outcome it delivers]",
+  "serviceType": "[FILL: e.g. GEO consulting]",
+  "provider": {
+    "@type": "Organization",
+    "name": "[FILL: provider name]",
+    "url": "[FILL: https://example.com]"
+  },
+  "areaServed": {
+    "@type": "Country",
+    "name": "[FILL: Worldwide]"
+  },
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "[FILL: catalog name]",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "[FILL: sub-service name]"
+        }
+      }
+    ]
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "[FILL: 4.9]",
+    "reviewCount": "[FILL: 80]",
+    "bestRating": "5"
+  }
+}

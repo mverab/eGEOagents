@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+    branches: [main, "release/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # 1. Validate SKILL.md frontmatter (name, description, unique names)
+      - name: Validate SKILL.md frontmatter
+        run: python scripts/validate_skills.py --root .
+
+      # 2. Validate JSON-LD templates shipped in geo-output/schema/
+      - name: Validate JSON-LD schema templates
+        run: python scripts/validate_jsonld.py --dir geo-output/schema
+
+      # 2b. Validate the example JSON-LD output used in docs/README
+      - name: Validate example JSON-LD output
+        run: python scripts/validate_jsonld.py examples/sample-output-schema.json
+
+      # 3. Link-check: fail if the deprecated repo slug reappears anywhere
+      - name: Link check (no deprecated repo slug)
+        run: |
+          echo "Scanning markdown for deprecated slug 'egeo-claude-agents' in links/URLs..."
+          # Only fail on actual link targets or URLs, not prose that *describes*
+          # the deprecated slug (e.g. changelog/spec notes about removing it).
+          if grep -rInE --include='*.md' '(https?://[^ )"]*egeo-claude-agents|\]\([^)]*egeo-claude-agents)' .; then
+            echo "::error::Found link(s) to the deprecated slug 'egeo-claude-agents'. Use 'eGEOagents'."
+            exit 1
+          fi
+          echo "No deprecated slug links found."
+
+      # 4. Smoke test the skills.sh parser (non-blocking: external network/tool)
+      - name: Smoke test skills.sh parser (non-blocking)
+        continue-on-error: true
+        run: |
+          echo "Listing skills via npx skills parser (best-effort, non-blocking)..."
+          npx --yes skills add https://github.com/mverab/eGEOagents --list || \
+            echo "::warning::skills parser smoke test failed or was unavailable (non-blocking)."
+
+      # 5. Run evaluate with the deterministic MOCK client (no API key needed)
+      - name: Evaluate harness (MOCK client)
+        env:
+          GEO_EVAL_MOCK: "1"
+        run: |
+          python geo_eval.py evaluate \
+            --dataset eval/datasets/geo_smoke.jsonl \
+            --limit 5 \
+            --verbose

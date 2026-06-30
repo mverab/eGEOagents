@@ -10,6 +10,7 @@
 ### **Generative Engine Optimization** for AI-Powered Search
 
 <p>
+  <a href="https://github.com/mverab/eGEOagents/actions/workflows/ci.yml"><img src="https://github.com/mverab/eGEOagents/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
   <a href="https://github.com/mverab/eGEOagents/stargazers"><img src="https://img.shields.io/github/stars/mverab/eGEOagents?style=social" alt="GitHub Stars" /></a>
   <a href="https://github.com/mverab/eGEOagents/network/members"><img src="https://img.shields.io/github/forks/mverab/eGEOagents?style=social" alt="GitHub Forks" /></a>
@@ -182,6 +183,31 @@ Results vary by content quality and competition. See the paper for full methodol
 
 ---
 
+## 🧪 Reproducible Results
+
+E-GEO ships an evaluation harness so you can measure prompt quality yourself —
+no trust required. It scores whether the GEO rewriter moves a target item *up*
+in an LLM-simulated ranking.
+
+```bash
+pip install pyyaml jsonschema
+
+# Deterministic, offline smoke run (no API key needed)
+GEO_EVAL_MOCK=1 python geo_eval.py evaluate \
+  --dataset eval/datasets/geo_smoke.jsonl --limit 5 --verbose
+```
+
+This is the exact check that runs in [CI](.github/workflows/ci.yml) on every
+pull request. Reported metrics: `avg_rank_improvement`, `win_rate`, and
+`stderr_rank_improvement`.
+
+> **Honest scope:** these numbers are a **proxy** produced by an LLM-ranker, not
+> a measurement of real ChatGPT/Perplexity rankings. See
+> **[docs/evaluation.md](docs/evaluation.md)** for the full methodology,
+> metric definitions, and limitations.
+
+---
+
 ## 🆚 E-GEO vs Alternatives
 
 | Feature | E-GEO | Traditional SEO | Manual GEO |
@@ -309,6 +335,7 @@ E-GEO uses **4 specialized AI agents** orchestrated by Claude Code:
 | ⚙️ **[How It Works](docs/how-it-works.md)** | Technical deep dive |
 | ❓ **[FAQ](docs/faq.md)** | Common questions answered |
 | 🧩 **[skills.sh Playbook](docs/skills-sh-playbook.md)** | Listing, ranking, and metadata checklist |
+| 🧪 **[Evaluation Harness](docs/evaluation.md)** | Dataset format, commands, metrics, and honest limitations |
 | 📝 **[Usage Guide](USAGE.md)** | Complete command reference |
 | 📝 **[Research Paper](https://arxiv.org/abs/2511.20867)** | The science behind E-GEO |
 

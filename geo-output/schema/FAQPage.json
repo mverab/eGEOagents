@@ -1,0 +1,22 @@
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "[FILL: question users actually ask, phrased naturally]",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "[FILL: concise, factual answer optimized for AI extraction]"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "[FILL: second question]",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "[FILL: second answer]"
+      }
+    }
+  ]
+}

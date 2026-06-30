@@ -1,0 +1,93 @@
+name: QA Monthly
+
+# Monthly quality gate aligned with the skills-visibility "Ongoing QA Gate":
+# parser validation, dead-link scan, metadata completeness, and release/tag freshness.
+on:
+  schedule:
+    # 09:00 UTC on the 1st of every month
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  monthly-qa:
+    name: Monthly QA Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # 1. Parser validation (best-effort against the external skills CLI)
+      - name: Parser validation (skills.sh)
+        continue-on-error: true
+        run: |
+          echo "Validating skills.sh parser discovery..."
+          npx --yes skills add https://github.com/mverab/eGEOagents --list || \
+            echo "::warning::skills parser validation failed or unavailable (non-blocking)."
+
+      # Also validate frontmatter locally so the gate is meaningful even offline
+      - name: Validate SKILL.md frontmatter
+        run: python scripts/validate_skills.py --root .
+
+      # 2. Dead-link scan across markdown
+      - name: Scan for dead / deprecated links
+        run: |
+          echo "Scanning for deprecated repo slug in links/URLs..."
+          if grep -rInE --include='*.md' '(https?://[^ )"]*egeo-claude-agents|\]\([^)]*egeo-claude-agents)' .; then
+            echo "::error::Deprecated slug 'egeo-claude-agents' found in a link/URL."
+            exit 1
+          fi
+          echo "Scanning relative markdown links for missing targets..."
+          missing=0
+          while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            # Extract markdown link targets, keep only local relative paths
+            grep -oE '\]\(([^)]+)\)' "$file" | sed -E 's/^\]\(([^)]+)\)$/\1/' | while read -r target; do
+              case "$target" in
+                http*|\#*|mailto:*) continue ;;
+              esac
+              clean="${target%%#*}"
+              [ -z "$clean" ] && continue
+              if [ ! -e "$dir/$clean" ] && [ ! -e "$clean" ]; then
+                echo "::warning file=$file::missing link target '$target'"
+              fi
+            done
+          done < <(find . -name '*.md' -not -path './.git/*' -print0)
+          echo "Dead-link scan complete."
+
+      # 3. Metadata completeness: JSON-LD templates must validate
+      - name: Validate JSON-LD metadata completeness
+        run: python scripts/validate_jsonld.py --dir geo-output/schema
+
+      # 4. Release / tag freshness report (non-blocking advisory)
+      - name: Release & tag freshness
+        continue-on-error: true
+        run: |
+          echo "Most recent tags:"
+          git tag --sort=-creatordate | head -5 || echo "No tags found."
+          latest_tag=$(git tag --sort=-creatordate | head -1)
+          if [ -z "$latest_tag" ]; then
+            echo "::warning::No git tags found. Publish a semantic version tag."
+          else
+            tag_date=$(git log -1 --format=%ci "$latest_tag" 2>/dev/null || echo "")
+            echo "Latest tag: $latest_tag ($tag_date)"
+          fi

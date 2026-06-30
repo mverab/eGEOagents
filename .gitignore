@@ -11,3 +11,11 @@
 !/geo-output/schema/
 /geo-output/schema/*
 !/geo-output/schema/IMPLEMENTATION.md
+!/geo-output/schema/Organization.json
+!/geo-output/schema/Product.json
+!/geo-output/schema/Service.json
+!/geo-output/schema/Article.json
+!/geo-output/schema/FAQPage.json
+
+# Non-destructive optimize output (generated candidate prompt)
+/prompts/*.candidate.txt
