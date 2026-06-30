@@ -208,6 +208,72 @@ pull request. Reported metrics: `avg_rank_improvement`, `win_rate`, and
 
 ---
 
+## 🖥️ Standalone CLI (`egeo`)
+
+Beyond Claude Code, E-GEO ships a **runtime-agnostic command line** so the same
+GEO engine runs anywhere Python runs — local shells, notebooks, Docker, or CI.
+The CLI is a thin wrapper around the **exact same** `geo_eval.py` and
+`llm_client.py` modules used by the Claude Code agents, so there is **no
+duplicated optimization logic** — both runtimes share one source of truth.
+
+### Install
+
+```bash
+# From the repo root — installs the `egeo` console script + deps
+pip install -e .
+
+# ...or run without installing (deps: pip install pyyaml jsonschema)
+python -m egeo --help
+```
+
+### Commands
+
+| Command | What it does |
+|---------|--------------|
+| `egeo optimize <file>` | **Full pipeline** — analyze → rank → rewrite → schema, writes `report.md`, `optimized/*.md`, `schema/*.json`, `analysis.json` |
+| `egeo evaluate` | Run the evaluation harness (reuses `geo_eval.py`, identical metrics) |
+| `egeo optimize-prompts` | Meta-optimize the rewriter prompt (non-destructive by default) |
+| `egeo runtimes` | List available runtime adapters and their status |
+
+```bash
+# Optimize a local content file (output dir defaults to ./geo-output)
+egeo optimize examples/sample-input.md --out-dir ./geo-output
+
+# Score prompt quality on a dataset
+egeo evaluate --dataset eval/datasets/geo_smoke.jsonl --limit 5
+
+# Inspect the runtime adapters
+egeo runtimes
+```
+
+### Offline / deterministic mode
+
+Every command honors `GEO_EVAL_MOCK=1`, which swaps in a deterministic mock LLM
+client — **no API key required**. This is exactly how the CLI is exercised in
+[CI](.github/workflows/ci.yml):
+
+```bash
+GEO_EVAL_MOCK=1 egeo optimize examples/sample-input.md --out-dir /tmp/egeo
+GEO_EVAL_MOCK=1 egeo evaluate --dataset eval/datasets/geo_smoke.jsonl --limit 3
+```
+
+### Supported Runtimes
+
+E-GEO exposes a small **runtime adapter** layer so the same agents (Analyzer,
+Ranker, Rewriter, Indexer) can be driven by different execution hosts:
+
+| Runtime | Aliases | Mode | Status | Description |
+|---------|---------|------|:------:|-------------|
+| **`python`** | `cli`, `local` | in-process | ✅ Available | Pure-Python runtime behind the `egeo` CLI. Runs the full pipeline in-process and honors `GEO_EVAL_MOCK` for offline, deterministic runs. |
+| **`claude-code`** | `claude` | host-executed | ✅ Available | Executes the `.claude/` agents through Claude Code `/geo` slash commands on the host. Auto-detected when a `.claude/` directory is present. |
+
+> Run `egeo runtimes` to print the live status of each adapter in your
+> environment. Additional hosts (Cursor, Codex, Windsurf, …) can be added by
+> implementing the `RuntimeAdapter` interface in
+> [`egeo/runtimes.py`](egeo/runtimes.py).
+
+---
+
 ## 🆚 E-GEO vs Alternatives
 
 | Feature | E-GEO | Traditional SEO | Manual GEO |

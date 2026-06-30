@@ -5,6 +5,49 @@ All notable changes to E-GEO are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Runtime-agnostic execution: a standalone `egeo` CLI and a pluggable runtime
+adapter layer, so the same GEO engine runs outside Claude Code without
+duplicating any optimization logic.
+
+### Added
+
+- **Runtime adapter layer** (`egeo/runtimes.py`): a `RuntimeAdapter` interface
+  with a `python` (aliases `cli`, `local`) in-process adapter and a
+  `claude-code` (alias `claude`) host-executed descriptor, plus a small registry
+  (`get_runtime`, `list_runtimes`, `runtime_status`). New `egeo runtimes`
+  command prints live adapter status.
+- **Standalone `egeo` CLI** (`egeo/cli.py`, `python -m egeo`) exposing:
+  - `optimize <file>` — full pipeline (analyze → rank → rewrite → schema) that
+    writes `report.md`, `optimized/*.md`, `schema/*.json`, and `analysis.json`.
+  - `evaluate` — the evaluation harness, delegating to `geo_eval.py` with
+    byte-identical output.
+  - `optimize-prompts` — meta-optimizes the rewriter prompt (non-destructive by
+    default, mirroring `geo_eval.py optimize`).
+  - `runtimes` — list available runtime adapters.
+- **Agent wrappers** (`egeo/agents.py`) and **pipeline** (`egeo/pipeline.py`)
+  that reuse `geo_eval.py` (`_rank_candidates`, `_rewrite_description`) and
+  `llm_client.py` — **no duplicated optimization logic**. The whole CLI honors
+  `GEO_EVAL_MOCK=1` for deterministic, offline runs (no API key).
+- **Packaging** (`pyproject.toml`): installs the `egeo` package alongside the
+  existing `geo_eval`/`llm_client` modules and registers the `egeo` console
+  script (`pip install -e .`).
+- **Release automation** (`.github/workflows/release.yml`): on `v*` tags (or
+  manual `workflow_dispatch`), extracts the matching `CHANGELOG.md` section and
+  publishes a GitHub Release via `gh`, using the GitHub-injected token (no PAT).
+- **OpenSpec change** `add-runtime-adapters` with proposal, tasks, design, and a
+  new `runtime-adapters` capability spec.
+
+### Changed
+
+- **CI** (`.github/workflows/ci.yml`): added a CLI smoke test that runs
+  `egeo runtimes`, `egeo evaluate`, and a full `egeo optimize` under
+  `GEO_EVAL_MOCK=1`, then validates the emitted JSON-LD. Existing quality gates
+  are unchanged.
+- **README.md**: new "Standalone CLI (`egeo`)" and "Supported Runtimes" sections
+  documenting installation, commands, offline mode, and the runtime matrix.
+
 ## [1.1.0] - 2026-06-29
 
 Quality hardening and a transparent, reproducible evaluation harness.
@@ -49,4 +92,5 @@ Quality hardening and a transparent, reproducible evaluation harness.
 - Evaluation metrics are an **LLM-ranker proxy**, not a measurement of real
   AI-search engine rankings. See `docs/evaluation.md`.
 
+[Unreleased]: https://github.com/mverab/eGEOagents/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/mverab/eGEOagents/releases/tag/v1.1.0
