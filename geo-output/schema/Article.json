@@ -1,0 +1,28 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "[FILL: article headline with primary keyword]",
+  "description": "[FILL: GEO-optimized summary of the article]",
+  "image": [
+    "[FILL: article cover image URL]"
+  ],
+  "datePublished": "[FILL: YYYY-MM-DD]",
+  "dateModified": "[FILL: YYYY-MM-DD]",
+  "author": {
+    "@type": "Person",
+    "name": "[FILL: author name]",
+    "url": "[FILL: author profile URL]"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "[FILL: publisher name]",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "[FILL: publisher logo image URL]"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "[FILL: canonical article URL]"
+  }
+}

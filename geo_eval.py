@@ -263,6 +263,7 @@ def optimize(
     temperature: float,
     seed: int,
     iters: int,
+    apply: bool = False,
 ) -> Dict[str, Any]:
     client = get_client()
 
@@ -374,11 +375,25 @@ def optimize(
     if best_val is None:
         raise LLMError("No validation results")
 
-    rewriter_user_path.write_text(best_val["prompt"], encoding="utf-8")
+    # Non-destructive by default: write the optimized prompt to a sibling
+    # ``*.candidate.txt`` file so the working prompt is never silently
+    # overwritten. Use ``--apply`` to promote the candidate in place.
+    if apply:
+        out_path = rewriter_user_path
+    else:
+        out_path = rewriter_user_path.with_suffix(".candidate.txt")
+    out_path.write_text(best_val["prompt"], encoding="utf-8")
     return {
         "best": best_val,
         "history_len": len(history),
-        "saved_to": str(rewriter_user_path),
+        "applied": apply,
+        "saved_to": str(out_path),
+        "hint": (
+            "Optimized prompt written to candidate file; re-run with --apply to overwrite "
+            "the working prompt."
+            if not apply
+            else "Optimized prompt applied to the working prompt file."
+        ),
     }
 
 
@@ -406,6 +421,12 @@ def main() -> None:
     opt_p.add_argument("--temperature", type=float, default=0.0)
     opt_p.add_argument("--seed", type=int, default=7)
     opt_p.add_argument("--iters", type=int, default=5)
+    opt_p.add_argument(
+        "--apply",
+        action="store_true",
+        help="Overwrite the working rewriter prompt in place. By default the optimized "
+        "prompt is written to rewriter_user.candidate.txt (non-destructive).",
+    )
 
     args = parser.parse_args()
 
@@ -434,6 +455,7 @@ def main() -> None:
             temperature=args.temperature,
             seed=args.seed,
             iters=args.iters,
+            apply=args.apply,
         )
         print(json.dumps(res, indent=2, sort_keys=True))
         return
