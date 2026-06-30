@@ -19,3 +19,11 @@
 
 # Non-destructive optimize output (generated candidate prompt)
 /prompts/*.candidate.txt
+
+# Python / packaging artifacts (egeo CLI)
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/

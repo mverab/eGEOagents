@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "egeo"
+version = "2.0.0"
+description = "E-GEO: runtime-agnostic Generative Engine Optimization toolkit and CLI."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Vera Badias" }]
+keywords = ["geo", "generative-engine-optimization", "ai-search", "llm", "cli"]
+dependencies = [
+  "pyyaml>=6.0",   # SKILL.md frontmatter parsing (scripts/validate_skills.py)
+  "jsonschema>=4.0", # JSON-LD envelope validation (scripts/validate_jsonld.py)
+]
+
+[project.scripts]
+# Exposes the standalone `egeo` command after `pip install -e .`.
+# `python -m egeo ...` also works without installation.
+egeo = "egeo.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/mverab/eGEOagents"
+Repository = "https://github.com/mverab/eGEOagents"
+Documentation = "https://github.com/mverab/eGEOagents#readme"
+
+[tool.setuptools]
+# The CLI package plus the root-level harness modules it reuses. Declaring the
+# py-modules keeps `import geo_eval` / `import llm_client` working in an editable
+# install; `python -m egeo` additionally bootstraps sys.path (see egeo/__init__.py).
+packages = ["egeo"]
+py-modules = ["geo_eval", "llm_client"]
