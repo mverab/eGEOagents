@@ -7,7 +7,7 @@
 
 # 🌍 E-GEO
 
-### **Generative Engine Optimization** for AI-Powered Search
+### **Generative Engine Optimization (GEO)** & **Answer Engine Optimization (AEO)** for AI-Powered Search
 
 <p>
   <a href="https://github.com/mverab/eGEOagents/actions/workflows/ci.yml"><img src="https://github.com/mverab/eGEOagents/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
@@ -49,13 +49,17 @@
 <tr>
 <td width="60%">
 
-**E-GEO** is a zero-effort **Generative Engine Optimization** toolkit that transforms your website content to rank higher in AI-powered search engines.
+**E-GEO** is an open-source **Generative Engine Optimization (GEO)** and **Answer Engine Optimization (AEO)** toolkit that transforms your website content to rank higher in AI-powered search engines — including **ChatGPT**, **Perplexity**, **Google AI Overviews**, **Claude**, and **Gemini**.
 
-Based on the [E-GEO research paper](https://arxiv.org/abs/2511.20867), it applies the **10 universal features** that consistently improve AI-engine rankings.
+Also known as **AI SEO** or **LLM SEO**, GEO is the practice of optimizing content so that generative AI engines can crawl, understand, cite, and recommend it. E-GEO automates this entire process.
+
+Based on the [E-GEO research paper](https://arxiv.org/abs/2511.20867) (arXiv:2511.20867), it applies the **10 universal features** that consistently improve AI-engine rankings — competitive framing, citation optimization, structured data, and semantic density improvements backed by peer-reviewed findings.
 
 - ✅ **No learning curve** — One command to optimize
 - ✅ **Research-backed** — Based on peer-reviewed findings
 - ✅ **Production-ready** — Copy-paste optimized content
+- ✅ **Multi-engine** — Optimizes for ChatGPT, Perplexity, Gemini, Claude & Google AI Overviews
+- ✅ **Full pipeline** — Analyze → Rank → Rewrite → Schema in one command
 
 </td>
 <td width="40%">
@@ -78,6 +82,26 @@ geo-output/
 </td>
 </tr>
 </table>
+
+---
+
+## 📈 Why AI Visibility Matters in 2026
+
+AI search engines give one synthesized answer and cite a handful of sources. If your site isn't one of them, you're invisible — even if you rank #1 on Google.
+
+```
+User asks ChatGPT: "What's the best GEO tool?"
+
+ChatGPT: "According to [Competitor], the best tool is..."
+          ↑ They get cited. You don't.
+```
+
+- **ChatGPT serves 900M+ weekly users** — a growing share of sessions that used to be Google searches.
+- **28.3% of ChatGPT's most-cited pages have *zero* organic visibility on Google** (Ahrefs) — AI engines reward different signals than classic SEO.
+- **Proper JSON-LD schema lifts LLM extraction accuracy from 16% to 54%** (Semrush study on GPT-4).
+- **844,000+ sites** already ship an `llms.txt`. Is yours one of them?
+
+Traditional SEO optimizes for blue links. **GEO optimizes for citations in AI-generated answers.** E-GEO is the open-source tool that bridges this gap.
 
 ---
 
@@ -168,7 +192,13 @@ geo-output/
 
 ## 🎯 Results: Backed by Research
 
-E-GEO is based on the **E-GEO research paper** (arXiv:2511.20867). The paper reports that competitive framing produces the strongest immediate lift, a universal optimization strategy outperforms common heuristics, and the 10 GEO features consistently appear in higher-ranking content.
+E-GEO is grounded in peer-reviewed research from the [E-GEO research paper](https://arxiv.org/abs/2511.20867) (arXiv:2511.20867), building on foundational work by [Aggarwal et al. (Princeton, KDD 2024)](https://arxiv.org/abs/2311.09735) — the original study that defined Generative Engine Optimization as a discipline.
+
+The E-GEO paper reports that:
+
+1. **Competitive framing** produces the strongest immediate ranking lift among all GEO strategies tested.
+2. A **universal optimization strategy** (applying all 10 features together) outperforms individual heuristics by a wide margin.
+3. The **10 GEO features** (ranking emphasis, user intent matching, competitive edge, social proof, authority signals, scannability, citation density, structured data, factual language, and freshness) consistently appear in higher-ranking content across ChatGPT, Perplexity, and Gemini.
 
 | Feature | What E-GEO Does |
 |---------|-----------------|
@@ -274,18 +304,21 @@ Ranker, Rewriter, Indexer) can be driven by different execution hosts:
 
 ---
 
-## 🆚 E-GEO vs Alternatives
+## 🆚 E-GEO vs Other GEO Tools
 
-| Feature | E-GEO | Traditional SEO | Manual GEO |
-|---------|-------|----------------|------------|
-| **AI-Engine Optimized** | ✅ Yes | ❌ No | ⚠️ Partial |
-| **One-Command Setup** | ✅ Yes | ❌ No | ❌ No |
-| **Research-Based** | ✅ Yes (paper) | ❌ Heuristics | ⚠️ Variable |
-| **Output Quality** | Premium | Basic | Variable |
-| **Time to Results** | Minutes | Months | Days |
-| **Cost** | Free | Expensive | Time-intensive |
-| **Schema Generation** | ✅ Auto | ❌ No | ⚠️ Manual |
-| **Competitive Analysis** | ✅ Built-in | ❌ No | ❌ No |
+| Feature | E-GEO | GEO Optimizer | GEO-optim/GEO | Awesome GEO | Traditional SEO |
+|---------|-------|---------------|---------------|-------------|----------------|
+| **Type** | CLI + Claude Code | CLI + MCP | Research repo | Curated list | — |
+| **Content Rewriting** | ✅ Full pipeline | ⚠️ Audit only | ❌ | ❌ | ❌ No |
+| **AI-Ranking Simulation** | ✅ LLM-based | ❌ | ❌ | ❌ | ❌ No |
+| **Schema Generation** | ✅ Auto JSON-LD | ⚠️ Partial | ❌ | ❌ | ❌ Manual |
+| **Competitive Analysis** | ✅ Built-in | ❌ | ❌ | ❌ | ❌ No |
+| **Academic Foundation** | ✅ [arXiv:2511.20867](https://arxiv.org/abs/2511.20867) | ✅ KDD 2024 | ✅ Original GEO paper | ❌ | ❌ Heuristics |
+| **Multi-Runtime** | ✅ Python + Claude Code | ✅ Python + MCP | ❌ | ❌ | ❌ |
+| **llms.txt Support** | ✅ | ✅ | ❌ | 📖 Listed | ❌ |
+| **Cost** | Free / MIT | Free / MIT | Free | Free | Expensive |
+
+> **E-GEO is the only open-source GEO tool that combines content rewriting, ranking simulation, and schema generation in a single pipeline.** Others focus on auditing or listing — E-GEO does the full optimization.
 
 ---
 
@@ -419,6 +452,22 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ---
 
+## 🔍 SEO & AI Search Glossary
+
+E-GEO covers the full spectrum of AI search optimization. If you're searching for any of these, you're in the right place:
+
+| Term | What it means |
+|------|---------------|
+| **GEO** (Generative Engine Optimization) | Optimizing content for AI answer engines like ChatGPT, Perplexity, Gemini |
+| **AEO** (Answer Engine Optimization) | Structuring content so AI engines can parse and cite it |
+| **AI SEO** | Adapting traditional SEO for AI-powered search |
+| **LLM SEO** | Optimization specifically for large language model responses |
+| **AI Visibility** | How often and how well your brand appears in AI-generated answers |
+| **Citation Tracking** | Monitoring whether AI engines cite your site as a source |
+| **llms.txt** | A standard file (like robots.txt) that tells AI crawlers what content to prioritize |
+
+---
+
 ## 📜 License
 
 MIT License - use it, modify it, sell with it. See [LICENSE](LICENSE) for details.
@@ -458,7 +507,7 @@ cp -r eGEOagents/.claude .
 
 ---
 
-**Built for the AI-first web.** 🌐
+**Built for the AI-first web — optimize your content for ChatGPT, Perplexity, Claude, and Gemini with E-GEO, the open-source GEO tool.** 🌐
 
 <sub>Made with ❤️ by <a href="https://verabadias.gumroad.com/">Vera Badias</a> • Based on research from <a href="https://arxiv.org/abs/2511.20867">arXiv:2511.20867</a></sub>
 
