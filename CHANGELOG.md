@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+## [2.0.0] - 2026-06-30
+
 Runtime-agnostic execution: a standalone `egeo` CLI and a pluggable runtime
 adapter layer, so the same GEO engine runs outside Claude Code without
 duplicating any optimization logic.
