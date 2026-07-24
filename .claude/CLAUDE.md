@@ -37,6 +37,7 @@ Based on E-GEO research, these features consistently improve AI-engine rankings:
 | `/geo:batch <folder>` | Process all files in folder |
 | `/geo:report` | Generate comprehensive report |
 | `/geo:compete <query>` | Competitive analysis for query |
+| `/geo:loop [domain]` | One bounded loop-mode iteration over a workspace domain |
 
 ## Workflow
 
@@ -46,6 +47,28 @@ When user runs `/geo`:
 3. Delegate to **geo-rewriter** for content optimization
 4. Delegate to **geo-indexer** for schema markup generation
 5. Compile final report with before/after comparison
+
+## Loop Mode
+
+Loop mode is **opt-in** and additive. One-shot behavior (`/geo`, `/geo:audit`,
+`/geo:optimize`, `/geo:batch`, `/geo:report`, `/geo:compete`, the `geo-*` agents,
+`egeo optimize`, and the `geo-output/` convention) is unchanged and never
+requires a workspace.
+
+When the user runs `/geo:loop`:
+1. Follow `.claude/skills/geo-loop/SKILL.md` — it is the authoritative procedure.
+2. All state lives in `$EGEO_HOME` (default `~/.egeo/`). **Never write loop
+   state into the repo tree** — not `prompts/`, not `geo-output/`.
+3. `egeo loop run <domain> --dry-run` prints the plan (focus, collector deltas,
+   candidate signals) and writes nothing. Start there.
+4. Do **one** unit of work, then close the run: exactly one
+   `### YYYY-MM-DD run` Timeline entry ending in
+   `Outcome: success|partial|failure|no-op`, and exactly one `LOG.md` line.
+5. Artifacts follow `SUBSTRATE.md`: `signals/` for evidence (deduped via
+   `frequency`), `docs/` for durable knowledge, frontmatter on line 1, sources
+   cited. Verify with `python -m egeo.substrate_lint` before exiting.
+6. Ground truth comes from `$EGEO_HOME/data/*.jsonl` written by the collectors
+   (`egeo loop collect serp|page`). A simulated ranking is `confidence: low`.
 
 ## Output Standards
 
