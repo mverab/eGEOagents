@@ -3,6 +3,7 @@ import json
 import math
 import os
 import random
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -27,6 +28,40 @@ class QueryExample:
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _workspace_prompts_dir() -> Optional[Path]:
+    """Return ``$EGEO_HOME/prompts`` when a bootstrapped workspace exists."""
+    try:
+        from egeo import workspace
+    except Exception:
+        return None
+    try:
+        if not workspace.exists():
+            return None
+        return workspace.prompts_dir()
+    except Exception:
+        return None
+
+
+def _resolve_prompt(prompts_dir: Path, name: str) -> Path:
+    """Resolve a prompt file, preferring a workspace override.
+
+    Loop mode keeps mutable prompts in ``$EGEO_HOME/prompts`` so the repo tree
+    stays read-only. When no workspace exists the repo ``prompts/`` directory is
+    used unchanged.
+    """
+    workspace_prompts = _workspace_prompts_dir()
+    if workspace_prompts is not None:
+        override = workspace_prompts / name
+        if override.is_file():
+            print(f"[egeo] prompt override: {name} <- {override}", file=sys.stderr)
+            return override
+    return prompts_dir / name
+
+
+def _read_prompt(prompts_dir: Path, name: str) -> str:
+    return _read_text(_resolve_prompt(prompts_dir, name))
 
 
 def _render_template(text: str, values: Dict[str, str]) -> str:
@@ -162,10 +197,10 @@ def evaluate(
 ) -> Dict[str, Any]:
     client = get_client()
 
-    ranker_system = _read_text(prompts_dir / "ranker_system.txt")
-    ranker_user = _read_text(prompts_dir / "ranker_user.txt")
-    rewriter_system = _read_text(prompts_dir / "rewriter_system.txt")
-    rewriter_user = _read_text(prompts_dir / "rewriter_user.txt")
+    ranker_system = _read_prompt(prompts_dir, "ranker_system.txt")
+    ranker_user = _read_prompt(prompts_dir, "ranker_user.txt")
+    rewriter_system = _read_prompt(prompts_dir, "rewriter_system.txt")
+    rewriter_user = _read_prompt(prompts_dir, "rewriter_user.txt")
 
     examples = _load_dataset(dataset_path, limit=limit)
     rng = random.Random(seed)
@@ -267,15 +302,15 @@ def optimize(
 ) -> Dict[str, Any]:
     client = get_client()
 
-    ranker_system = _read_text(prompts_dir / "ranker_system.txt")
-    ranker_user = _read_text(prompts_dir / "ranker_user.txt")
-    rewriter_system = _read_text(prompts_dir / "rewriter_system.txt")
+    ranker_system = _read_prompt(prompts_dir, "ranker_system.txt")
+    ranker_user = _read_prompt(prompts_dir, "ranker_user.txt")
+    rewriter_system = _read_prompt(prompts_dir, "rewriter_system.txt")
 
-    rewriter_user_path = prompts_dir / "rewriter_user.txt"
+    rewriter_user_path = _resolve_prompt(prompts_dir, "rewriter_user.txt")
     current_prompt = _read_text(rewriter_user_path)
 
-    meta_system = _read_text(prompts_dir / "meta_optimizer_system.txt")
-    meta_user_tpl = _read_text(prompts_dir / "meta_optimizer_user.txt")
+    meta_system = _read_prompt(prompts_dir, "meta_optimizer_system.txt")
+    meta_user_tpl = _read_prompt(prompts_dir, "meta_optimizer_user.txt")
 
     history: List[Dict[str, Any]] = []
     best_val: Optional[Dict[str, Any]] = None
@@ -377,11 +412,14 @@ def optimize(
 
     # Non-destructive by default: write the optimized prompt to a sibling
     # ``*.candidate.txt`` file so the working prompt is never silently
-    # overwritten. Use ``--apply`` to promote the candidate in place.
+    # overwritten. Use ``--apply`` to promote the candidate in place. In loop
+    # mode the destination is ``$EGEO_HOME/prompts`` so the repo tree is never
+    # written to.
+    out_dir = _workspace_prompts_dir() or prompts_dir
     if apply:
-        out_path = rewriter_user_path
+        out_path = out_dir / "rewriter_user.txt"
     else:
-        out_path = rewriter_user_path.with_suffix(".candidate.txt")
+        out_path = out_dir / "rewriter_user.candidate.txt"
     out_path.write_text(best_val["prompt"], encoding="utf-8")
     return {
         "best": best_val,

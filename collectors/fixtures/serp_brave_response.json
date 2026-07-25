@@ -1,0 +1,20 @@
+{
+  "_fixture": "Recorded shape of a Brave Search API /res/v1/web/search response body, trimmed to the fields collectors/serp.py reads. Synthetic content, real schema: used by offline contract tests (python collectors/serp.py --fixture ...).",
+  "query": {"original": "best geo optimization tool"},
+  "web": {
+    "type": "search",
+    "results": [
+      {"title": "The 12 Best GEO Tools (2026 Review)", "url": "https://searchmonitor.example/blog/best-geo-tools", "description": "Ranked roundup of generative engine optimization tools."},
+      {"title": "GEO Optimization Platform", "url": "https://www.rivalgeo.example/platform", "description": "Enterprise GEO suite."},
+      {"title": "E-GEO: open-source generative engine optimization", "url": "https://example.com/egeo", "description": "Zero-effort GEO for AI search engines."},
+      {"title": "How AI search engines pick sources", "url": "https://airesearch.example/papers/geo", "description": "Study of citation behavior."},
+      {"title": "GEO vs SEO explained", "url": "https://contentlab.example/geo-vs-seo", "description": "Primer on the differences."},
+      {"title": "Best AI visibility trackers", "url": "https://toolsdigest.example/ai-visibility", "description": "Comparison table."},
+      {"title": "Optimizing content for ChatGPT answers", "url": "https://promptcraft.example/chatgpt-visibility", "description": "Tactics and pitfalls."},
+      {"title": "Schema markup for AI answers", "url": "https://schemaguide.example/ai", "description": "JSON-LD patterns."},
+      {"title": "Perplexity ranking factors", "url": "https://serpnotes.example/perplexity", "description": "Observed factors."},
+      {"title": "GEO checklist", "url": "https://growthwiki.example/geo-checklist", "description": "Implementation checklist."},
+      {"title": "Overflow result (must be dropped at 10)", "url": "https://ignored.example/eleventh", "description": "Beyond top-10."}
+    ]
+  }
+}

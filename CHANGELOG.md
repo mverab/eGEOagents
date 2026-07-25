@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Loop mode** (opt-in): eGEOagents can now run as a continuous loop instead of
+  a one-shot pipeline. One-shot behavior is unchanged and never requires a
+  workspace.
+  - **Workspace** (`egeo/workspace.py`): all loop state resolves from
+    `$EGEO_HOME` (default `~/.egeo/`) — `LOG.md`, `config.yaml`, `signals/`,
+    `docs/`, `data/`, `domains/`, `prompts/`. Bootstrap is idempotent and never
+    overwrites an existing file. The repo tree is never written to by a loop run,
+    a collector pass, or a prompt optimization.
+  - **`SUBSTRATE.md`** vendored from `loopstack` — the artifact/layout contract —
+    plus `egeo/substrate_lint.py` to enforce the mechanically checkable parts
+    (frontmatter, domain charters, `LOG.md` grammar).
+  - **`egeo loop` command group** (`egeo/loop.py`): `doctor` (bootstrap +
+    health check), `collect <serp|page>` (collector pass), and `run <domain>`
+    (resolve and print the run plan; `--dry-run` writes nothing). LLM-free by
+    design — the interpretive work is performed by the agent.
+  - **Collectors** (`collectors/`): deterministic, budget-aware, append-only
+    JSONL senses — `serp` (Brave API, top-10 + target position) and `page`
+    (content hash, title, meta description, JSON-LD types, word count), both with
+    offline `--fixture` support and a documented 10-point contract.
+  - **`geo-loop` skill and `/geo:loop` command**: the run contract — one bounded
+    unit of work, exactly one Timeline entry ending in an `Outcome:` class, and
+    exactly one `LOG.md` line, verified before exit.
+  - **OpenSpec change** `add-geo-loop` with the `geo-loop-runtime` and
+    `loop-collectors` specs.
+
 ### Changed
+
+- `geo_eval.py` now resolves prompts workspace-first: a file in
+  `$EGEO_HOME/prompts/` overrides its repo `prompts/` counterpart, and
+  `optimize` writes its result there, so the repo `prompts/` stay pristine in
+  loop mode. With no workspace, behavior is identical to before.
 
 ### Fixed
 

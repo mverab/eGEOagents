@@ -6,6 +6,7 @@ Runtime-agnostic entry point for the GEO pipeline. Subcommands:
 - ``evaluate``            thin wrapper over ``geo_eval.evaluate``.
 - ``optimize-prompts``    thin wrapper over ``geo_eval.optimize`` (meta-optimizer).
 - ``runtimes``            list available runtimes and their status.
+- ``loop``                loop mode: ``run``, ``collect``, ``doctor`` (see :mod:`egeo.loop`).
 
 Everything honors ``GEO_EVAL_MOCK=1`` (via ``llm_client.get_client``), so the
 CLI runs offline in CI without an API key.
@@ -73,6 +74,12 @@ def _add_optimize_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--rewriter-model", default=os.environ.get("REWRITER_MODEL", "gpt-4o"))
     p.add_argument("--temperature", type=float, default=0.0)
     p.add_argument("--json", action="store_true", help="Print only the machine-readable JSON summary.")
+
+
+def _cmd_loop(args: argparse.Namespace) -> int:
+    from . import loop
+
+    return loop.main(args)
 
 
 def _add_runtimes_parser(sub: argparse._SubParsersAction) -> None:
@@ -195,6 +202,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_evaluate_parser(sub)
     _add_optimize_prompts_parser(sub)
     _add_runtimes_parser(sub)
+    from . import loop
+
+    loop.add_parser(sub)
     return parser
 
 
@@ -203,6 +213,7 @@ _DISPATCH = {
     "evaluate": _cmd_evaluate,
     "optimize-prompts": _cmd_optimize_prompts,
     "runtimes": _cmd_runtimes,
+    "loop": _cmd_loop,
 }
 
 

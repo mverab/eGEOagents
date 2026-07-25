@@ -170,6 +170,7 @@ Verify indexing pages:
 | `/geo:batch <folder>` | Process entire folder |
 | `/geo:report` | Generate executive report |
 | `/geo:compete <query>` | Competitive analysis |
+| `/geo:loop <domain>` | One bounded [loop-mode](#-loop-mode-continuous-geo) iteration over a workspace domain |
 
 ---
 
@@ -264,6 +265,7 @@ python -m egeo --help
 | `egeo evaluate` | Run the evaluation harness (reuses `geo_eval.py`, identical metrics) |
 | `egeo optimize-prompts` | Meta-optimize the rewriter prompt (non-destructive by default) |
 | `egeo runtimes` | List available runtime adapters and their status |
+| `egeo loop <run\|collect\|doctor>` | [Loop mode](#-loop-mode-continuous-geo) — plan a run, run a collector, or check the workspace |
 
 ```bash
 # Optimize a local content file (output dir defaults to ./geo-output)
@@ -301,6 +303,108 @@ Ranker, Rewriter, Indexer) can be driven by different execution hosts:
 > environment. Additional hosts (Cursor, Codex, Windsurf, …) can be added by
 > implementing the `RuntimeAdapter` interface in
 > [`egeo/runtimes.py`](egeo/runtimes.py).
+
+---
+
+## 🔁 Loop Mode (continuous GEO)
+
+One-shot GEO answers *"how is this page doing today?"*. **Loop mode** answers
+*"what changed, and what should I do about it?"* — week after week, without you
+asking. It is fully **opt-in**: `/geo <url>` and `egeo optimize` behave exactly
+as before and never need a workspace.
+
+### The workspace (`$EGEO_HOME`)
+
+All loop state lives **outside the repo**, in the workspace resolved from
+`$EGEO_HOME` (default `~/.egeo/`), so `git pull` never touches your data:
+
+```
+$EGEO_HOME/
+├── LOG.md                        # append-only activity feed (one line per event)
+├── config.yaml                   # cadence, models, budgets, scaling weights
+├── SUBSTRATE.md                  # the contract, vendored on bootstrap
+├── signals/<slug>.md             # evidence — deduped, frequency-counted
+├── docs/<slug>.md                # durable knowledge — analyses, decisions
+├── data/<collector>/*.jsonl      # raw collector output (not artifacts)
+├── domains/<loop>/README.md      # charter: focus, backlog, run Timeline
+└── prompts/                      # optimized prompts (repo prompts/ stay pristine)
+```
+
+The layout and the artifact rules are defined by [`SUBSTRATE.md`](SUBSTRATE.md)
+and mechanically enforced by `python -m egeo.substrate_lint`.
+
+### Commands
+
+| Command | What it does |
+|---------|--------------|
+| `egeo loop doctor` | Bootstrap the workspace if missing, then health-check it (layout, config, budgets, substrate lint) |
+| `egeo loop collect serp` | Record a search-result snapshot (Brave API) into `data/serp/*.jsonl` |
+| `egeo loop collect page` | Record a page snapshot (hash, title, meta, JSON-LD types, word count) into `data/page/*.jsonl` |
+| `egeo loop run <domain>` | Resolve and print the run plan — current focus, fresh collector deltas, candidate signals |
+| `/geo:loop <domain>` | Execute one bounded loop iteration in Claude Code (the agent does the interpretive work) |
+
+```bash
+# 1. Create the workspace
+egeo loop doctor
+
+# 2. Describe what you want watched: $EGEO_HOME/domains/example-com/README.md
+#    (## Charter, ## Cadence, ## Current focus, ## Backlog, ## Timeline)
+
+# 3. Collect ground truth
+export BRAVE_API_KEY=...
+egeo loop collect serp --query "best geo tool" --target-domain example.com
+egeo loop collect page --url https://example.com/pricing
+
+# 4. See what a run would do — writes nothing
+egeo loop run example-com --dry-run
+
+# 5. Do the run (Claude Code, or headless)
+claude -p "/geo:loop example-com"
+```
+
+`egeo loop run` is **LLM-free by design**: it is the trigger seam that prepares
+and validates the plan. The reasoning happens in
+[`.claude/skills/geo-loop/SKILL.md`](.claude/skills/geo-loop/SKILL.md), which
+enforces the run contract: **one** unit of work, **one** Timeline entry ending in
+`Outcome: success|partial|failure|no-op`, **one** `LOG.md` line, verified before
+exit.
+
+### Collectors
+
+Collectors are the loop's senses: deterministic, LLM-free, budget-aware, and
+append-only. Every collector honours the same 10-point contract
+([`collectors/README.md`](collectors/README.md)) — in short: write JSONL to
+`$EGEO_HOME/data/<name>/`, one record per observation with a `schema_version`,
+respect the daily budget in `config.yaml`, append exactly one `LOG.md` line per
+pass, and **fail loudly** instead of writing a partial or fabricated record.
+
+| Collector | Needs | Output |
+|-----------|-------|--------|
+| `serp` | `BRAVE_API_KEY` | Top-10 results per query + your target's position |
+| `page` | nothing | `content_hash`, title, meta description, JSON-LD types, word count |
+
+Both accept `--fixture` for offline, deterministic runs — that is how they are
+tested without touching the network.
+
+### Scheduling (Hermes cron reference)
+
+Any scheduler drives the same commands. Pin **provider and model per job**, and
+for anything more frequent than weekly deliver **locally** and let a weekly
+digest do the notifying:
+
+```
+# hourly — local delivery only (JSONL + LOG line, no notification)
+0 * * * *   provider=anthropic model=claude-sonnet-4-5 deliver=local \
+            egeo loop collect page --url https://example.com/pricing
+
+# daily — one bounded loop run
+30 6 * * *  provider=anthropic model=claude-sonnet-4-5 deliver=local \
+            claude -p "/geo:loop example-com"
+
+# weekly — the only job that pings you
+0 9 * * 1   provider=anthropic model=claude-opus-4-1 deliver=notify \
+            claude -p "Summarize $EGEO_HOME/LOG.md for the past 7 days"
+```
 
 ---
 
@@ -390,14 +494,30 @@ E-GEO uses **4 specialized AI agents** orchestrated by Claude Code:
 ├── skills/
 │   ├── competitive-analysis/    # Auto-triggered competitor analysis
 │   ├── content-scoring/         # Auto-triggered scoring
-│   └── schema-generator/        # Auto-triggered schema
+│   ├── schema-generator/        # Auto-triggered schema
+│   └── geo-loop/                # Loop-mode run contract
 └── commands/
     ├── geo.md                   # Main command
     ├── geo-audit.md
     ├── geo-optimize.md
     ├── geo-batch.md
     ├── geo-report.md
-    └── geo-compete.md
+    ├── geo-compete.md
+    └── geo-loop.md
+
+egeo/                            # Standalone CLI package
+├── cli.py                       # `egeo` entrypoint
+├── loop.py                      # `egeo loop run|collect|doctor`
+├── workspace.py                 # $EGEO_HOME resolution + bootstrap
+└── substrate_lint.py            # SUBSTRATE.md enforcement
+
+collectors/                      # Deterministic, LLM-free senses
+├── README.md                    # The collector contract
+├── serp.py                      # Brave search snapshots
+├── page.py                      # Page snapshots
+└── fixtures/                    # Offline test data
+
+SUBSTRATE.md                     # Workspace/artifact contract
 ```
 
 ---
