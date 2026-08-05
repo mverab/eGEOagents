@@ -5,12 +5,17 @@ Deterministic, zero LLM calls. One record per URL per pass, appended to
 ``$EGEO_HOME/data/page/<page-slug>.jsonl``::
 
     {"v": 1, "ts": "...Z", "url": "...", "status": 200,
-     "content_hash": "<sha256 of the body>", "title": "...",
+     "content_hash": "<sha256 of the canonical extraction>", "title": "...",
      "meta_description": "..." | null, "jsonld_types": ["Article"], "word_count": 812}
 
-``content_hash`` is stable for an unchanged page, so the agent detects drift by
-comparing consecutive records. HTML is parsed with ``html.parser`` — no
-third-party dependency anywhere in loop mode.
+``content_hash`` is a SHA-256 of the canonical extraction (title, meta
+description, JSON-LD @types, and normalized visible text) — NOT of the raw
+body. Raw HTML carries invisible churn (script nonces, dynamic attributes,
+asset fingerprints) that changes on every fetch even when nothing a reader
+or crawler sees has moved; hashing the extraction keeps the hash stable for
+an unchanged page, so the agent detects real drift by comparing consecutive
+records. HTML is parsed with ``html.parser`` — no third-party dependency
+anywhere in loop mode.
 
 Usage::
 
@@ -142,15 +147,19 @@ def parse_page(url: str, status: int, body: str) -> Dict[str, Any]:
     parser.feed(body)
     parser.close()
     text = re.sub(r"\s+", " ", " ".join(parser.text_parts)).strip()
+    jsonld_types = _jsonld_types(parser.jsonld_blocks)
+    canonical = "\n".join(
+        [parser.title or "", parser.meta_description or "", " ".join(jsonld_types), text]
+    )
     return {
         "v": SCHEMA_VERSION,
         "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "url": url,
         "status": status,
-        "content_hash": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        "content_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
         "title": parser.title,
         "meta_description": parser.meta_description,
-        "jsonld_types": _jsonld_types(parser.jsonld_blocks),
+        "jsonld_types": jsonld_types,
         "word_count": len(text.split()) if text else 0,
     }
 

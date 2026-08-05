@@ -22,7 +22,11 @@ description: Check Brave Search and Chrome DevTools MCP availability and provide
 
 ## Setup Snippets
 
+Never just say "install them" — output the exact JSON to paste.
+
 ### Chrome DevTools (NPX)
+
+Requirements: Node.js v20.19+ and current stable Chrome.
 ```json
 {
   "mcpServers": {
