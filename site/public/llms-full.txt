@@ -1,0 +1,85 @@
+# E-GEO — Full Reference for LLMs
+
+> E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + MCP server), based on peer-reviewed research (arXiv:2511.20867).
+
+Site: https://egeoagents.com
+Source: https://github.com/mverab/eGEOagents (MIT license; 147 stars, 42 forks as of 2026-08)
+Paper: https://arxiv.org/abs/2511.20867
+Skills: https://skills.sh/mverab/egeoagents
+
+## What E-GEO is
+
+E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered search engines: ChatGPT, Perplexity, Gemini, and Claude. It runs a full pipeline — analyze, rank-simulate, rewrite, generate JSON-LD schema — in one command. It is built for developers, technical marketers, and site owners.
+
+Differentiators:
+- Full pipeline: rewriting, not just auditing; outputs copy-paste-ready markdown and JSON-LD schema.
+- Reproducible evaluation harness: measures whether the rewriter moves content up in an LLM-simulated ranking; runs offline and deterministically with GEO_EVAL_MOCK=1 (no API key); the same check runs in CI.
+- geo-loop continuous mode: watches domains over time with deterministic, LLM-free collectors and a persistent workspace ($EGEO_HOME, default ~/.egeo).
+- Own peer-reviewed methodology (arXiv:2511.20867), building on the Princeton GEO study (Aggarwal et al., KDD 2024, arXiv:2311.09735).
+- Distributed as Claude Code skills: competitive-analysis, content-scoring, schema-generator, validation-doctor, geo-loop.
+
+## Install
+
+Standalone Python CLI:
+    git clone https://github.com/mverab/eGEOagents.git && cd eGEOagents
+    pip install -e .        # or: python -m egeo --help
+Claude Code skills:
+    npx skills add https://github.com/mverab/eGEOagents
+
+## CLI (egeo, v2.0.0)
+
+Subcommands: optimize, evaluate, optimize-prompts, runtimes, loop.
+
+- egeo optimize <file> [--out-dir DIR] [--query Q] [--schema-type {Organization,Product,Service,Article,FAQPage}] [--runtime R] [--json]
+  Runs the full GEO pipeline on a local Markdown/text file; writes report.md, analysis.json, optimized/*.md, schema/*.json to geo-output/ by default.
+- egeo evaluate --dataset FILE.jsonl [--limit N] [--seed S] [--verbose]
+  Evaluates rewriter prompt quality on a JSONL dataset. Metrics: n, avg_rank_improvement, win_rate, stderr_rank_improvement.
+- egeo optimize-prompts --train T.jsonl --val V.jsonl [--iters N] [--apply]
+  Meta-optimizes the rewriter prompt; non-destructive by default (writes *.candidate.txt).
+- egeo runtimes [--json]
+  Lists runtime adapters: python (in-process; aliases cli, local) and claude-code (host-executed via /geo slash commands).
+- egeo loop {run,collect,doctor}
+  Loop mode; zero LLM calls. run <domain> [--dry-run] prints the run plan; collect {serp,page} runs a deterministic collector pass; doctor bootstraps and health-checks the workspace.
+
+Environment: GEO_EVAL_MOCK=1 (offline deterministic mock, no API key), OPENAI_API_KEY, OPENAI_BASE_URL, RANKER_MODEL / REWRITER_MODEL / META_MODEL (default gpt-4o), EGEO_HOME (default ~/.egeo), BRAVE_API_KEY (serp collector only).
+
+## Pipeline (4 agents)
+
+1. Analyzer — extracts content, scores it against the 10 GEO features, writes analysis.json.
+2. Ranker — simulates AI-engine ranking against competitors.
+3. Rewriter — applies the 10 GEO features while preserving brand voice and factual accuracy; never fabricates statistics or testimonials.
+4. Indexer — generates JSON-LD schema (SoftwareApplication, Organization, Article, Product, Service, FAQPage) and implementation checklists.
+
+The 10 GEO features: ranking emphasis, user intent alignment, competitive differentiation, social proof, compelling narrative, authoritativeness, unique selling points, urgency signals, scannable format, factual accuracy.
+
+## Validation (MCP)
+
+When run through Claude Code, E-GEO validates with MCP servers: brave-search (competitor/SERP ground truth) and chrome-devtools (rendered DOM). Without them it still runs but marks outputs "Low Confidence". Rule: never claim competitor rankings without search ground truth. The validation-doctor skill checks and prints setup commands.
+
+## Loop mode
+
+Opt-in continuous GEO. State lives in $EGEO_HOME (LOG.md, config.yaml, SUBSTRATE.md, signals/, docs/, data/<collector>/*.jsonl, domains/<loop>/README.md, prompts/). Collectors (serp: needs BRAVE_API_KEY; page: no deps) are deterministic, budget-aware, append-only, and accept --fixture for offline runs. Run contract: one unit of work per wake-up, one Timeline entry ending in Outcome: success|partial|failure|no-op, one LOG.md line, verified before exit. Interpretive runs execute via /geo:loop <domain> in Claude Code; egeo loop run|collect|doctor are LLM-free.
+
+## Evaluation harness (honest limitations)
+
+geo_eval.py + llm_client.py measure rank_improvement = rank_before - rank_after using an LLM re-ranking judge over a fixed candidate list. These metrics are a PROXY for prompt iteration, not a measurement of real ChatGPT/Perplexity/Gemini/Claude rankings. Mock-mode values are deterministic by construction and verify the pipeline, not model quality. Reproduce the CI smoke result: GEO_EVAL_MOCK=1 python geo_eval.py evaluate --dataset eval/datasets/geo_smoke.jsonl --limit 5 --verbose
+
+## Honest comparison (last verified 2026-08-05)
+
+geo-optimizer-skill (Auriti-Labs, ~617 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; audit-focused. It has more stars and broader scoring than E-GEO. E-GEO (147 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, geo-loop continuous mode, own peer-reviewed paper, and Claude Code skills distribution. The tools are complementary: audit with one, rewrite and monitor with the other.
+
+## Pages
+
+- https://egeoagents.com/ — landing
+- https://egeoagents.com/docs/getting-started/
+- https://egeoagents.com/docs/how-it-works/
+- https://egeoagents.com/docs/cli/
+- https://egeoagents.com/docs/mcp-server/
+- https://egeoagents.com/docs/geo-loop/
+- https://egeoagents.com/docs/evaluation/
+- https://egeoagents.com/docs/faq/
+- https://egeoagents.com/concepts/what-is-geo/
+- https://egeoagents.com/concepts/what-is-aeo/
+- https://egeoagents.com/concepts/geo-vs-seo/
+- https://egeoagents.com/compare/e-geo-vs-geo-optimizer-skill/
+- https://egeoagents.com/compare/geo-tools-2026/
