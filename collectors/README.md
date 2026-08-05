@@ -79,10 +79,13 @@ python collectors/page.py --fixture collectors/fixtures/pages/
 python -m egeo loop collect page
 ```
 
-`content_hash` is a SHA-256 of the fetched body, so an unchanged page produces
-an unchanged hash across passes — that is how the agent detects drift. HTML is
-parsed with the standard library only (`html.parser`); there is no `requests` or
-`beautifulsoup4` dependency anywhere in loop mode.
+`content_hash` is a SHA-256 of the canonical extraction (title, meta
+description, JSON-LD @types, normalized visible text) — not of the raw body,
+whose invisible churn (script nonces, dynamic attributes) changes on every
+fetch. An unchanged page therefore produces an unchanged hash across passes,
+which is how the agent detects drift. HTML is parsed with the standard
+library only (`html.parser`); there is no `requests` or `beautifulsoup4`
+dependency anywhere in loop mode.
 
 Config:
 
