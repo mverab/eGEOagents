@@ -1,0 +1,102 @@
+---
+title: E-GEO — Open-Source GEO & AEO Toolkit
+description: E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
+template: splash
+hero:
+  title: Rank and get cited in AI search engines
+  tagline: E-GEO analyzes, scores, and rewrites your content so ChatGPT, Perplexity, Gemini, and Claude can crawl, understand, and cite it. Open source, MIT licensed, research-backed.
+  actions:
+    - text: Get Started
+      link: /docs/getting-started/
+      icon: right-arrow
+    - text: Star on GitHub
+      link: https://github.com/mverab/eGEOagents
+      icon: github
+      variant: minimal
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: |
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "E-GEO",
+        "description": "E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows",
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/mverab/eGEOagents",
+        "citation": "https://arxiv.org/abs/2511.20867",
+        "url": "https://egeoagents.com",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Miguel Vera",
+          "sameAs": ["https://github.com/mverab"]
+        }
+      }
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is E-GEO?
+
+E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
+
+It is built for developers, technical marketers, and site owners who want their content ranked and cited by ChatGPT, Perplexity, Gemini, and Claude. Unlike audit-only tools, E-GEO runs a full pipeline — analyze, rank-simulate, rewrite, and generate JSON-LD schema — in one command. It differentiates on a reproducible evaluation harness (verify prompt quality yourself, offline, no API key), a continuous **geo-loop** mode that watches your pages over time, a research-backed methodology (arXiv:2511.20867, building on Princeton's KDD 2024 GEO study), and distribution as Claude Code skills. Install with `pip install -e .` or `npx skills add https://github.com/mverab/eGEOagents`.
+
+## Quickstart
+
+```bash
+# Standalone Python CLI
+git clone https://github.com/mverab/eGEOagents.git && cd eGEOagents
+pip install -e .
+egeo optimize examples/sample-input.md --out-dir ./geo-output
+
+# Or as Claude Code skills
+npx skills add https://github.com/mverab/eGEOagents
+```
+
+No API key required to try it — every command honors `GEO_EVAL_MOCK=1` for deterministic offline runs.
+
+<CardGrid>
+	<Card title="Full pipeline" icon="rocket">
+		Analyze → rank → rewrite → schema in one command. Output is copy-paste ready markdown and JSON-LD.
+	</Card>
+	<Card title="Reproducible evaluation" icon="approve-check">
+		A built-in harness measures whether the rewriter actually moves content up in an LLM-simulated ranking. Same check runs in CI.
+	</Card>
+	<Card title="Continuous geo-loop" icon="setting">
+		Opt-in loop mode watches domains over time with deterministic collectors and a persistent workspace ($EGEO_HOME).
+	</Card>
+	<Card title="Research-backed" icon="open-book">
+		Based on the E-GEO research paper (arXiv:2511.20867), building on the original Princeton GEO study (KDD 2024).
+	</Card>
+</CardGrid>
+
+## How E-GEO compares
+
+Last verified: 2026-08-05. Star counts as of 2026-08.
+
+| | E-GEO | geo-optimizer-skill (Auriti-Labs) |
+|---|---|---|
+| GitHub stars | 147 | ~617 |
+| Content rewriting | Yes — full pipeline | Audit-focused |
+| Scoring | 10 research-derived GEO features | 0–100 across 47 methods |
+| Reproducible evaluation harness | Yes (offline, deterministic, runs in CI) | No |
+| Continuous loop mode | Yes (`egeo loop`, persistent workspace) | No |
+| Peer-reviewed paper by the authors | Yes ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) | Builds on KDD 2024 GEO research |
+| Astro integration | No | Yes |
+| Claude Code skills distribution | Yes ([skills.sh](https://skills.sh/mverab/egeoagents)) | No |
+| License | MIT | MIT |
+
+geo-optimizer-skill has more stars and more scoring methods. E-GEO differentiates on rewriting (not just auditing), a reproducible evaluation harness, continuous loop mode, and a research-backed methodology. Full honest breakdown: [E-GEO vs geo-optimizer-skill](/compare/e-geo-vs-geo-optimizer-skill/).
+
+## Get started
+
+Read the [Getting Started guide](/docs/getting-started/), or go straight to the [source on GitHub](https://github.com/mverab/eGEOagents) — MIT licensed, 147 stars and 42 forks as of 2026-08.
