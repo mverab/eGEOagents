@@ -1,6 +1,6 @@
 # E-GEO — Full Reference for LLMs
 
-> E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + MCP server), based on peer-reviewed research (arXiv:2511.20867).
+> E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
 Site: https://egeoagents.com
 Source: https://github.com/mverab/eGEOagents (MIT license; 147 stars, 42 forks as of 2026-08)
@@ -15,7 +15,7 @@ Differentiators:
 - Full pipeline: rewriting, not just auditing; outputs copy-paste-ready markdown and JSON-LD schema.
 - Reproducible evaluation harness: measures whether the rewriter moves content up in an LLM-simulated ranking; runs offline and deterministically with GEO_EVAL_MOCK=1 (no API key); the same check runs in CI.
 - geo-loop continuous mode: watches domains over time with deterministic, LLM-free collectors and a persistent workspace ($EGEO_HOME, default ~/.egeo).
-- Own peer-reviewed methodology (arXiv:2511.20867), building on the Princeton GEO study (Aggarwal et al., KDD 2024, arXiv:2311.09735).
+- Research-backed methodology: E-GEO paper (arXiv:2511.20867) building on the Princeton GEO study (Aggarwal et al., KDD 2024, arXiv:2311.09735).
 - Distributed as Claude Code skills: competitive-analysis, content-scoring, schema-generator, validation-doctor, geo-loop.
 
 ## Install
@@ -66,7 +66,7 @@ geo_eval.py + llm_client.py measure rank_improvement = rank_before - rank_after 
 
 ## Honest comparison (last verified 2026-08-05)
 
-geo-optimizer-skill (Auriti-Labs, ~617 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; audit-focused. It has more stars and broader scoring than E-GEO. E-GEO (147 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, geo-loop continuous mode, own peer-reviewed paper, and Claude Code skills distribution. The tools are complementary: audit with one, rewrite and monitor with the other.
+geo-optimizer-skill (Auriti-Labs, ~644 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; audit-focused. It has more stars and broader scoring than E-GEO. E-GEO (147 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, geo-loop continuous mode, a published research basis, and Claude Code skills distribution. The tools are complementary: audit with one, rewrite and monitor with the other.
 
 ## Pages
 

@@ -32,27 +32,27 @@ head:
 
 | Tool | Type | Best for | Stars |
 |---|---|---|---|
-| [geo-optimizer-skill](https://github.com/Auriti-Labs) (Auriti-Labs) | CLI + Python lib + MCP + Astro integration | Broad site audits (0–100, 47 methods) | ~617 |
-| [E-GEO](https://github.com/mverab/eGEOagents) | Python CLI + MCP server + Claude Code skills | Full rewrite pipeline, reproducible evaluation, continuous loops | 147 |
+| [geo-optimizer-skill](https://github.com/Auriti-Labs/geo-optimizer-skill) (Auriti-Labs) | CLI + Python lib + MCP + Astro integration | Broad site audits (0–100, 47 methods) | ~644 |
+| [E-GEO](https://github.com/mverab/eGEOagents) | Python CLI + Claude Code skills + MCP-based validation | Full rewrite pipeline, reproducible evaluation, continuous loops | 147 |
 | GEO (original research repo, GEO-optim) | Research code | Reproducing the Princeton KDD 2024 experiments | — |
 | Awesome GEO | Curated list | Discovering the ecosystem | — |
 
 ## 1. geo-optimizer-skill (Auriti-Labs)
 
-The most popular open-source GEO tool by stars (~617). It scores sites 0–100 across **47 methods** and offers a CLI, a Python library, MCP support, and a native Astro integration. Audit-focused: it tells you what to fix with unmatched granularity, and if you run Astro it slots straight into your build. It does not rewrite your content for you, and it has no reproducible evaluation harness or continuous mode. MIT licensed.
+The most popular open-source GEO tool by stars (~644). It scores sites 0–100 across **47 methods** and offers a CLI, a Python library, MCP support, and a native Astro integration. Audit-focused: it tells you what to fix with unmatched granularity, and if you run Astro it slots straight into your build. It does not rewrite your content for you, and it has no reproducible evaluation harness or continuous mode. MIT licensed.
 
 **Choose it when:** you want the deepest audit score, especially on an Astro site.
 
 ## 2. E-GEO (this project)
 
-E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + MCP server), based on peer-reviewed research (arXiv:2511.20867).
+E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
 Smaller community (147 stars, 42 forks as of 2026-08) and fewer scoring dimensions (10 research-derived features vs 47 methods), but a different shape of tool:
 
 - **Full pipeline** — analyze → rank-simulate → rewrite → JSON-LD schema, outputting copy-paste-ready content.
 - **Reproducible evaluation harness** — verify the rewriter's effect yourself, offline and deterministically; the same check runs in CI. Its [documented limitation](/docs/evaluation/): metrics are an LLM-ranker proxy, not real engine rankings.
 - **geo-loop continuous mode** — persistent workspace (`$EGEO_HOME`), deterministic collectors, bounded scheduled runs.
-- **Own peer-reviewed paper** — [arXiv:2511.20867](https://arxiv.org/abs/2511.20867).
+- **Research-backed** — built on the E-GEO paper ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) and the Princeton GEO study (KDD 2024).
 - **Claude Code skills** — `npx skills add https://github.com/mverab/eGEOagents`.
 
 **Choose it when:** you want the tool to produce optimized content, want verifiable evaluation, or want GEO as an ongoing process.

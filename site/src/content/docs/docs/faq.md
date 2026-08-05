@@ -13,7 +13,7 @@ head:
           {
             "@type": "Question",
             "name": "How is E-GEO different from geo-optimizer-skill?",
-            "acceptedAnswer": {"@type": "Answer", "text": "geo-optimizer-skill (Auriti-Labs, ~617 stars as of 2026-08) is audit-focused and scores sites 0-100 across 47 methods, with CLI, Python library, MCP, and Astro integration. E-GEO rewrites content (full analyze-rank-rewrite-schema pipeline), ships a reproducible evaluation harness, adds a continuous geo-loop mode, and is based on its own peer-reviewed paper (arXiv:2511.20867). Both are MIT-licensed."}
+            "acceptedAnswer": {"@type": "Answer", "text": "geo-optimizer-skill (Auriti-Labs, ~644 stars as of 2026-08) is audit-focused and scores sites 0-100 across 47 methods, with CLI, Python library, MCP, and Astro integration. E-GEO rewrites content (full analyze-rank-rewrite-schema pipeline), ships a reproducible evaluation harness, adds a continuous geo-loop mode, and is built on published GEO research (arXiv:2511.20867, building on Princeton's KDD 2024 GEO study). Both are MIT-licensed."}
           },
           {
             "@type": "Question",
@@ -33,7 +33,7 @@ head:
           {
             "@type": "Question",
             "name": "Is E-GEO based on real research?",
-            "acceptedAnswer": {"@type": "Answer", "text": "Yes. E-GEO is based on the peer-reviewed paper arXiv:2511.20867, which builds on the original Princeton GEO study (Aggarwal et al., KDD 2024)."}
+            "acceptedAnswer": {"@type": "Answer", "text": "Yes. E-GEO is based on the E-GEO research paper (arXiv:2511.20867, Bagga et al., 2025), which builds on the original Princeton GEO study (Aggarwal et al., KDD 2024)."}
           },
           {
             "@type": "Question",
@@ -48,14 +48,14 @@ head:
 
 ### How is E-GEO different from geo-optimizer-skill?
 
-[geo-optimizer-skill](https://github.com/Auriti-Labs) (Auriti-Labs) is a strong, popular tool — ~617 stars as of 2026-08 vs E-GEO's 147 — offering a CLI, Python library, MCP, and an Astro integration, and scoring sites 0–100 across 47 methods. If you want the broadest audit coverage, it is a fair choice.
+[geo-optimizer-skill](https://github.com/Auriti-Labs/geo-optimizer-skill) (Auriti-Labs) is a strong, popular tool — ~644 stars as of 2026-08 vs E-GEO's 147 — offering a CLI, Python library, MCP, and an Astro integration, and scoring sites 0–100 across 47 methods. If you want the broadest audit coverage, it is a fair choice.
 
 E-GEO differentiates on four things:
 
 1. **Rewriting, not just auditing** — the full analyze → rank → rewrite → schema pipeline outputs copy-paste-ready optimized content.
 2. **Reproducible evaluation harness** — measure prompt quality yourself, offline, deterministically; the same check runs in CI.
 3. **Continuous geo-loop mode** — watch domains over time with a persistent workspace (`$EGEO_HOME`) and deterministic collectors.
-4. **Its own peer-reviewed paper** — [arXiv:2511.20867](https://arxiv.org/abs/2511.20867).
+4. **Research-backed** — built on the E-GEO paper ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) and the Princeton GEO study (KDD 2024).
 
 Full comparison: [E-GEO vs geo-optimizer-skill](/compare/e-geo-vs-geo-optimizer-skill/).
 

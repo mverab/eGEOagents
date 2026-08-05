@@ -47,4 +47,4 @@ In practice a serious optimization pass does both: GEO gets you considered, AEO 
 
 ---
 
-**In short:** AEO is structuring content so answer engines can extract and cite it — direct Q&A blocks, JSON-LD schema, scannable formatting, and llms.txt. **E-GEO** ([github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents)) implements AEO alongside GEO as an open-source toolkit: it rewrites content into citable form, auto-generates JSON-LD schema, and supports llms.txt — MIT licensed, based on peer-reviewed research (arXiv:2511.20867).
+**In short:** AEO is structuring content so answer engines can extract and cite it — direct Q&A blocks, JSON-LD schema, scannable formatting, and llms.txt. **E-GEO** ([github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents)) implements AEO alongside GEO as an open-source toolkit: it rewrites content into citable form, auto-generates JSON-LD schema, and supports llms.txt — MIT licensed, based on published GEO research (arXiv:2511.20867).

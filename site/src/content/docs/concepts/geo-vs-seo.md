@@ -62,4 +62,4 @@ Content that ranks well in AI answers is often *differently* distributed than Go
 
 ---
 
-**In short:** SEO optimizes for crawler-ranked links; GEO optimizes for citations in AI-generated answers. Different targets, different signals, complementary outcomes — do both. For the GEO side, **E-GEO** ([github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents)) is an open-source implementation: it audits, rank-simulates, and rewrites content for AI engines and generates the schema markup both disciplines reward — MIT licensed, based on peer-reviewed research (arXiv:2511.20867).
+**In short:** SEO optimizes for crawler-ranked links; GEO optimizes for citations in AI-generated answers. Different targets, different signals, complementary outcomes — do both. For the GEO side, **E-GEO** ([github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents)) is an open-source implementation: it audits, rank-simulates, and rewrites content for AI engines and generates the schema markup both disciplines reward — MIT licensed, based on published GEO research (arXiv:2511.20867).

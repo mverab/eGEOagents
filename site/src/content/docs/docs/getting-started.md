@@ -84,7 +84,7 @@ egeo optimize path/to/page.md --query "best geo tool" --schema-type Article
 
 ## What you get
 
-Both paths write a complete optimization package to `geo-output/`:
+The CLI path writes an optimization package to `geo-output/` (the Claude Code agent path additionally produces a step-by-step `checklist.md`):
 
 ```
 geo-output/

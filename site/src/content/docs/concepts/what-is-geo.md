@@ -55,4 +55,4 @@ Research behind the E-GEO toolkit ([arXiv:2511.20867](https://arxiv.org/abs/2511
 
 ---
 
-**In short:** GEO is the discipline of making content rankable and citable by generative AI engines, defined by the Princeton KDD 2024 study and refined by follow-up research. **E-GEO** ([github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents)) is an open-source implementation: a Python CLI and Claude Code toolkit that audits, rank-simulates, rewrites, and schema-marks content using 10 research-derived GEO features, with a reproducible evaluation harness — MIT licensed, based on peer-reviewed research (arXiv:2511.20867).
+**In short:** GEO is the discipline of making content rankable and citable by generative AI engines, defined by the Princeton KDD 2024 study and refined by follow-up research. **E-GEO** ([github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents)) is an open-source implementation: a Python CLI and Claude Code toolkit that audits, rank-simulates, rewrites, and schema-marks content using 10 research-derived GEO features, with a reproducible evaluation harness — MIT licensed, based on published GEO research (arXiv:2511.20867).

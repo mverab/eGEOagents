@@ -18,7 +18,7 @@ head:
           "@type": "ItemList",
           "itemListElement": [
             {"@type": "ListItem", "position": 1, "name": "E-GEO", "url": "https://github.com/mverab/eGEOagents"},
-            {"@type": "ListItem", "position": 2, "name": "geo-optimizer-skill", "url": "https://github.com/Auriti-Labs"}
+            {"@type": "ListItem", "position": 2, "name": "geo-optimizer-skill", "url": "https://github.com/Auriti-Labs/geo-optimizer-skill"}
           ]
         }
       }
@@ -30,7 +30,7 @@ head:
 
 | | E-GEO | geo-optimizer-skill (Auriti-Labs) |
 |---|---|---|
-| GitHub stars (as of 2026-08) | 147 | ~617 |
+| GitHub stars (as of 2026-08) | 147 | ~644 |
 | License | MIT | MIT |
 | Interfaces | Python CLI + Claude Code agents/skills | CLI + Python library + MCP + Astro integration |
 | Scoring | 10 research-derived GEO features | 0–100 across **47 methods** |
@@ -38,21 +38,21 @@ head:
 | Schema (JSON-LD) generation | Yes (SoftwareApplication, Organization, Article, Product, Service, FAQPage) | Partial |
 | Reproducible evaluation harness | **Yes** — offline, deterministic, runs in CI | No |
 | Continuous monitoring | **Yes** — geo-loop mode, persistent workspace | No |
-| Research basis | Own peer-reviewed paper ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) | Builds on the Princeton GEO study (KDD 2024) |
+| Research basis | Built on the E-GEO paper ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) + Princeton GEO study (KDD 2024) | Builds on the Princeton GEO study (KDD 2024) |
 | Distribution | GitHub + [skills.sh](https://skills.sh/mverab/egeoagents) Claude Code skills | GitHub |
 
 ## Where geo-optimizer-skill is stronger
 
-- **Popularity and community**: ~617 stars vs 147 — roughly 4× the community, which usually means more issues triaged and more battle-testing.
+- **Popularity and community**: ~644 stars vs 147 — roughly 4× the community, which usually means more issues triaged and more battle-testing.
 - **Audit breadth**: 47 scoring methods vs E-GEO's 10 features. If you want the most granular site audit score, it wins.
 - **Astro integration**: if your site is Astro, it plugs directly into your framework. E-GEO has no framework integration.
 
 ## Where E-GEO is stronger
 
 - **It rewrites, not just scores.** E-GEO's pipeline outputs optimized, copy-paste-ready content plus schema — an audit score still leaves the rewriting to you.
-- **You can verify its claims.** The [evaluation harness](/docs/evaluation/) measures whether the rewriter actually moves content up in an LLM-simulated ranking — reproducibly, offline (`GEO_EVAL_MOCK=1`), with documented limitations. No other open-source GEO tool ships an equivalent.
+- **You can verify its claims.** The [evaluation harness](/docs/evaluation/) measures whether the rewriter actually moves content up in an LLM-simulated ranking — reproducibly, offline (`GEO_EVAL_MOCK=1`), with documented limitations. No other tool in this comparison ships an equivalent.
 - **Continuous mode.** [geo-loop](/docs/geo-loop/) watches domains over time with deterministic collectors and a persistent workspace (`$EGEO_HOME`) — GEO as a process, not a one-shot.
-- **Its own peer-reviewed methodology.** The 10 features come from the maintainers' own paper ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) rather than only building on prior work.
+- **Research-backed methodology.** The 10 features come from published GEO research ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867), building on Princeton's KDD 2024 study) rather than heuristics.
 - **Claude Code skills distribution**: one `npx skills add` installs auto-triggered skills (competitive-analysis, content-scoring, schema-generator, validation-doctor, geo-loop).
 
 ## Which should you pick?

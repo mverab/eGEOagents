@@ -25,7 +25,7 @@ export default defineConfig({
 		starlight({
 			title: 'E-GEO',
 			description:
-				'E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + MCP server), based on peer-reviewed research (arXiv:2511.20867).',
+				'E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).',
 			social: [
 				{
 					icon: 'github',
