@@ -22,9 +22,9 @@ dependencies = [
 egeo = "egeo.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/mverab/eGEOagents"
+Homepage = "https://egeoagents.com"
 Repository = "https://github.com/mverab/eGEOagents"
-Documentation = "https://github.com/mverab/eGEOagents#readme"
+Documentation = "https://egeoagents.com/docs/getting-started/"
 
 [tool.setuptools]
 # The CLI package plus the root-level harness modules it reuses. Declaring the
