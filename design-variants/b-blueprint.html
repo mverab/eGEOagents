@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-GEO — Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bp:#0F3D91;        /* blueprint blue */
+    --bp-deep:#0A2C6B;
+    --line:#B9CBEF;      /* pale drafting line */
+    --field:#F4F7FD;     /* pale blue-white sheet */
+    --white:#FFFFFF;
+    --ink:#10254A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Archivo',system-ui,sans-serif;
+    background:var(--field);
+    color:var(--ink);
+    line-height:1.5;
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px),
+      linear-gradient(rgba(185,203,239,.45) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(185,203,239,.45) 1px,transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+  }
+  .frame{max-width:1360px;margin:24px auto;border:2px solid var(--bp);background:transparent;position:relative;}
+  .frame::after{content:"";position:absolute;inset:6px;border:1px solid var(--bp);pointer-events:none;}
+  .inner{position:relative;z-index:1;padding:0 56px;}
+
+  /* title block header, like a drawing sheet */
+  .sheet-head{
+    display:flex;justify-content:space-between;align-items:stretch;
+    border-bottom:2px solid var(--bp);margin:0 -56px;padding:0;
+  }
+  .sheet-cell{padding:16px 24px;border-right:1px solid var(--bp);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--bp);}
+  .sheet-cell b{display:block;font-size:1.05rem;letter-spacing:.02em;color:var(--ink);margin-top:2px;text-transform:none;}
+  .sheet-cell.brand b{font-size:1.3rem;font-weight:700;}
+  .sheet-cell:last-child{border-right:none;margin-left:auto;text-align:right;}
+  .sheet-nav{display:flex;align-items:center;gap:28px;padding:0 24px;font-size:.82rem;}
+  .sheet-nav a{color:var(--ink);text-decoration:none;border-bottom:1px dashed transparent;}
+  .sheet-nav a:hover{color:var(--bp);border-bottom-color:var(--bp);}
+
+  .hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;padding:72px 0 64px;align-items:center;}
+  .drawing-no{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--bp);border:1px solid var(--bp);display:inline-block;padding:5px 12px;background:var(--white);}
+  h1{
+    font-size:clamp(2.2rem,4.6vw,3.9rem);
+    font-weight:700;line-height:1.06;letter-spacing:-.02em;
+    margin:26px 0 0;color:var(--ink);
+  }
+  h1 .q{font-family:'Spectral',serif;font-style:italic;font-weight:400;color:var(--bp);}
+  .sub{margin-top:22px;font-size:1.05rem;line-height:1.7;color:#3A517F;max-width:44ch;}
+  .ctas{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:34px;}
+  .btn{display:inline-block;padding:13px 26px;font-size:.9rem;font-weight:600;text-decoration:none;}
+  .btn-primary{background:var(--bp);color:var(--white);box-shadow:4px 4px 0 var(--line);}
+  .btn-primary:hover{background:var(--bp-deep);}
+  .btn-ghost{border:1px solid var(--bp);color:var(--bp);background:var(--white);}
+  .btn-ghost:hover{background:#E7EEFB;}
+  .link-text{font-size:.9rem;color:var(--bp);text-decoration:none;border-bottom:1px dashed var(--bp);}
+  .stats{margin-top:36px;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--bp);}
+  .stats::before{content:"⌖ ";}
+
+  /* the map */
+  .map{position:relative;min-height:520px;}
+  .map svg{width:100%;height:auto;display:block;}
+  .node-label{font-family:'Archivo';font-size:11px;fill:var(--bp);letter-spacing:.08em;text-transform:uppercase;}
+  .annot{font-family:'Spectral',serif;font-style:italic;font-size:13px;fill:var(--ink);}
+  .edge{stroke:var(--bp);stroke-width:1.5;fill:none;stroke-dasharray:6 5;animation:flow 2.4s linear infinite;}
+  .edge.solid{stroke-dasharray:none;animation:none;stroke-width:2;}
+  @keyframes flow{to{stroke-dashoffset:-22;}}
+  .qnode{fill:var(--white);stroke:var(--bp);stroke-width:1.5;}
+  .cite-node{fill:var(--bp);}
+  .cite-node-text{fill:var(--white);}
+
+  /* fold hint */
+  .fold{border-top:2px solid var(--bp);margin:0 -56px;padding:48px 56px 72px;background:var(--white);}
+  .fold-kicker{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--bp);}
+  .fold h2{font-size:1.8rem;font-weight:700;letter-spacing:-.01em;margin-top:10px;}
+  .legend{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bp);border:1px solid var(--bp);margin-top:32px;}
+  .legend div{background:var(--field);padding:24px;}
+  .legend .sym{font-size:1.3rem;color:var(--bp);}
+  .legend h3{font-size:.95rem;font-weight:600;margin:10px 0 6px;}
+  .legend p{font-size:.86rem;color:#3A517F;line-height:1.6;}
+
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr;gap:40px;}
+    .sheet-nav{display:none;}
+  }
+  @media(max-width:480px){
+    .inner{padding:0 20px;}
+    .sheet-head,.fold{margin:0 -20px;}
+    .fold{padding:40px 20px 56px;}
+    .sheet-cell{padding:12px 14px;}
+    .legend{grid-template-columns:1fr;}
+    .frame{margin:10px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="frame"><div class="inner">
+
+  <header class="sheet-head">
+    <div class="sheet-cell brand">Project<b>E-GEO</b></div>
+    <div class="sheet-cell">Drawing<b>Answer Topology</b></div>
+    <nav class="sheet-nav">
+      <a href="#">Method</a><a href="#">Research</a><a href="#">Docs</a><a href="#">GitHub</a>
+    </nav>
+    <div class="sheet-cell">Sheet<b>01 / 04 · MIT</b></div>
+  </header>
+
+  <main class="hero">
+    <div>
+      <span class="drawing-no">Fig. A — The new route to your site</span>
+      <h1>Your customers stopped searching. <span class="q">They started asking.</span></h1>
+      <p class="sub">E-GEO analyzes, rewrites, and schema-marks your pages so answer engines cite you. When ChatGPT, Perplexity, Gemini, or Claude draws the map of an answer — your site is a landmark on it.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="#">get started →</a>
+        <a class="btn btn-ghost" href="#">★ star on github</a>
+        <a class="link-text" href="#">read the research ↗</a>
+      </div>
+      <p class="stats">147★ · 42 forks · mit · arxiv:2511.20867</p>
+    </div>
+
+    <figure class="map" aria-label="Diagram: a question flows through answer engines into a cited source card">
+      <svg viewBox="0 0 640 520" role="img">
+        <!-- question node -->
+        <rect class="qnode" x="20" y="40" width="270" height="66" rx="2"/>
+        <text class="annot" x="36" y="68">“which toolkit gets my pages</text>
+        <text class="annot" x="36" y="88">cited by AI assistants?”</text>
+        <text class="node-label" x="20" y="30">Q.01 — Real user question</text>
+
+        <!-- engines -->
+        <circle cx="430" cy="70" r="6" fill="none" stroke="#0F3D91" stroke-width="1.5"/>
+        <circle cx="470" cy="140" r="6" fill="none" stroke="#0F3D91" stroke-width="1.5"/>
+        <circle cx="410" cy="210" r="6" fill="none" stroke="#0F3D91" stroke-width="1.5"/>
+        <circle cx="500" cy="260" r="6" fill="none" stroke="#0F3D91" stroke-width="1.5"/>
+        <text class="node-label" x="446" y="66">ChatGPT</text>
+        <text class="node-label" x="486" y="136">Perplexity</text>
+        <text class="node-label" x="426" y="206">Gemini</text>
+        <text class="node-label" x="516" y="256">Claude</text>
+
+        <!-- edges question -> engines -->
+        <path class="edge" d="M290 60 C 350 50, 380 60, 424 68"/>
+        <path class="edge" d="M290 75 C 360 85, 410 115, 464 136"/>
+        <path class="edge" d="M290 90 C 340 130, 360 180, 404 206"/>
+        <path class="edge" d="M290 95 C 370 160, 420 220, 494 254"/>
+
+        <!-- edges engines -> citation -->
+        <path class="edge solid" d="M430 78 C 420 180, 380 280, 330 330"/>
+        <path class="edge solid" d="M468 147 C 440 230, 390 300, 335 342"/>
+        <path class="edge solid" d="M410 218 C 390 270, 360 310, 330 350"/>
+        <path class="edge solid" d="M496 267 C 440 310, 380 340, 338 358"/>
+
+        <!-- crosshair on citation -->
+        <line x1="230" y1="310" x2="230" y2="330" stroke="#0F3D91" stroke-width="1"/>
+        <line x1="150" y1="345" x2="130" y2="345" stroke="#0F3D91" stroke-width="1"/>
+
+        <!-- citation card node -->
+        <rect class="cite-node" x="90" y="330" width="290" height="96" rx="2"/>
+        <text class="cite-node-text" x="108" y="360" font-family="Archivo" font-size="14" font-weight="600">yoursite.com</text>
+        <text class="cite-node-text" x="108" y="382" font-family="Archivo" font-size="11" opacity=".85">Source [1] · cited in 4 of 4 answers</text>
+        <text class="cite-node-text" x="108" y="404" font-family="Archivo" font-size="11" opacity=".85">schema ✓ · claims ✓ · statistics ✓</text>
+        <text class="node-label" x="90" y="450">N.05 — The citation slot. The point of everything.</text>
+
+        <!-- scale bar -->
+        <line x1="450" y1="480" x2="620" y2="480" stroke="#0F3D91" stroke-width="1.5"/>
+        <line x1="450" y1="474" x2="450" y2="486" stroke="#0F3D91" stroke-width="1.5"/>
+        <line x1="620" y1="474" x2="620" y2="486" stroke="#0F3D91" stroke-width="1.5"/>
+        <text class="node-label" x="450" y="470">scale: one answer = one market</text>
+      </svg>
+    </figure>
+  </main>
+
+  <section class="fold">
+    <p class="fold-kicker">Legend — how E-GEO redraws the map</p>
+    <h2>Three operations, one cited site</h2>
+    <div class="legend">
+      <div>
+        <span class="sym">◇</span>
+        <h3>Survey — Analyze</h3>
+        <p>Every page is measured against the ten features answer engines reward: structure, statistics, quotable claims, fluency.</p>
+      </div>
+      <div>
+        <span class="sym">▣</span>
+        <h3>Redraft — Rewrite</h3>
+        <p>Content is redrawn for citation — brand voice preserved, facts intact, each claim made liftable by an engine.</p>
+      </div>
+      <div>
+        <span class="sym">⌘</span>
+        <h3>Annotate — Schema</h3>
+        <p>JSON-LD markup plotted onto every page, so engines don't just read your site — they attribute it.</p>
+      </div>
+    </div>
+  </section>
+
+</div></div>
+
+<!--
+DESIGN NOTES — B / Blueprint · Cartography of Answers
+Palette: blueprint blue #0F3D91 · deep blue #0A2C6B · drafting line #B9CBEF · sheet #F4F7FD · white #FFFFFF · ink-navy text #10254A
+Fonts: Archivo (grotesk, drawing-sheet labels + UI) + Spectral italic (the human question voice)
+Motion language:
+- Dashed question→engine edges flow continuously (stroke-dashoffset), reading as live routing
+- On load, edges draw in via stroke-dasharray line-draw before settling into the flow loop
+- Nodes and annotation labels fade in sequentially along the path, like a survey being plotted
+-->
+</body>
+</html>

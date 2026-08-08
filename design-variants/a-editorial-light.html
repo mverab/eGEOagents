@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-GEO — Editorial Light</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF7F2;
+    --ink:#141310;
+    --ink-soft:#4A463F;
+    --rule:#D8D2C6;
+    --accent:#1B4332; /* forest green */
+    --accent-soft:#E4EDE7;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{font-size:16px;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  .serif{font-family:'Fraunces',Georgia,serif;}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 48px;}
+
+  /* masthead */
+  header{border-bottom:1px solid var(--ink);}
+  .mast{display:flex;align-items:baseline;justify-content:space-between;padding:20px 0 16px;}
+  .mast .brand{font-family:'Fraunces',serif;font-weight:600;font-size:1.25rem;letter-spacing:-.01em;}
+  .mast nav{display:flex;gap:32px;font-size:.85rem;color:var(--ink-soft);}
+  .mast nav a{color:inherit;text-decoration:none;}
+  .mast nav a:hover{color:var(--accent);}
+  .issue-line{display:flex;justify-content:space-between;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);padding:8px 0;border-top:1px solid var(--rule);}
+
+  /* hero */
+  .hero{padding:72px 0 0;}
+  .kicker{font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:14px;}
+  .kicker::after{content:"";flex:0 0 64px;height:1px;background:var(--accent);}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:400;
+    font-size:clamp(2.6rem,6.4vw,5.4rem);
+    line-height:1.04;
+    letter-spacing:-.02em;
+    margin:28px 0 0;
+    max-width:18ch;
+  }
+  h1 em{font-style:italic;color:var(--accent);}
+  .hero-grid{
+    display:grid;
+    grid-template-columns:minmax(0,7fr) minmax(0,5fr);
+    gap:64px;
+    margin-top:48px;
+    padding-top:40px;
+    border-top:1px solid var(--rule);
+  }
+  .lede{font-size:1.18rem;line-height:1.65;color:var(--ink-soft);max-width:46ch;}
+  .lede strong{color:var(--ink);font-weight:600;}
+  .ctas{display:flex;flex-wrap:wrap;align-items:center;gap:20px;margin-top:36px;}
+  .btn{
+    display:inline-block;padding:14px 30px;font-size:.92rem;font-weight:600;
+    text-decoration:none;border-radius:2px;
+  }
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-primary:hover{background:var(--accent);}
+  .btn-ghost{border:1px solid var(--ink);color:var(--ink);background:transparent;}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .link-text{font-size:.92rem;color:var(--ink-soft);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px;}
+  .link-text:hover{color:var(--accent);border-color:var(--accent);}
+  .stats{margin-top:44px;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);border-top:1px solid var(--rule);padding-top:14px;display:inline-block;}
+
+  /* answer specimen (right column) */
+  .specimen{position:relative;}
+  .specimen .figno{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:14px;}
+  .question{
+    font-family:'Fraunces',serif;font-style:italic;font-size:1.35rem;line-height:1.35;
+    padding-bottom:20px;border-bottom:1px solid var(--rule);
+  }
+  .answer{padding:22px 0;font-size:.98rem;line-height:1.7;color:var(--ink-soft);}
+  .answer .src{
+    display:inline;background:var(--accent-soft);color:var(--accent);font-weight:600;
+    padding:1px 6px;border-radius:2px;white-space:nowrap;font-size:.85em;
+  }
+  .citation{
+    border:1px solid var(--ink);border-left:4px solid var(--accent);
+    padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;
+    background:#fff;
+  }
+  .citation .name{font-weight:600;font-size:.95rem;}
+  .citation .url{font-size:.8rem;color:var(--ink-soft);}
+  .citation .tag{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;border:1px solid var(--accent);padding:4px 8px;border-radius:2px;white-space:nowrap;}
+  .caption{font-size:.78rem;color:var(--ink-soft);margin-top:14px;line-height:1.55;}
+  .caption em{font-style:italic;}
+
+  /* fold hint */
+  .fold{margin-top:88px;border-top:2px solid var(--ink);padding:32px 0 72px;}
+  .fold-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px;}
+  .fold h2{font-family:'Fraunces',serif;font-weight:500;font-size:1.9rem;letter-spacing:-.01em;}
+  .fold .no{font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:36px;}
+  .col{padding:0 32px;border-left:1px solid var(--rule);}
+  .col:first-child{padding-left:0;border-left:none;}
+  .col .num{font-family:'Fraunces',serif;font-size:2rem;color:var(--accent);}
+  .col h3{font-size:1rem;font-weight:600;margin:10px 0 8px;}
+  .col p{font-size:.9rem;color:var(--ink-soft);line-height:1.65;}
+
+  /* reveal motion */
+  .rv{opacity:0;transform:translateY(14px);transition:opacity .8s ease,transform .8s ease;}
+  .rv.in{opacity:1;transform:none;}
+  .d1{transition-delay:.12s}.d2{transition-delay:.24s}.d3{transition-delay:.36s}.d4{transition-delay:.5s}
+
+  @media(max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:48px;}
+    .cols{grid-template-columns:1fr;}
+    .col{padding:24px 0;border-left:none;border-top:1px solid var(--rule);}
+    .col:first-child{border-top:none;padding-top:0;}
+  }
+  @media(max-width:480px){
+    .wrap{padding:0 20px;}
+    .mast nav{display:none;}
+    .hero{padding-top:48px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="mast">
+      <span class="brand">E-GEO</span>
+      <nav>
+        <a href="#">Method</a><a href="#">Research</a><a href="#">Docs</a><a href="#">GitHub</a>
+      </nav>
+    </div>
+    <div class="issue-line"><span>The Answer Economy · Vol. 01</span><span>Open source · MIT</span></div>
+  </div>
+</header>
+
+<main class="hero wrap">
+  <p class="kicker rv">Generative Engine Optimization</p>
+  <h1 class="rv d1">Your customers stopped searching. <em>They started asking.</em></h1>
+
+  <div class="hero-grid">
+    <div class="rv d2">
+      <p class="lede">E-GEO analyzes, rewrites, and schema-marks your pages so answer engines cite you. <strong>ChatGPT, Perplexity, Gemini, Claude</strong> — when they answer your customer's question, your site should be the source they name.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="#">get started →</a>
+        <a class="btn btn-ghost" href="#">★ star on github</a>
+        <a class="link-text" href="#">read the research ↗</a>
+      </div>
+      <p class="stats">147★ · 42 forks · mit · arxiv:2511.20867</p>
+    </div>
+
+    <figure class="specimen rv d3">
+      <figcaption class="figno">Fig. 1 — A question, answered</figcaption>
+      <p class="question">“What's the best way to get my product recommended by AI assistants?”</p>
+      <p class="answer">The most cited approach is Generative Engine Optimization — restructuring pages with clear claims, statistics, and schema so answer engines can quote them directly <span class="src">[1 · yoursite.com]</span>.</p>
+      <div class="citation">
+        <div>
+          <div class="name">yoursite.com — Product guide</div>
+          <div class="url">cited in 3 of 4 answer engines</div>
+        </div>
+        <span class="tag">Source №1</span>
+      </div>
+      <figcaption class="caption"><em>The citation slot is the new front page.</em> E-GEO exists to put you in it.</figcaption>
+    </figure>
+  </div>
+
+  <section class="fold rv d4">
+    <div class="fold-head">
+      <h2>How a page becomes a citation</h2>
+      <span class="no">Section 01 / 04</span>
+    </div>
+    <div class="cols">
+      <div class="col">
+        <span class="num">I.</span>
+        <h3>Analyze</h3>
+        <p>E-GEO audits every page against the ten features answer engines reward — fluency, statistics, quotable claims, structure.</p>
+      </div>
+      <div class="col">
+        <span class="num">II.</span>
+        <h3>Rewrite</h3>
+        <p>Your content, restructured for citation — brand voice preserved, facts untouched, every claim made liftable.</p>
+      </div>
+      <div class="col">
+        <span class="num">III.</span>
+        <h3>Mark up</h3>
+        <p>JSON-LD schema generated for every page, so engines don't just read you — they attribute you.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.15});
+  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+</script>
+
+<!--
+DESIGN NOTES — A / Editorial Light
+Palette: paper #FAF7F2 · ink #141310 · soft ink #4A463F · rule #D8D2C6 · forest green accent #1B4332 · accent wash #E4EDE7
+Fonts: Fraunces (serif display, optical sizing, italic emphasis) + Inter (UI/body)
+Motion language:
+- Staggered fade-up reveals on scroll (14px rise, 0.8s ease), like pages settling
+- Horizontal rules draw in left-to-right on entry (scaleX 0→1) to reinforce print grid
+- Citation card gets a single delayed border-left "ink stamp" emphasis, no looping animation
+-->
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-GEO — Swiss</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,600;0,800;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#FFFFFF;
+    --black:#000000;
+    --grey:#6B6B6B;
+    --hair:#000000;
+    --flu:#D4FF00; /* fluorescent chartreuse, used once */
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--white);
+    color:var(--black);
+    font-family:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+    line-height:1.4;
+  }
+  a{color:inherit;}
+  .grid{
+    border-top:2px solid var(--hair);
+  }
+  .row{border-bottom:2px solid var(--hair);}
+  .cells{display:grid;grid-template-columns:repeat(12,1fr);max-width:1440px;margin:0 auto;}
+
+  /* header */
+  .hd{align-items:stretch;}
+  .hd .c{padding:18px 24px;font-size:.8rem;font-weight:600;letter-spacing:.02em;border-left:2px solid var(--hair);}
+  .hd .c:first-child{border-left:none;}
+  .hd .brand{grid-column:span 3;font-size:1rem;font-weight:800;letter-spacing:-.02em;}
+  .hd .n{grid-column:span 2;}
+  .hd .n a{text-decoration:none;}
+  .hd .n a:hover{background:var(--black);color:var(--white);}
+  .hd .meta{grid-column:span 3;text-align:right;color:var(--grey);font-weight:500;}
+
+  /* headline */
+  .head-row{padding:0;}
+  h1{
+    grid-column:1 / -1;
+    font-weight:800;
+    font-size:clamp(3rem,10.4vw,10.2rem);
+    line-height:.92;
+    letter-spacing:-.045em;
+    text-transform:uppercase;
+    padding:40px 24px 48px;
+  }
+  h1 .asked{
+    background:var(--flu);
+    box-decoration-break:clone;-webkit-box-decoration-break:clone;
+    padding:0 .06em;
+  }
+
+  /* deck row */
+  .deck .c{border-left:2px solid var(--hair);padding:28px 24px;}
+  .deck .c:first-child{border-left:none;}
+  .deck .idx{grid-column:span 2;font-size:.8rem;font-weight:600;color:var(--grey);}
+  .deck .sub{grid-column:span 6;font-size:1.25rem;font-weight:500;letter-spacing:-.01em;max-width:38ch;}
+  .deck .sub b{font-weight:800;}
+  .deck .stats{grid-column:span 4;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:flex;flex-direction:column;gap:6px;color:var(--grey);}
+  .deck .stats span b{color:var(--black);}
+
+  /* cta row */
+  .cta .c{border-left:2px solid var(--hair);}
+  .cta .c:first-child{border-left:none;}
+  .cta a{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:26px 24px;text-decoration:none;font-weight:800;font-size:1.05rem;
+    text-transform:uppercase;letter-spacing:-.01em;
+  }
+  .cta .primary{grid-column:span 5;background:var(--black);color:var(--white);}
+  .cta .primary:hover{background:var(--flu);color:var(--black);}
+  .cta .ghost{grid-column:span 4;}
+  .cta .ghost:hover{background:var(--black);color:var(--white);}
+  .cta .txt{grid-column:span 3;font-weight:600;color:var(--grey);font-size:.9rem;text-transform:none;}
+  .cta .txt:hover{color:var(--black);}
+
+  /* answer block: pure typography */
+  .qa .c{border-left:2px solid var(--hair);padding:36px 24px;}
+  .qa .c:first-child{border-left:none;}
+  .qa .q{grid-column:span 6;}
+  .qa .a{grid-column:span 6;}
+  .lbl{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;display:block;}
+  .qa .q p{font-size:1.9rem;font-weight:500;font-style:italic;letter-spacing:-.02em;line-height:1.15;max-width:20ch;}
+  .qa .a p{font-size:1.1rem;line-height:1.55;max-width:44ch;}
+  .qa .cite{
+    margin-top:24px;display:inline-flex;align-items:center;gap:14px;
+    border:2px solid var(--black);padding:14px 18px;font-weight:800;font-size:.95rem;
+  }
+  .qa .cite .one{background:var(--flu);padding:2px 10px;}
+
+  /* fold hint */
+  .fold .c{border-left:2px solid var(--hair);padding:32px 24px 72px;}
+  .fold .c:first-child{border-left:none;}
+  .fold h2{grid-column:span 6;font-size:2.4rem;font-weight:800;text-transform:uppercase;letter-spacing:-.03em;line-height:1;}
+  .fold .steps{grid-column:span 6;display:flex;flex-direction:column;gap:0;}
+  .fold .step{display:flex;gap:20px;padding:14px 0;border-bottom:2px solid var(--hair);font-size:1rem;}
+  .fold .step:last-child{border-bottom:none;}
+  .fold .step b{min-width:56px;font-weight:800;}
+  .fold .step span{color:var(--grey);font-weight:500;}
+
+  @media(max-width:900px){
+    .hd .n{display:none;}
+    .hd .brand{grid-column:span 6;}
+    .hd .meta{grid-column:span 6;}
+    .deck .idx{display:none;}
+    .deck .sub{grid-column:span 12;border-left:none;}
+    .deck .stats{grid-column:span 12;border-left:none;border-top:2px solid var(--hair);flex-direction:row;flex-wrap:wrap;gap:16px;}
+    .cta .primary{grid-column:span 12;border-left:none;}
+    .cta .ghost{grid-column:span 12;border-left:none;border-top:2px solid var(--hair);}
+    .cta .txt{grid-column:span 12;border-left:none;border-top:2px solid var(--hair);}
+    .qa .q,.qa .a{grid-column:span 12;border-left:none;}
+    .qa .a{border-top:2px solid var(--hair);}
+    .fold h2,.fold .steps{grid-column:span 12;border-left:none;}
+    .fold h2{padding-bottom:0;}
+    .fold .c{padding-bottom:36px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="grid">
+
+  <header class="row hd">
+    <div class="cells">
+      <div class="c brand">E-GEO®</div>
+      <div class="c n"><a href="#">Method</a></div>
+      <div class="c n"><a href="#">Research</a></div>
+      <div class="c n"><a href="#">GitHub</a></div>
+      <div class="c meta">Open source / MIT</div>
+    </div>
+  </header>
+
+  <section class="row head-row">
+    <div class="cells">
+      <h1>Your customers stopped searching. They started <span class="asked">asking.</span></h1>
+    </div>
+  </section>
+
+  <section class="row deck">
+    <div class="cells">
+      <div class="c idx">01<br>—<br>Hero</div>
+      <div class="c sub">E-GEO analyzes, rewrites, and schema-marks your pages so answer engines cite you. <b>ChatGPT. Perplexity. Gemini. Claude.</b> Be the source they name.</div>
+      <div class="c stats">
+        <span><b>147★</b> github</span>
+        <span><b>42</b> forks</span>
+        <span><b>MIT</b> license</span>
+        <span><b>arXiv</b> 2511.20867</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="row cta">
+    <div class="cells">
+      <a class="c primary" href="#">get started <span>→</span></a>
+      <a class="c ghost" href="#">★ star on github</a>
+      <a class="c txt" href="#">read the research ↗</a>
+    </div>
+  </section>
+
+  <section class="row qa">
+    <div class="cells">
+      <div class="c q">
+        <span class="lbl">The question</span>
+        <p>“Which product should I actually buy?”</p>
+      </div>
+      <div class="c a">
+        <span class="lbl">The answer — and its source</span>
+        <p>Answer engines compress the whole web into one reply with a handful of citations. Rank doesn't exist there. Either you are quoted, or you are invisible.</p>
+        <div class="cite"><span class="one">[1]</span> yoursite.com — cited</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row fold">
+    <div class="cells">
+      <h2 class="c">How it<br>works</h2>
+      <div class="c steps">
+        <div class="step"><b>01</b> Analyze <span>— audit pages against the 10 features engines reward</span></div>
+        <div class="step"><b>02</b> Rewrite <span>— restructure for citation, voice and facts preserved</span></div>
+        <div class="step"><b>03</b> Schema <span>— JSON-LD on every page, so engines attribute you</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!--
+DESIGN NOTES — C / Swiss · Brutalist
+Palette: white #FFFFFF · black #000000 · grey #6B6B6B · fluorescent #D4FF00 (single accent, used exactly twice: the word "asking." and the citation [1])
+Fonts: Archivo 800/600/500 as Neue-Haas-class grotesk (Helvetica/Arial fallback); no second family
+Motion language:
+- Headline words slide up from behind hard baseline masks on load (clip, no fade) — typographic, mechanical
+- Hover states are instant color inversions (black↔white, black↔fluorescent), zero easing
+- The fluorescent highlight on "asking." wipes in left-to-right once (background-size 0→100%), then stays static
+-->
+</body>
+</html>
