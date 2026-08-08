@@ -76,37 +76,37 @@ const softwareSchema = JSON.stringify({
 		</header>
 
 		<main>
-			<section class="row" aria-labelledby="hero-h">
+			<section class="row hero" aria-labelledby="hero-h">
 				<div class="cells">
 					<p class="c label">Generative Engine Optimization — for the answer economy</p>
 				</div>
-				<div class="cells">
-					<h1 class="c" id="hero-h" data-reveal-words>
-						Your customers stopped searching. They started
-						<span class="asked">asking.</span>
-					</h1>
-				</div>
-				<div class="cells deck field-row">
-					<div class="c deck-copy">
+				<div class="cells hero-split">
+					<div class="c hero-left">
+						<h1 id="hero-h" data-reveal-words>
+							Your customers stopped searching. They started{' '}
+							<span class="asked">asking.</span>
+						</h1>
 						<p class="sub">
 							E-GEO analyzes, rewrites, and schema-marks your pages so answer engines
 							cite you. <b>ChatGPT. Perplexity. Gemini. Claude.</b> Be the source they
 							name.
 						</p>
+						<div class="cta-group">
+							<a class="primary" href="/docs/getting-started/"
+								>get started <span aria-hidden="true">→</span></a
+							>
+							<a class="ghost" href="https://github.com/mverab/eGEOagents"
+								>★ star on github</a
+							>
+							<a class="txt" href="https://arxiv.org/abs/2511.20867"
+								>read the research ↗</a
+							>
+						</div>
 						<div class="stats" aria-label="Project stats">
 							<span><b>147★</b> github</span>
 							<span><b>42</b> forks</span>
 							<span><b>MIT</b> license</span>
 							<span><b>arXiv</b> 2511.20867</span>
-						</div>
-						<div class="field-caption">
-							<span class="lbl">The citation field</span>
-							<p>
-								Millions of questions stream into an answer engine. It compresses
-								them into a single reply and names only a handful of sources. GEO
-								is the work of becoming the marked node — the source the answer
-								cites.
-							</p>
 						</div>
 					</div>
 					<figure
@@ -165,18 +165,16 @@ const softwareSchema = JSON.stringify({
 							<rect id="pulse-ring" x="868" y="186" width="48" height="48" />
 							<rect id="cited-node" x="876" y="194" width="32" height="32" />
 						</svg>
+						<figcaption class="field-caption">
+							<span class="lbl">The citation field</span>
+							<p>
+								Millions of questions stream into an answer engine. It compresses
+								them into a single reply and names only a handful of sources. GEO
+								is the work of becoming the marked node — the source the answer
+								cites.
+							</p>
+						</figcaption>
 					</figure>
-				</div>
-				<div class="cells cta">
-					<a class="c primary" href="/docs/getting-started/"
-						>get started <span aria-hidden="true">→</span></a
-					>
-					<a class="c ghost" href="https://github.com/mverab/eGEOagents"
-						>★ star on github</a
-					>
-					<a class="c txt" href="https://arxiv.org/abs/2511.20867"
-						>read the research ↗</a
-					>
 				</div>
 			</section>
 
@@ -505,14 +503,32 @@ const softwareSchema = JSON.stringify({
 		text-transform: uppercase;
 		letter-spacing: 0.14em;
 	}
+	.hero {
+		display: flex;
+		flex-direction: column;
+		min-height: clamp(720px, calc(100svh - 72px), 860px);
+	}
+	.hero .cells {
+		width: 100%;
+	}
+	.hero .hero-split {
+		flex: 1 1 auto;
+	}
 	h1 {
-		grid-column: 1 / -1;
 		font-weight: 800;
-		font-size: clamp(2.7rem, 9.6vw, 9.4rem);
-		line-height: 0.92;
+		font-size: clamp(3rem, 5.5vw, 7rem);
+		line-height: 0.95;
 		letter-spacing: -0.045em;
 		text-transform: uppercase;
-		padding: 36px 24px 44px;
+		max-width: 18ch;
+	}
+	.hero-split .hero-left {
+		grid-column: span 7;
+		padding: 48px 24px 56px;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 32px;
 	}
 	.asked {
 		background: var(--flu);
@@ -539,59 +555,105 @@ const softwareSchema = JSON.stringify({
 			filter 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
 	}
 
-	.deck .c {
-		padding: 28px 24px;
-	}
-	.deck-copy {
-		grid-column: span 5;
-		display: flex;
-		flex-direction: column;
-		gap: 28px;
-	}
 	.sub {
-		font-size: 1.25rem;
+		font-size: 1.1rem;
 		font-weight: 500;
 		letter-spacing: -0.01em;
-		max-width: 40ch;
+		max-width: 42ch;
 	}
 	.sub b {
 		font-weight: 800;
 	}
 	.stats {
-		font-size: 0.8rem;
+		font-size: 0.78rem;
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		display: flex;
-		flex-direction: column;
-		gap: 6px;
+		flex-wrap: wrap;
+		gap: 8px 20px;
 		color: var(--grey);
 	}
 	.stats b {
 		color: var(--black);
 	}
 
+	/* hero cta group */
+	.cta-group {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 14px;
+	}
+	.cta-group a {
+		text-decoration: none;
+		font-weight: 800;
+		font-size: 0.88rem;
+		text-transform: uppercase;
+		letter-spacing: 0.01em;
+		padding: 14px 22px;
+	}
+	.cta-group .primary {
+		background: var(--black);
+		color: var(--white);
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.cta-group .primary:hover {
+		background: var(--flu);
+		color: var(--black);
+	}
+	.cta-group .ghost {
+		border: 2px solid var(--black);
+		padding: 12px 20px;
+	}
+	.cta-group .ghost:hover {
+		background: var(--black);
+		color: var(--white);
+	}
+	.cta-group .txt {
+		font-weight: 600;
+		color: var(--grey);
+		font-size: 0.85rem;
+		text-transform: none;
+		padding: 0;
+	}
+	.cta-group .txt:hover {
+		color: var(--black);
+	}
+
 	/* citation field */
+	.field-caption {
+		margin-top: 18px;
+		padding-top: 18px;
+		border-top: 2px solid var(--black);
+	}
 	.field-caption p {
-		font-size: 0.95rem;
+		font-size: 0.88rem;
 		font-weight: 500;
 		color: var(--grey);
 		line-height: 1.55;
-		max-width: 34ch;
+		max-width: 44ch;
 	}
-	.field-row .field {
-		grid-column: span 7;
-		padding: 24px;
+	.hero-split .field {
+		grid-column: span 5;
+		padding: 28px 24px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 	}
 	#citation-field {
 		display: block;
 		width: 100%;
 		height: auto;
-		aspect-ratio: 960 / 420;
+		flex: 1 1 auto;
+		min-height: 340px;
+		max-height: 440px;
 	}
 	#citation-field text {
 		font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-		font-size: 13px;
+		font-size: 16px;
 		font-weight: 800;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
@@ -995,18 +1057,20 @@ const softwareSchema = JSON.stringify({
 		font-size: 0.8rem;
 	}
 
-	/* scroll reveal for section rows */
-	.js-reveal .rrow {
+	/* scroll reveal for section rows
+	   (clip the inner cells, not the row: a fully clipped row has zero
+	   intersection area and IntersectionObserver never fires) */
+	.js-reveal .rrow > .cells {
 		clip-path: inset(0 0 100% 0);
 		transition: clip-path 0.6s cubic-bezier(0.7, 0, 0.2, 1);
 	}
-	.js-reveal .rrow.in {
+	.js-reveal .rrow.in > .cells {
 		clip-path: inset(0 0 0 0);
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.js-reveal h1 .w,
-		.js-reveal .rrow {
+		.js-reveal .rrow > .cells {
 			opacity: 1 !important;
 			transform: none !important;
 			filter: none !important;
@@ -1025,8 +1089,6 @@ const softwareSchema = JSON.stringify({
 		.hd .meta {
 			grid-column: span 6;
 		}
-		.sub,
-		.stats,
 		.cta .primary,
 		.cta .ghost,
 		.cta .txt,
@@ -1039,17 +1101,26 @@ const softwareSchema = JSON.stringify({
 		.install h2,
 		.chips,
 		.caps-grid .cap,
-		.deck-copy,
-		.field-row .field,
+		.hero-split .hero-left,
+		.hero-split .field,
 		.ft .ft-col {
 			grid-column: 1 / -1;
 			border-left: none;
 		}
-		.stats {
-			border-top: 2px solid var(--black);
-			flex-direction: row;
-			flex-wrap: wrap;
-			gap: 16px;
+		.hero {
+			min-height: 0;
+		}
+		.hero-split .hero-left {
+			padding: 36px 16px 40px;
+			gap: 26px;
+		}
+		h1 {
+			font-size: clamp(2.4rem, 10.5vw, 3.6rem);
+			max-width: none;
+		}
+		#citation-field {
+			min-height: 240px;
+			max-height: 320px;
 		}
 		.cta .ghost,
 		.cta .txt,
@@ -1057,7 +1128,7 @@ const softwareSchema = JSON.stringify({
 		.shift .body,
 		.steps,
 		.chips,
-		.field-row .field {
+		.hero-split .field {
 			border-top: 2px solid var(--black);
 		}
 		.caps-grid .cap + .cap {
@@ -1080,7 +1151,6 @@ const softwareSchema = JSON.stringify({
 	}
 	@media (max-width: 480px) {
 		.hd .c,
-		.deck .c,
 		.qa .c,
 		.shift .c,
 		.how .c,
@@ -1088,12 +1158,10 @@ const softwareSchema = JSON.stringify({
 		.caps-grid .cap,
 		.caps-head .c,
 		.cmp-intro,
+		.hero-split .field,
 		.ft .ft-col {
 			padding-left: 16px;
 			padding-right: 16px;
-		}
-		h1 {
-			padding: 28px 16px 36px;
 		}
 		.cta a {
 			padding: 20px 16px;
