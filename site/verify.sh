@@ -58,10 +58,21 @@ grep_check 'scroll-reveal' "$DIST/index.html" "scroll-reveal enhancement present
 grep_check 'sr-in' "$DIST/index.html" "scroll-reveal in-view state class present"
 grep_check 'IntersectionObserver' "$DIST/index.html" "IntersectionObserver-driven reveal in index.html"
 
-# answer-engine rail — names-only editorial marquee, honestly labelled
+# answer-engine rail — vendored SVG brand marks, honestly labelled
 grep_check 'id="engine-rail"' "$DIST/index.html" "answer-engine rail present"
 grep_check 'the surfaces where sources get named' "$DIST/index.html" "engine rail labelled honestly"
 grep_check 'rail-track' "$DIST/index.html" "engine rail marquee track present"
+grep_check 'aria-label="ChatGPT"' "$DIST/index.html" "ChatGPT mark accessible label present"
+grep_check 'aria-label="Perplexity"' "$DIST/index.html" "Perplexity mark accessible label present"
+grep_check 'aria-label="Gemini"' "$DIST/index.html" "Gemini mark accessible label present"
+grep_check 'aria-label="Claude"' "$DIST/index.html" "Claude mark accessible label present"
+grep_check '<svg class="mark' "$DIST/index.html" "SVG brand marks present in rail"
+if grep -q '<li>ChatGPT</li>' "$DIST/index.html" 2>/dev/null; then
+  echo "FAIL  old plain-text-only rail items still present"
+  fail=1
+else
+  echo "PASS  no old plain-text-only rail items"
+fi
 for word in partner "official integration" "supported platform"; do
   if grep -qi "$word" "$DIST/index.html" 2>/dev/null; then
     echo "FAIL  forbidden claim '$word' found in index.html"
@@ -76,6 +87,59 @@ if grep -qi 'terminal' "$DIST/index.html" 2>/dev/null; then
   fail=1
 else
   echo "PASS  no 'terminal' in index.html"
+fi
+
+# layout — no horizontal overflow at desktop and mobile viewports
+CHROME_BIN="${CHROME_BIN:-}"
+if [ -z "$CHROME_BIN" ]; then
+  for c in google-chrome chromium chromium-browser; do
+    if command -v "$c" >/dev/null 2>&1; then CHROME_BIN="$c"; break; fi
+  done
+fi
+if [ -z "$CHROME_BIN" ]; then
+  CHROME_BIN=$(ls "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell 2>/dev/null | sort | tail -1)
+fi
+if [ -n "$CHROME_BIN" ] && [ -x "$CHROME_BIN" ] && command -v python3 >/dev/null 2>&1; then
+  SRV_PORT=4173
+  python3 -m http.server "$SRV_PORT" --directory "$DIST" >/dev/null 2>&1 &
+  SRV_PID=$!
+  trap 'kill "$SRV_PID" 2>/dev/null' EXIT
+  sleep 1
+  cat > "$DIST/__overflow_check.html" <<HTML
+<!doctype html><html><head><style>html,body{margin:0}iframe{border:0;width:100vw;height:100vh;display:block}</style></head>
+<body><iframe src="index.html"></iframe>
+<script>
+  const f = document.querySelector('iframe');
+  f.addEventListener('load', () => {
+    setTimeout(() => {
+      const d = f.contentDocument;
+      const overflow = d.documentElement.scrollWidth > f.clientWidth;
+      const marker = 'OVERFLOW-CHECK:' + (overflow
+        ? 'BAD:' + d.documentElement.scrollWidth + '>' + f.clientWidth
+        : 'OK');
+      document.body.appendChild(document.createTextNode(marker));
+    }, 500);
+  });
+</script></body></html>
+HTML
+  for vp in 1440,900 390,844; do
+    OUT=$("$CHROME_BIN" --headless --disable-gpu --no-sandbox \
+      --window-size="$vp" --hide-scrollbars --virtual-time-budget=5000 \
+      --dump-dom "http://127.0.0.1:$SRV_PORT/__overflow_check.html" 2>/dev/null)
+    if echo "$OUT" | grep -q 'OVERFLOW-CHECK:OK'; then
+      echo "PASS  no horizontal overflow at ${vp/,/x}"
+    elif echo "$OUT" | grep -q 'OVERFLOW-CHECK:BAD'; then
+      echo "FAIL  horizontal overflow at ${vp/,/x} ($(echo "$OUT" | grep -o 'OVERFLOW-CHECK:BAD:[^<]*' | head -1))"
+      fail=1
+    else
+      echo "FAIL  overflow probe did not report at ${vp/,/x}"
+      fail=1
+    fi
+  done
+  rm -f "$DIST/__overflow_check.html"
+  kill "$SRV_PID" 2>/dev/null
+else
+  echo "WARN  no headless Chrome/Chromium found; skipped horizontal-overflow checks"
 fi
 
 if [ "$fail" -ne 0 ]; then
