@@ -86,18 +86,86 @@ const softwareSchema = JSON.stringify({
 						<span class="asked">asking.</span>
 					</h1>
 				</div>
-				<div class="cells deck">
-					<p class="c sub">
-						E-GEO analyzes, rewrites, and schema-marks your pages so answer engines
-						cite you. <b>ChatGPT. Perplexity. Gemini. Claude.</b> Be the source they
-						name.
-					</p>
-					<div class="c stats" aria-label="Project stats">
-						<span><b>147★</b> github</span>
-						<span><b>42</b> forks</span>
-						<span><b>MIT</b> license</span>
-						<span><b>arXiv</b> 2511.20867</span>
+				<div class="cells deck field-row">
+					<div class="c deck-copy">
+						<p class="sub">
+							E-GEO analyzes, rewrites, and schema-marks your pages so answer engines
+							cite you. <b>ChatGPT. Perplexity. Gemini. Claude.</b> Be the source they
+							name.
+						</p>
+						<div class="stats" aria-label="Project stats">
+							<span><b>147★</b> github</span>
+							<span><b>42</b> forks</span>
+							<span><b>MIT</b> license</span>
+							<span><b>arXiv</b> 2511.20867</span>
+						</div>
+						<div class="field-caption">
+							<span class="lbl">The citation field</span>
+							<p>
+								Millions of questions stream into an answer engine. It compresses
+								them into a single reply and names only a handful of sources. GEO
+								is the work of becoming the marked node — the source the answer
+								cites.
+							</p>
+						</div>
 					</div>
+					<figure
+						class="c field"
+						aria-label="Live diagram: questions flow into one generated answer, which cites a small set of sources — the highlighted node is the cited source"
+					>
+						<svg
+							id="citation-field"
+							data-motion-loop="raf"
+							viewBox="0 0 960 420"
+							role="img"
+							aria-hidden="false"
+						>
+							<title>The citation field</title>
+							<desc
+								>Questions enter from the left, resolve into one answer, and
+								the answer cites a marked source node.</desc
+							>
+							<text x="54" y="34">Questions in</text>
+							<text x="906" y="34" text-anchor="end">Sources cited</text>
+							<text x="480" y="286" text-anchor="middle">One answer</text>
+							<text x="906" y="250" text-anchor="end">[1] yoursite.com — cited</text>
+
+							<path class="flow" d="M 66 60 H 240 V 186 H 438" />
+							<path class="flow" d="M 66 150 H 280 V 202 H 438" />
+							<path class="flow" d="M 66 270 H 320 V 218 H 438" />
+							<path class="flow" d="M 66 330 H 360 V 234 H 438" />
+							<path class="flow" d="M 522 186 H 660 V 120 H 882" />
+							<path class="flow" d="M 522 234 H 660 V 300 H 882" />
+							<path class="wire" d="M 522 210 H 876" />
+							<path
+								id="cite-route"
+								d="M 66 150 H 280 V 202 H 480 V 210 H 876"
+							/>
+
+							<rect class="qn" x="54" y="54" width="12" height="12" />
+							<rect class="qn" x="54" y="144" width="12" height="12" />
+							<rect class="qn" x="54" y="264" width="12" height="12" />
+							<rect class="qn" x="54" y="324" width="12" height="12" />
+
+							<g id="tok-1" class="tok" transform="translate(240,120)" data-follow="0">
+								<rect x="-5" y="-5" width="10" height="10" />
+							</g>
+							<g id="tok-2" class="tok" transform="translate(200,270)" data-follow="2">
+								<rect x="-5" y="-5" width="10" height="10" />
+							</g>
+							<g id="tok-3" class="tok" transform="translate(660,240)" data-follow="5">
+								<rect x="-5" y="-5" width="10" height="10" />
+							</g>
+
+							<rect id="answer-node" x="438" y="168" width="84" height="84" />
+							<line id="scan" x1="446" y1="210" x2="514" y2="210" />
+
+							<rect class="qn" x="882" y="114" width="12" height="12" />
+							<rect class="qn" x="882" y="294" width="12" height="12" />
+							<rect id="pulse-ring" x="868" y="186" width="48" height="48" />
+							<rect id="cited-node" x="876" y="194" width="32" height="32" />
+						</svg>
+					</figure>
 				</div>
 				<div class="cells cta">
 					<a class="c primary" href="/docs/getting-started/"
@@ -474,8 +542,13 @@ const softwareSchema = JSON.stringify({
 	.deck .c {
 		padding: 28px 24px;
 	}
+	.deck-copy {
+		grid-column: span 5;
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
+	}
 	.sub {
-		grid-column: span 7;
 		font-size: 1.25rem;
 		font-weight: 500;
 		letter-spacing: -0.01em;
@@ -485,7 +558,6 @@ const softwareSchema = JSON.stringify({
 		font-weight: 800;
 	}
 	.stats {
-		grid-column: span 5;
 		font-size: 0.8rem;
 		font-weight: 600;
 		text-transform: uppercase;
@@ -497,6 +569,82 @@ const softwareSchema = JSON.stringify({
 	}
 	.stats b {
 		color: var(--black);
+	}
+
+	/* citation field */
+	.field-caption p {
+		font-size: 0.95rem;
+		font-weight: 500;
+		color: var(--grey);
+		line-height: 1.55;
+		max-width: 34ch;
+	}
+	.field-row .field {
+		grid-column: span 7;
+		padding: 24px;
+	}
+	#citation-field {
+		display: block;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 960 / 420;
+	}
+	#citation-field text {
+		font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+		font-size: 13px;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		fill: var(--black);
+	}
+	#citation-field .flow,
+	#citation-field .wire {
+		fill: none;
+		stroke: var(--black);
+		stroke-width: 2;
+	}
+	#citation-field .qn {
+		fill: var(--black);
+	}
+	#citation-field .tok rect {
+		fill: var(--white);
+		stroke: var(--black);
+		stroke-width: 2;
+	}
+	#cite-route {
+		fill: none;
+		stroke: var(--flu);
+		stroke-width: 4;
+	}
+	#answer-node {
+		fill: var(--white);
+		stroke: var(--black);
+		stroke-width: 2;
+	}
+	#scan {
+		stroke: var(--black);
+		stroke-width: 2;
+	}
+	#pulse-ring {
+		fill: none;
+		stroke: var(--black);
+		stroke-width: 2;
+		opacity: 0;
+		transform-origin: 892px 210px;
+	}
+	#cited-node {
+		fill: var(--flu);
+		stroke: var(--black);
+		stroke-width: 2;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#cite-route {
+			stroke-dasharray: none !important;
+			stroke-dashoffset: 0 !important;
+		}
+		#pulse-ring {
+			opacity: 1 !important;
+		}
 	}
 
 	/* cta rows */
@@ -891,6 +1039,8 @@ const softwareSchema = JSON.stringify({
 		.install h2,
 		.chips,
 		.caps-grid .cap,
+		.deck-copy,
+		.field-row .field,
 		.ft .ft-col {
 			grid-column: 1 / -1;
 			border-left: none;
@@ -906,7 +1056,8 @@ const softwareSchema = JSON.stringify({
 		.qa .a,
 		.shift .body,
 		.steps,
-		.chips {
+		.chips,
+		.field-row .field {
 			border-top: 2px solid var(--black);
 		}
 		.caps-grid .cap + .cap {
@@ -1029,4 +1180,122 @@ const softwareSchema = JSON.stringify({
 			}
 		});
 	});
+</script>
+
+<script is:inline>
+	(function () {
+		var svg = document.getElementById('citation-field');
+		if (!svg) return;
+		var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+		if (reduced.matches) return;
+
+		var flows = svg.querySelectorAll('.flow');
+		var route = svg.getElementById('cite-route');
+		var scan = svg.getElementById('scan');
+		var ring = svg.getElementById('pulse-ring');
+		var answer = svg.getElementById('answer-node');
+		var toks = svg.querySelectorAll('.tok');
+		var qns = svg.querySelectorAll('.qn');
+
+		var i;
+		for (i = 0; i < flows.length; i++) {
+			flows[i].style.strokeDasharray = '10 14';
+		}
+		var routeLen = route.getTotalLength();
+		var dash = 56;
+		var routePeriod = routeLen + 2 * dash;
+		route.style.strokeDasharray = dash + ' ' + routeLen;
+
+		var tokPaths = [];
+		var tokConf = [
+			{ dur: 9, phase: 0.0 },
+			{ dur: 11, phase: 0.45 },
+			{ dur: 8, phase: 0.7 },
+		];
+		for (i = 0; i < toks.length; i++) {
+			tokPaths.push(flows[parseInt(toks[i].getAttribute('data-follow'), 10)]);
+		}
+
+		var elapsed = 0;
+		var last = null;
+		var rafId = null;
+
+		function frame(now) {
+			if (last !== null) elapsed += Math.min(0.1, (now - last) / 1000);
+			last = now;
+			var t = elapsed;
+
+			for (var k = 0; k < flows.length; k++) {
+				flows[k].style.strokeDashoffset = String(-((t * 14 + k * 7) % 24));
+			}
+
+			var p = (t * 90) % routePeriod;
+			route.style.strokeDashoffset = String(dash - p);
+			var rp = p / routePeriod;
+			if (rp > 0.86) {
+				var q = (rp - 0.86) / 0.14;
+				ring.style.opacity = String(1 - q);
+				ring.style.transform = 'scale(' + (1 + q * 0.55) + ')';
+			} else {
+				ring.style.opacity = '0';
+				ring.style.transform = 'scale(1)';
+			}
+
+			var sy = 176 + Math.floor(((Math.sin(t * 0.7) + 1) / 2) * 17) * 4;
+			scan.setAttribute('y1', String(sy));
+			scan.setAttribute('y2', String(sy));
+			answer.style.strokeWidth = String(
+				2 + Math.round(((Math.sin(t * 0.9) + 1) / 2) * 2)
+			);
+
+			for (var m = 0; m < toks.length; m++) {
+				var path = tokPaths[m];
+				if (!path) continue;
+				var conf = tokConf[m % tokConf.length];
+				var prog = ((t / conf.dur + conf.phase) % 1 + 1) % 1;
+				var pt = path.getPointAtLength(prog * path.getTotalLength());
+				toks[m].setAttribute(
+					'transform',
+					'translate(' + Math.round(pt.x) + ',' + Math.round(pt.y) + ')'
+				);
+				toks[m].setAttribute(
+					'opacity',
+					String(Math.max(0, Math.min(1, prog * 6, (1 - prog) * 6)))
+				);
+			}
+
+			for (var n = 0; n < qns.length; n++) {
+				qns[n].setAttribute(
+					'opacity',
+					String(0.35 + 0.65 * ((Math.sin(t * 0.8 + n * 1.7) + 1) / 2))
+				);
+			}
+
+			rafId = requestAnimationFrame(frame);
+		}
+
+		function start() {
+			if (rafId === null) {
+				last = null;
+				rafId = requestAnimationFrame(frame);
+			}
+		}
+		function stop() {
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+				rafId = null;
+			}
+		}
+
+		document.addEventListener('visibilitychange', function () {
+			if (document.hidden) stop();
+			else start();
+		});
+		reduced.addEventListener('change', function (e) {
+			if (e.matches) stop();
+			else start();
+		});
+
+		start();
+	})();
 </script>
