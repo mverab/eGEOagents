@@ -27,11 +27,27 @@ check "$DIST/llms-full.txt" "llms-full.txt present"
 check "$DIST/robots.txt" "robots.txt present"
 check "$DIST/sitemap-index.xml" "sitemap generated"
 
-if grep -q '"@type": *"SoftwareApplication"' "$DIST/index.html" 2>/dev/null; then
-  echo "PASS  SoftwareApplication JSON-LD in index.html"
-else
-  echo "FAIL  SoftwareApplication JSON-LD missing from index.html"
+grep_check() {
+  if grep -q "$1" "$2" 2>/dev/null; then
+    echo "PASS  $3"
+  else
+    echo "FAIL  $3"
+    fail=1
+  fi
+}
+
+grep_check '"@type":"SoftwareApplication"' "$DIST/index.html" "SoftwareApplication JSON-LD in index.html"
+grep_check '"@type":"Organization"' "$DIST/index.html" "Organization JSON-LD in index.html"
+grep_check 'open-source Generative Engine Optimization (GEO) &amp; Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867)' "$DIST/index.html" "canonical entity sentence visible on /"
+grep_check 'id="answer-block"' "$DIST/index.html" "answer block present on /"
+grep_check 'id="answer-card"' "$DIST/index.html" "hero answer-card element present on /"
+grep_check '<loc>https://egeoagents.com/</loc>' "$DIST/sitemap-0.xml" "sitemap includes /"
+
+if grep -qi 'terminal' "$DIST/index.html" 2>/dev/null; then
+  echo "FAIL  forbidden string 'terminal' found in index.html"
   fail=1
+else
+  echo "PASS  no 'terminal' in index.html"
 fi
 
 if [ "$fail" -ne 0 ]; then
