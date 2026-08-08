@@ -53,6 +53,24 @@ grep_check 'visibilitychange' "$DIST/index.html" "visibilitychange pause/resume 
 grep_check 'id="cite-route"' "$DIST/index.html" "chartreuse citation signal path present"
 grep_check 'id="answer-node"' "$DIST/index.html" "answer node present in citation field"
 
+# scroll polish — progressive enhancement, never content hidden by default
+grep_check 'scroll-reveal' "$DIST/index.html" "scroll-reveal enhancement present"
+grep_check 'sr-in' "$DIST/index.html" "scroll-reveal in-view state class present"
+grep_check 'IntersectionObserver' "$DIST/index.html" "IntersectionObserver-driven reveal in index.html"
+
+# answer-engine rail — names-only editorial marquee, honestly labelled
+grep_check 'id="engine-rail"' "$DIST/index.html" "answer-engine rail present"
+grep_check 'the surfaces where sources get named' "$DIST/index.html" "engine rail labelled honestly"
+grep_check 'rail-track' "$DIST/index.html" "engine rail marquee track present"
+for word in partner "official integration" "supported platform"; do
+  if grep -qi "$word" "$DIST/index.html" 2>/dev/null; then
+    echo "FAIL  forbidden claim '$word' found in index.html"
+    fail=1
+  else
+    echo "PASS  no '$word' claim in index.html"
+  fi
+done
+
 if grep -qi 'terminal' "$DIST/index.html" 2>/dev/null; then
   echo "FAIL  forbidden string 'terminal' found in index.html"
   fail=1

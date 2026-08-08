@@ -178,6 +178,26 @@ const softwareSchema = JSON.stringify({
 				</div>
 			</section>
 
+			<aside class="row engine-rail" id="engine-rail" aria-labelledby="rail-lbl">
+				<div class="cells">
+					<p class="c rail-label" id="rail-lbl">
+						Answer engines / the surfaces where sources get named
+					</p>
+					<div class="c rail-clip">
+						<ul class="rail-track">
+							<li>ChatGPT</li><li>Perplexity</li><li>Gemini</li><li>Claude</li>
+							<li>ChatGPT</li><li>Perplexity</li><li>Gemini</li><li>Claude</li>
+							<li>ChatGPT</li><li>Perplexity</li><li>Gemini</li><li>Claude</li>
+						</ul>
+						<ul class="rail-track" aria-hidden="true">
+							<li>ChatGPT</li><li>Perplexity</li><li>Gemini</li><li>Claude</li>
+							<li>ChatGPT</li><li>Perplexity</li><li>Gemini</li><li>Claude</li>
+							<li>ChatGPT</li><li>Perplexity</li><li>Gemini</li><li>Claude</li>
+						</ul>
+					</div>
+				</div>
+			</aside>
+
 			<section class="row qa" aria-label="An AI answer citing your site" id="answer-card">
 				<div class="cells">
 					<div class="c q">
@@ -1057,25 +1077,79 @@ const softwareSchema = JSON.stringify({
 		font-size: 0.8rem;
 	}
 
-	/* scroll reveal for section rows
-	   (clip the inner cells, not the row: a fully clipped row has zero
-	   intersection area and IntersectionObserver never fires) */
-	.js-reveal .rrow > .cells {
-		clip-path: inset(0 0 100% 0);
-		transition: clip-path 0.6s cubic-bezier(0.7, 0, 0.2, 1);
+	/* scroll reveal — progressive enhancement, applied per-cell by JS.
+	   Content is visible by default; only elements JS tags with
+	   .scroll-reveal start translated/faded, and a fallback timer
+	   reveals anything the observer misses. */
+	.js-reveal .scroll-reveal {
+		opacity: 0;
+		transform: translateY(14px);
+		transition:
+			opacity 0.65s cubic-bezier(0.2, 0.7, 0.2, 1),
+			transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1);
+		transition-delay: var(--sr-delay, 0s);
 	}
-	.js-reveal .rrow.in > .cells {
-		clip-path: inset(0 0 0 0);
+	.js-reveal .scroll-reveal.sr-in {
+		opacity: 1;
+		transform: none;
+	}
+
+	/* answer-engine rail */
+	.engine-rail .rail-label {
+		grid-column: span 4;
+		padding: 15px 24px;
+		font-size: 0.68rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		align-self: center;
+	}
+	.engine-rail .rail-clip {
+		grid-column: span 8;
+		display: flex;
+		align-items: center;
+		overflow: hidden;
+	}
+	.rail-track {
+		display: flex;
+		flex: 0 0 auto;
+		list-style: none;
+		animation: rail-scroll 42s linear infinite;
+	}
+	.rail-track li {
+		padding: 15px 0 15px 44px;
+		font-size: 0.82rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		white-space: nowrap;
+	}
+	.rail-track li::after {
+		content: '·';
+		color: var(--grey);
+		margin-left: 44px;
+	}
+	@keyframes rail-scroll {
+		to {
+			transform: translateX(-100%);
+		}
+	}
+	.engine-rail:hover .rail-track,
+	.engine-rail:focus-within .rail-track,
+	.rail-paused .rail-track {
+		animation-play-state: paused;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.js-reveal h1 .w,
-		.js-reveal .rrow > .cells {
+		.js-reveal .scroll-reveal {
 			opacity: 1 !important;
 			transform: none !important;
 			filter: none !important;
-			clip-path: none !important;
 			transition: none !important;
+		}
+		.rail-track {
+			animation: none;
 		}
 	}
 
@@ -1103,9 +1177,17 @@ const softwareSchema = JSON.stringify({
 		.caps-grid .cap,
 		.hero-split .hero-left,
 		.hero-split .field,
+		.engine-rail .rail-label,
+		.engine-rail .rail-clip,
 		.ft .ft-col {
 			grid-column: 1 / -1;
 			border-left: none;
+		}
+		.engine-rail .rail-clip {
+			border-top: 2px solid var(--black);
+		}
+		.engine-rail .rail-label {
+			padding-bottom: 12px;
 		}
 		.hero {
 			min-height: 0;
@@ -1216,21 +1298,49 @@ const softwareSchema = JSON.stringify({
 			});
 		}
 
-		const rows = document.querySelectorAll('main .row:not(:first-of-type)');
-		rows.forEach((r) => r.classList.add('rrow'));
+		const revealRows = document.querySelectorAll('main .row:not(.hero)');
+		const targets: HTMLElement[] = [];
+		revealRows.forEach((row) => {
+			row.querySelectorAll(':scope > .cells').forEach((cells) => {
+				const cs = Array.from(cells.querySelectorAll(':scope > .c')) as HTMLElement[];
+				cs.forEach((c, i) => {
+					c.classList.add('scroll-reveal');
+					c.style.setProperty('--sr-delay', `${Math.min(i * 0.08, 0.24)}s`);
+					targets.push(c);
+				});
+			});
+		});
 		const io = new IntersectionObserver(
 			(entries) => {
 				for (const e of entries) {
 					if (e.isIntersecting) {
-						e.target.classList.add('in');
+						e.target.classList.add('sr-in');
 						io.unobserve(e.target);
 					}
 				}
 			},
-			{ threshold: 0.08 }
+			{ threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
 		);
-		rows.forEach((r) => io.observe(r));
+		if ('IntersectionObserver' in window) {
+			targets.forEach((c) => io.observe(c));
+			const revealStuck = () => {
+				if (document.hidden) return;
+				targets.forEach((c) => {
+					if (c.classList.contains('sr-in')) return;
+					const r = c.getBoundingClientRect();
+					if (r.top < window.innerHeight && r.bottom > 0) c.classList.add('sr-in');
+				});
+			};
+			setTimeout(revealStuck, 3000);
+			setInterval(revealStuck, 5000);
+		} else {
+			targets.forEach((c) => c.classList.add('sr-in'));
+		}
 	}
+
+	document.addEventListener('visibilitychange', () => {
+		document.documentElement.classList.toggle('rail-paused', document.hidden);
+	});
 
 	document.querySelectorAll('[data-copy]').forEach((btn) => {
 		btn.addEventListener('click', async () => {
