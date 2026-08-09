@@ -53,10 +53,10 @@
 
 Also known as **AI SEO** or **LLM SEO**, GEO is the practice of optimizing content so that generative AI engines can crawl, understand, cite, and recommend it. E-GEO automates this entire process.
 
-Based on the [E-GEO research paper](https://arxiv.org/abs/2511.20867) (arXiv:2511.20867), it applies the **10 universal features** that consistently improve AI-engine rankings — competitive framing, citation optimization, structured data, and semantic density improvements backed by peer-reviewed findings.
+Based on the [E-GEO research preprint](https://arxiv.org/abs/2511.20867) (arXiv:2511.20867), it applies **10 research-derived features** — including competitive framing, citation optimization, structured data, and semantic density improvements — as documented in the paper's experiments.
 
 - ✅ **No learning curve** — One command to optimize
-- ✅ **Research-backed** — Based on peer-reviewed findings
+- ✅ **Research-backed** — Based on published GEO research
 - ✅ **Production-ready** — Copy-paste optimized content
 - ✅ **Multi-engine** — Optimizes for ChatGPT, Perplexity, Gemini, Claude & Google AI Overviews
 - ✅ **Full pipeline** — Analyze → Rank → Rewrite → Schema in one command
@@ -193,7 +193,7 @@ geo-output/
 
 ## 🎯 Results: Backed by Research
 
-E-GEO is grounded in peer-reviewed research from the [E-GEO research paper](https://arxiv.org/abs/2511.20867) (arXiv:2511.20867), building on foundational work by [Aggarwal et al. (Princeton, KDD 2024)](https://arxiv.org/abs/2311.09735) — the original study that defined Generative Engine Optimization as a discipline.
+E-GEO is grounded in the research described in the [E-GEO preprint](https://arxiv.org/abs/2511.20867) (arXiv:2511.20867), building on foundational work by [Aggarwal et al. (Princeton, KDD 2024)](https://arxiv.org/abs/2311.09735) — the original study that defined Generative Engine Optimization as a discipline.
 
 The E-GEO paper reports that:
 

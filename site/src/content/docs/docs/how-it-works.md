@@ -96,7 +96,7 @@ See the paper for full methodology; results vary by content quality and competit
 
 ## Validation layer
 
-When run through Claude Code, E-GEO validates outputs against ground truth using MCP servers:
+When run through Claude Code, E-GEO's client workflow validates outputs against ground truth using external MCP servers:
 
 | MCP server | Purpose | Criticality |
 |------------|---------|-------------|
@@ -104,7 +104,7 @@ When run through Claude Code, E-GEO validates outputs against ground truth using
 | **Chrome DevTools** | Rendered DOM validation, performance metrics | High |
 | **fetch** | Simple text scraping (fallback) | Medium |
 
-When MCP servers are unavailable, E-GEO still runs but marks outputs **"Low Confidence"**. See [MCP Server](/docs/mcp-server/) for setup.
+When MCP servers are unavailable, E-GEO still runs but marks outputs **"Low Confidence"**. See [MCP-based validation](/docs/mcp-server/) for setup.
 
 ## Auto-triggered skills
 
