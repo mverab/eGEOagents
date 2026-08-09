@@ -1,0 +1,103 @@
+{
+  "_fixture": "Recorded shape of a SerpBase POST /google/search response body, trimmed to the fields collectors/serp.py reads. Synthetic content, real schema: used by offline contract tests (python collectors/serp.py --engine serpbase --fixture ...).",
+  "status": 0,
+  "request_id": "req_fixture_serpbase_0001",
+  "elapsed_ms": 412,
+  "credits_charged": 1,
+  "search_type": "search",
+  "query": "best geo optimization tool",
+  "page": 1,
+  "organic": [
+    {
+      "rank": 1,
+      "position": 1,
+      "title": "The 12 Best GEO Tools (2026 Review)",
+      "link": "https://searchmonitor.example/blog/best-geo-tools",
+      "url": "https://searchmonitor.example/blog/best-geo-tools",
+      "display_link": "searchmonitor.example",
+      "snippet": "Ranked roundup of generative engine optimization tools."
+    },
+    {
+      "rank": 2,
+      "position": 2,
+      "title": "GEO Optimization Platform",
+      "link": "https://www.rivalgeo.example/platform",
+      "url": "https://www.rivalgeo.example/platform",
+      "display_link": "www.rivalgeo.example",
+      "snippet": "Enterprise GEO suite."
+    },
+    {
+      "rank": 3,
+      "position": 3,
+      "title": "E-GEO: open-source generative engine optimization",
+      "link": "https://example.com/egeo",
+      "url": "https://example.com/egeo",
+      "display_link": "example.com",
+      "snippet": "Zero-effort GEO for AI search engines."
+    },
+    {
+      "rank": 4,
+      "position": 4,
+      "title": "How AI search engines pick sources",
+      "link": "https://airesearch.example/papers/geo",
+      "url": "https://airesearch.example/papers/geo",
+      "snippet": "Study of citation behavior."
+    },
+    {
+      "rank": 5,
+      "position": 5,
+      "title": "GEO vs SEO explained",
+      "link": "https://contentlab.example/geo-vs-seo",
+      "url": "https://contentlab.example/geo-vs-seo",
+      "snippet": "Primer on the differences."
+    },
+    {
+      "rank": 6,
+      "position": 6,
+      "title": "Best AI visibility trackers",
+      "link": "https://toolsdigest.example/ai-visibility",
+      "url": "https://toolsdigest.example/ai-visibility",
+      "snippet": "Comparison table."
+    },
+    {
+      "rank": 7,
+      "position": 7,
+      "title": "Optimizing content for ChatGPT answers",
+      "link": "https://promptcraft.example/chatgpt-visibility",
+      "url": "https://promptcraft.example/chatgpt-visibility",
+      "snippet": "Tactics and pitfalls."
+    },
+    {
+      "rank": 8,
+      "position": 8,
+      "title": "Schema markup for AI answers",
+      "link": "https://schemaguide.example/ai",
+      "url": "https://schemaguide.example/ai",
+      "snippet": "JSON-LD patterns."
+    },
+    {
+      "rank": 9,
+      "position": 9,
+      "title": "Perplexity ranking factors",
+      "link": "https://serpnotes.example/perplexity",
+      "url": "https://serpnotes.example/perplexity",
+      "snippet": "Observed factors."
+    },
+    {
+      "rank": 10,
+      "position": 10,
+      "title": "GEO checklist",
+      "link": "https://growthwiki.example/geo-checklist",
+      "url": "https://growthwiki.example/geo-checklist",
+      "snippet": "Implementation checklist."
+    },
+    {
+      "rank": 11,
+      "position": 11,
+      "title": "Overflow result (must be dropped at 10)",
+      "link": "https://ignored.example/eleventh",
+      "url": "https://ignored.example/eleventh",
+      "snippet": "Beyond top-10."
+    }
+  ]
+}

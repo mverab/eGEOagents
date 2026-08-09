@@ -43,7 +43,7 @@ A collector in this directory MUST:
 | `serp.py` | `data/serp/<query-slug>.jsonl` | `{v, ts, query, engine, results[≤10], target_domain, target_position}` |
 | `page.py` | `data/page/<page-slug>.jsonl` | `{v, ts, url, status, content_hash, title, meta_description, jsonld_types, word_count}` |
 
-### `serp.py` — position history from the Brave Search API
+### `serp.py` — position history from the Brave Search API or the SerpBase Google Search API
 
 ```bash
 export BRAVE_API_KEY=...                  # never printed, never written to disk
@@ -51,10 +51,15 @@ python collectors/serp.py                 # all queries from config.yaml
 python collectors/serp.py --query "best geo tool"
 python collectors/serp.py --fixture collectors/fixtures/serp_brave_response.json
 python -m egeo loop collect serp          # equivalent, in-process
+
+# Google SERP instead of Brave: SerpBase Google Search API (organic + AI Overviews)
+export SERPBASE_API_KEY=...
+python collectors/serp.py --engine serpbase
+python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json
 ```
 
-Brave is called over its **HTTP API directly**, not through the Brave MCP:
-collectors run under cron with no agent attached, so an MCP server is not
+Brave and SerpBase are called over their **HTTP APIs directly**, not through an
+MCP: collectors run under cron with no agent attached, so an MCP server is not
 available to them. The MCP stays the path for interactive agent sessions. Live
 passes are paced at ≤1 query/second and refuse to exceed
 `budgets.queries_per_day`.
@@ -64,6 +69,7 @@ Config:
 ```yaml
 collectors:
   serp:
+    engine: brave          # optional: brave (default) or serpbase (Google via SerpBase)
     target_domain: example.com     # position is reported for this domain
     queries:
       - best geo optimization tool
@@ -100,9 +106,10 @@ collectors:
 ## Fixtures
 
 `fixtures/serp_brave_response.json` is a recorded Brave `/res/v1/web/search`
-response body; `fixtures/pages/*.html` are recorded page bodies whose file names
-encode the URL slug. Fixture mode is what CI runs: no network, no key, same code
-path, same schema.
+response body; `fixtures/serp_serpbase_response.json` is a recorded SerpBase
+`POST /google/search` response body; `fixtures/pages/*.html` are recorded page
+bodies whose file names encode the URL slug. Fixture mode is what CI runs: no
+network, no key, same code path, same schema.
 
 ## Adding a collector
 

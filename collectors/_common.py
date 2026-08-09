@@ -97,6 +97,39 @@ def http_get(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 
         raise CollectorError(f"network failure for {url}: {exc}") from exc
 
 
+def http_post(
+    url: str,
+    payload: Dict[str, Any],
+    headers: Optional[Dict[str, str]] = None,
+    timeout: int = 30,
+):
+    """POST a JSON body with stdlib urllib. Returns ``(status, body_text)``.
+
+    Same contract as :func:`http_get`: transport failures raise
+    :class:`CollectorError`; HTTP error responses are returned with their
+    status so the caller decides whether they are fatal. Used by collectors
+    whose upstream is a POST JSON API (e.g. ``serp.py`` with the SerpBase
+    Google Search API).
+    """
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"User-Agent": USER_AGENT, "Content-Type": "application/json", **(headers or {})},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            charset = response.headers.get_content_charset() or "utf-8"
+            return response.status, response.read().decode(charset, errors="replace")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
+        return exc.code, body
+    except urllib.error.URLError as exc:
+        raise CollectorError(f"network failure for {url}: {exc.reason}") from exc
+    except OSError as exc:  # timeouts, DNS, TLS
+        raise CollectorError(f"network failure for {url}: {exc}") from exc
+
+
 def ensure_workspace(home: Optional[Path] = None) -> Path:
     """Resolve and bootstrap the workspace, returning its path."""
     resolved = home or workspace.resolve_home()
