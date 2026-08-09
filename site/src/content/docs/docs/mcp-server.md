@@ -1,6 +1,6 @@
 ---
-title: MCP Server
-description: How E-GEO uses MCP servers for validation — Brave Search for competitor ground truth and Chrome DevTools for rendered-DOM checks.
+title: MCP-Based Validation
+description: How E-GEO's Claude Code workflow consumes external MCP servers for validation — Brave Search for competitor ground truth and Chrome DevTools for rendered-DOM checks.
 head:
   - tag: script
     attrs:
@@ -9,18 +9,18 @@ head:
       {
         "@context": "https://schema.org",
         "@type": "TechArticle",
-        "headline": "E-GEO and MCP Servers",
-        "description": "How E-GEO uses MCP servers for validation: Brave Search for competitor ground truth and Chrome DevTools for rendered-DOM checks.",
+        "headline": "E-GEO and MCP-Based Validation",
+        "description": "How E-GEO's Claude Code workflow consumes external MCP servers for validation: Brave Search for competitor ground truth and Chrome DevTools for rendered-DOM checks.",
         "url": "https://egeoagents.com/docs/mcp-server/",
         "author": {"@type": "Person", "name": "Miguel Vera", "sameAs": ["https://github.com/mverab"]}
       }
 ---
 
-E-GEO integrates with the [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) to ground its analysis in real data instead of model guesses. When running through Claude Code, the pipeline uses MCP servers as its validation layer.
+E-GEO integrates with the [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) as a client-side validation workflow. When running through Claude Code, E-GEO consumes external MCP servers as its validation layer; E-GEO is not itself an MCP server.
 
 ## Why MCP matters for GEO
 
-A GEO tool that claims competitor rankings without checking real search results is guessing. E-GEO's rule: **do not claim competitor rankings without search ground truth.** MCP servers provide that ground truth.
+A GEO tool that claims competitor rankings without checking real search results is guessing. E-GEO's rule: **do not claim competitor rankings without search ground truth.** The configured external MCP servers provide that ground truth.
 
 ## Required servers for fully validated results
 

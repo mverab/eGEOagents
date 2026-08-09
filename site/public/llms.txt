@@ -9,7 +9,7 @@ E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered
 - [Getting Started](https://egeoagents.com/docs/getting-started/): install the CLI or Claude Code skills and run a first optimization
 - [How It Works](https://egeoagents.com/docs/how-it-works/): the 4-agent pipeline, the 10 GEO features, and the research behind them
 - [CLI Reference](https://egeoagents.com/docs/cli/): egeo optimize, evaluate, optimize-prompts, runtimes, loop
-- [MCP Server](https://egeoagents.com/docs/mcp-server/): MCP-based validation layer (Brave Search, Chrome DevTools)
+- [MCP-based validation](https://egeoagents.com/docs/mcp-server/): E-GEO's Claude Code workflow consumes external MCP servers for Brave Search and Chrome DevTools validation
 - [GEO Loop](https://egeoagents.com/docs/geo-loop/): continuous GEO with deterministic collectors and $EGEO_HOME
 - [Evaluation Harness](https://egeoagents.com/docs/evaluation/): reproducible metrics, dataset format, honest limitations
 - [FAQ](https://egeoagents.com/docs/faq/): differences from geo-optimizer-skill, Claude Code and API key requirements
