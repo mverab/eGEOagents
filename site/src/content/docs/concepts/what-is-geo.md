@@ -38,7 +38,7 @@ GEO targets how a large language model perceives content, not how a crawler inde
 
 ## The 10 GEO features
 
-Research behind the E-GEO toolkit ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) identified 10 features that consistently appear in higher-ranking content across ChatGPT, Perplexity, and Gemini: ranking emphasis, user intent alignment, competitive differentiation, social proof, compelling narrative, authoritativeness, unique selling points, urgency signals, scannable format, and factual accuracy. Applying all 10 together outperforms any single heuristic.
+Research behind the E-GEO toolkit ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)) identified 10 features that consistently appear in higher-ranking content across ChatGPT, Perplexity, and Gemini. Applying all 10 together outperforms any single heuristic. The canonical list, with per-feature implementation guidance: [The 10 GEO Features](/concepts/geo-features/).
 
 ## GEO in practice
 
