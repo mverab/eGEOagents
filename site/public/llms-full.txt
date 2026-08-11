@@ -83,3 +83,28 @@ geo-optimizer-skill (Auriti-Labs, ~644 stars, MIT): CLI + Python library + MCP +
 - https://egeoagents.com/concepts/geo-vs-seo/
 - https://egeoagents.com/compare/e-geo-vs-geo-optimizer-skill/
 - https://egeoagents.com/compare/geo-tools-2026/
+- https://egeoagents.com/concepts/what-is-llms-txt/
+- https://egeoagents.com/concepts/geo-features/
+- https://egeoagents.com/guides/rank-in-chatgpt-search/
+- https://egeoagents.com/guides/rank-in-perplexity/
+- https://egeoagents.com/research/
+
+## Guide: How to Rank in ChatGPT Search (summary)
+
+Allow OAI-SearchBot in robots.txt (it is separate from GPTBot; blocking training does not block search citations). Accelerate Bing discovery with sitemap submission plus IndexNow — Bing is one of the discovery surfaces feeding ChatGPT search. Publish pages that open with a direct 50-170 word answer, carry Article/FAQPage JSON-LD with dates, and keep one canonical entity description across all surfaces. Earn references from the sources ChatGPT already cites. Measure weekly with a fixed query set; single answers are samples, not truth. No tool can guarantee a citation.
+
+## Guide: How to Get Cited by Perplexity (summary)
+
+Measured finding: Perplexity synthesizes from curator sources (aggregators like LibHunt, awesome-lists, niche blogs), not from GitHub stars — projects with 17-37 stars appeared while a 147-star project did not. Playbook: map the cited domains for 8-10 fixed queries weekly; get into those sources; keep PerplexityBot unblocked (check CDN/WAF separately); publish dated comparison pages with stated methodology; keep entity descriptions identical across surfaces. Track % of the fixed query set mentioning you, plus cited-domain lists, over weeks.
+
+## Concept: llms.txt (summary)
+
+llms.txt is a 2024 proposal (llmstxt.org): a Markdown file at the site root giving AI systems a curated index of the most useful content — H1 title, blockquote entity summary, link sections with one-line descriptions — plus an optional llms-full.txt with full text. It is not an official standard and no major engine has committed to honoring it, but it is cheap, harmless, and widely adopted by developer documentation. It complements robots.txt and sitemaps; it does not replace them.
+
+## Concept: The 10 GEO Features (summary)
+
+Canonical list (from GEO_FEATURES in egeo/agents.py, per arXiv:2511.20867 building on KDD 2024): ranking emphasis, user intent, competitive differentiation, social proof, narrative, authority, USPs, urgency, scannability, factual accuracy. Applying all 10 together outperforms individual heuristics. E-GEO's analyzer scores each feature, flags gaps with remediation copy, and prioritizes the three weakest.
+
+## Research (summary)
+
+Lineage: the Princeton GEO study (Aggarwal et al., KDD 2024, peer-reviewed) defined the field; the E-GEO preprint (arXiv:2511.20867, published research, NOT peer-reviewed) adds the applied layer: competitive framing produced the strongest immediate lift, and the universal 10-feature strategy outperformed single heuristics. The evaluation harness measures an LLM-ranker proxy, not real engine rankings.

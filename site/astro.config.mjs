@@ -50,10 +50,11 @@ export default defineConfig({
 						{ label: 'Getting Started', slug: 'docs/getting-started' },
 						{ label: 'How It Works', slug: 'docs/how-it-works' },
 						{ label: 'CLI Reference', slug: 'docs/cli' },
-						{ label: 'MCP Server', slug: 'docs/mcp-server' },
+						{ label: 'MCP-Based Validation', slug: 'docs/mcp-server' },
 						{ label: 'GEO Loop', slug: 'docs/geo-loop' },
 						{ label: 'Evaluation Harness', slug: 'docs/evaluation' },
 						{ label: 'FAQ', slug: 'docs/faq' },
+						{ label: 'Research', slug: 'research' },
 					],
 				},
 				{
@@ -62,6 +63,15 @@ export default defineConfig({
 						{ label: 'What is GEO?', slug: 'concepts/what-is-geo' },
 						{ label: 'What is AEO?', slug: 'concepts/what-is-aeo' },
 						{ label: 'GEO vs SEO', slug: 'concepts/geo-vs-seo' },
+						{ label: 'What is llms.txt?', slug: 'concepts/what-is-llms-txt' },
+						{ label: 'The 10 GEO Features', slug: 'concepts/geo-features' },
+					],
+				},
+				{
+					label: 'Guides',
+					items: [
+						{ label: 'Rank in ChatGPT Search', slug: 'guides/rank-in-chatgpt-search' },
+						{ label: 'Get Cited by Perplexity', slug: 'guides/rank-in-perplexity' },
 					],
 				},
 				{

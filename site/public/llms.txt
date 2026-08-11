@@ -19,6 +19,13 @@ E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered
 - [What is GEO?](https://egeoagents.com/concepts/what-is-geo/): Generative Engine Optimization explained
 - [What is AEO?](https://egeoagents.com/concepts/what-is-aeo/): Answer Engine Optimization explained
 - [GEO vs SEO](https://egeoagents.com/concepts/geo-vs-seo/): differences, overlap, and why to do both
+- [What is llms.txt?](https://egeoagents.com/concepts/what-is-llms-txt/): the llms.txt proposal, honest status, and how to ship one
+- [The 10 GEO Features](https://egeoagents.com/concepts/geo-features/): the research-derived features that make content citable, with implementation guidance
+
+## Guides
+
+- [How to Rank in ChatGPT Search](https://egeoagents.com/guides/rank-in-chatgpt-search/): OAI-SearchBot, Bing/IndexNow discovery, citable content, measurement
+- [How to Get Cited by Perplexity](https://egeoagents.com/guides/rank-in-perplexity/): measured playbook — curator sources, PerplexityBot, dated comparisons
 
 ## Compare
 
@@ -27,6 +34,7 @@ E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered
 
 ## Optional
 
+- [Research behind E-GEO](https://egeoagents.com/research/): Princeton KDD 2024 + the E-GEO preprint, and how findings map to code
 - [Research paper (arXiv:2511.20867)](https://arxiv.org/abs/2511.20867): the research behind E-GEO
 - [GitHub repository](https://github.com/mverab/eGEOagents): source code, issues, discussions
 - [skills.sh collection](https://skills.sh/mverab/egeoagents): Claude Code skills distribution
