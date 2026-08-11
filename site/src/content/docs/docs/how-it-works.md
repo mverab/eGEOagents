@@ -42,7 +42,7 @@ The same four agents run either **in-process** through the Python runtime behind
 
 ### 1. Analyzer
 
-Extracts content, scores it against the 10 universal GEO features, identifies gaps, and writes `analysis.json`:
+Extracts content, scores it against the [10 universal GEO features](/concepts/geo-features/), identifies gaps, and writes `analysis.json`:
 
 ```json
 {
