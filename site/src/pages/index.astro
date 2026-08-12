@@ -112,8 +112,8 @@ const engineMarks = [
 							>
 						</div>
 						<div class="stats" aria-label="Project stats">
-							<span><b>147★</b> github</span>
-							<span><b>42</b> forks</span>
+							<span><b data-gh-stars>154★</b> github</span>
+							<span><b data-gh-forks>43</b> forks</span>
 							<span><b>MIT</b> license</span>
 							<span><b>arXiv</b> 2511.20867</span>
 						</div>
@@ -378,7 +378,7 @@ const engineMarks = [
 								<td>E-GEO</td>
 								<td>Python CLI + Claude Code skills + MCP-based validation</td>
 								<td>Full rewrite pipeline, reproducible evaluation, continuous loops</td>
-								<td>147</td>
+								<td data-gh-stars>154</td>
 							</tr>
 							<tr>
 								<td>GEO (original research repo)</td>
@@ -438,8 +438,8 @@ const engineMarks = [
 							Delivered within 5 business days. The toolkit stays free and open
 							source (MIT) — this is us running it for you.
 						</p>
-						<div class="cta svc-cta">
-							<a class="c primary" href="https://buy.stripe.com/dRm5kD7CrcPs8ILaco3Ru0j"
+						<div class="cta-group svc-cta">
+							<a class="primary" href="https://buy.stripe.com/dRm5kD7CrcPs8ILaco3Ru0j"
 								>book the audit <span aria-hidden="true">→</span></a
 							>
 						</div>
@@ -469,7 +469,7 @@ const engineMarks = [
 			<div class="cells">
 				<div class="c ft-col">
 					<b>E-GEO®</b>
-					<span>147★ · 42 forks · mit · arxiv:2511.20867</span>
+					<span><span data-gh-stars>154★</span> · <span data-gh-forks>43 forks</span> · mit · arxiv:2511.20867</span>
 				</div>
 				<nav class="c ft-col" aria-label="Documentation">
 					<b>Docs</b>
@@ -1596,4 +1596,23 @@ const engineMarks = [
 
 		start();
 	})();
+
+	// Live GitHub stats: replace the digit run inside each tagged element,
+	// preserving its surrounding format (★, " forks", bare table number).
+	fetch('https://api.github.com/repos/mverab/eGEOagents')
+		.then(function (r) {
+			return r.ok ? r.json() : null;
+		})
+		.then(function (d) {
+			if (!d) return;
+			document.querySelectorAll('[data-gh-stars]').forEach(function (el) {
+				el.textContent = el.textContent.replace(/\d+/, d.stargazers_count);
+			});
+			document.querySelectorAll('[data-gh-forks]').forEach(function (el) {
+				el.textContent = el.textContent.replace(/\d+/, d.forks_count);
+			});
+		})
+		.catch(function () {
+			/* static fallback numbers stay */
+		});
 </script>
