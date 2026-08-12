@@ -422,6 +422,31 @@ const engineMarks = [
 				</div>
 			</section>
 
+			<section class="row service" aria-labelledby="svc-h">
+				<div class="cells">
+					<h2 class="c" id="svc-h">Rather have it done for you?</h2>
+					<div class="c svc-body">
+						<p class="svc-lede">
+							<strong>GEO Audit &amp; Implementation</strong> — $199, one time.
+						</p>
+						<ul class="svc-list">
+							<li>Full GEO/AEO audit report of your site</li>
+							<li>One priority page rewritten with the 10 research features</li>
+							<li>JSON-LD schema pack + llms.txt for your domain</li>
+						</ul>
+						<p class="svc-note">
+							Delivered within 5 business days. The toolkit stays free and open
+							source (MIT) — this is us running it for you.
+						</p>
+						<div class="cta svc-cta">
+							<a class="c primary" href="https://buy.stripe.com/dRm5kD7CrcPs8ILaco3Ru0j"
+								>book the audit <span aria-hidden="true">→</span></a
+							>
+						</div>
+					</div>
+				</div>
+			</section>
+
 			<section class="row final" aria-labelledby="final-h">
 				<div class="cells">
 					<h2 class="c" id="final-h">Be the source<br />they <span class="asked">name.</span></h2>
@@ -1078,6 +1103,46 @@ const engineMarks = [
 		padding: 48px 24px 56px;
 	}
 
+	/* done-for-you service */
+	.service h2 {
+		grid-column: span 4;
+	}
+	.svc-body {
+		grid-column: span 8;
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+		align-items: flex-start;
+	}
+	.svc-lede {
+		font-size: 1.15rem;
+		font-weight: 500;
+	}
+	.svc-lede strong {
+		font-weight: 800;
+		box-shadow: inset 0 -0.45em 0 var(--flu);
+	}
+	.svc-list {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.svc-list li {
+		font-weight: 600;
+		padding-left: 18px;
+		border-left: 6px solid var(--flu);
+	}
+	.svc-note {
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: var(--grey);
+		max-width: 56ch;
+	}
+	.svc-cta {
+		padding: 0;
+	}
+
 	/* footer */
 	.ft {
 		border-bottom: none;
@@ -1221,6 +1286,8 @@ const engineMarks = [
 		.steps,
 		.install h2,
 		.chips,
+		.service h2,
+		.svc-body,
 		.caps-grid .cap,
 		.hero-split .hero-left,
 		.hero-split .field,
@@ -1265,7 +1332,8 @@ const engineMarks = [
 		}
 		.shift h2,
 		.how h2,
-		.install h2 {
+		.install h2,
+		.service h2 {
 			padding-bottom: 0;
 		}
 		.steps li {
