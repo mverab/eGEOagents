@@ -26,6 +26,7 @@ All loop state lives **outside the repo**, in the workspace resolved from `$EGEO
 $EGEO_HOME/
 ├── LOG.md                        # append-only activity feed (one line per event)
 ├── config.yaml                   # cadence, models, budgets, scaling weights
+├── project.yaml                  # project identity, targets, guardrails (optional migration)
 ├── SUBSTRATE.md                  # the contract, vendored on bootstrap
 ├── signals/<slug>.md             # evidence — deduped, frequency-counted
 ├── docs/<slug>.md                # durable knowledge — analyses, decisions
@@ -35,6 +36,19 @@ $EGEO_HOME/
 ```
 
 The layout and artifact rules are defined by `SUBSTRATE.md` and mechanically enforced by `python -m egeo.substrate_lint`.
+
+### Portable project contract
+
+`project.yaml` is the portability boundary. It describes the active project's
+canonical domain, tracked queries, tracked pages, measurement engines, and
+anti-spam/canibalization guardrails. `config.yaml` remains the loop machinery
+(cadence, models, budgets, and reflection). When `project.yaml` exists, it is
+validated before collection and takes precedence over legacy project fields in
+`config.yaml`; explicit CLI flags still win. If it is absent, the legacy
+configuration remains runnable and `egeo loop doctor` reports the fallback.
+
+Copy the shape from [`examples/project.yaml`](https://github.com/mverab/eGEOagents/blob/main/examples/project.yaml).
+The contract contains no API keys, OAuth tokens, or private Search Console data.
 
 ## Commands
 

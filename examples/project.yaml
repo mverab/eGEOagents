@@ -1,0 +1,57 @@
+schema_version: 1
+
+project:
+  id: egeoagents
+  name: E-GEO
+  repository: https://github.com/mverab/eGEOagents
+  canonical_domain: egeoagents.com
+  canonical_url: https://egeoagents.com/
+  language: en
+
+queries:
+  - id: generic-geo-evaluation
+    text: GEO evaluation harness open source
+    class: generic
+    intent: evaluation
+    target_pages: [docs-evaluation]
+    active: true
+  - id: generic-llms-txt
+    text: what is llms.txt
+    class: informational
+    intent: llms-txt
+    target_pages: [concept-llms-txt]
+    active: true
+  - id: branded-egeo
+    text: E-GEO generative engine optimization toolkit
+    class: branded
+    intent: product
+    target_pages: [home]
+    active: true
+
+pages:
+  - id: home
+    url: https://egeoagents.com/
+    purpose: product
+    canonical: true
+    active: true
+  - id: docs-evaluation
+    url: https://egeoagents.com/docs/evaluation/
+    purpose: product-capability
+    canonical: true
+    active: true
+  - id: concept-llms-txt
+    url: https://egeoagents.com/concepts/what-is-llms-txt/
+    purpose: education
+    canonical: true
+    active: true
+
+measurement:
+  engines: [google-search-console, perplexity]
+  cadence: weekly
+
+# These are policy guardrails, not credentials or service configuration.
+guardrails:
+  no_duplicate_query_owners: true
+  no_auto_publish_visible_copy: true
+  no_fabricated_proof: true
+  require_fresh_crawl_before_verdict: true

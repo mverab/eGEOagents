@@ -331,13 +331,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     home = common.ensure_workspace()
     try:
         config = workspace.load_config(home)
+        project = workspace.load_project_config(home)
     except (OSError, ValueError) as exc:
         return common.fail(str(exc))
 
-    queries = args.queries or list(workspace.config_get(config, "collectors.serp.queries", []) or [])
-    target_domain = args.target_domain or str(
-        workspace.config_get(config, "collectors.serp.target_domain", "") or ""
-    )
+    inputs = workspace.project_inputs(project, config)
+    queries = args.queries or inputs["queries"]
+    target_domain = args.target_domain or str(inputs["target_domain"] or "")
     engine = args.engine or str(workspace.config_get(config, "collectors.serp.engine", ENGINE) or ENGINE)
     budget = workspace.config_get(config, "budgets.queries_per_day", None)
 

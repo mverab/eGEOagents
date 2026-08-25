@@ -263,10 +263,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     home = common.ensure_workspace()
     try:
         config = workspace.load_config(home)
+        project = workspace.load_project_config(home)
     except (OSError, ValueError) as exc:
         return common.fail(str(exc))
 
-    urls = args.urls or list(workspace.config_get(config, "collectors.page.urls", []) or [])
+    inputs = workspace.project_inputs(project, config)
+    urls = args.urls or inputs["urls"]
     budget = workspace.config_get(config, "budgets.pages_per_day", None)
 
     try:

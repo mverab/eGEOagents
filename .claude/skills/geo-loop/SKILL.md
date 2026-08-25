@@ -41,6 +41,9 @@ not in a runnable state (`egeo loop doctor` explains why).
 
 - `$EGEO_HOME/domains/<domain>/README.md` — charter, cadence, focus, backlog,
   Timeline (the last entry tells you where the previous run stopped).
+- `$EGEO_HOME/project.yaml` — when present, the validated project identity,
+  canonical domain, tracked queries/pages, and anti-spam/canibalization
+  guardrails. `egeo loop doctor` is the source of truth for its validity.
 - `$EGEO_HOME/data/<collector>/*.jsonl` — fresh ground truth.
 - `$EGEO_HOME/signals/` and `$EGEO_HOME/docs/` — what is already known, so you
   dedupe instead of duplicating.
