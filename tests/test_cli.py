@@ -27,10 +27,10 @@ def test_optimize_command_custom_options():
         "--schema-type",
         "FAQPage",
         "--runtime",
-        "python"
+        "other"
     ])
 
     assert args.input == "content.md"
     assert args.out_dir == "output"
     assert args.schema_type == "FAQPage"
-    assert args.runtime == "python"
+    assert args.runtime == "other"
