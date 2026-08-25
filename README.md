@@ -322,6 +322,7 @@ All loop state lives **outside the repo**, in the workspace resolved from
 $EGEO_HOME/
 ├── LOG.md                        # append-only activity feed (one line per event)
 ├── config.yaml                   # cadence, models, budgets, scaling weights
+├── project.yaml                  # portable project identity, targets, guardrails
 ├── SUBSTRATE.md                  # the contract, vendored on bootstrap
 ├── signals/<slug>.md             # evidence — deduped, frequency-counted
 ├── docs/<slug>.md                # durable knowledge — analyses, decisions
@@ -332,6 +333,13 @@ $EGEO_HOME/
 
 The layout and the artifact rules are defined by [`SUBSTRATE.md`](SUBSTRATE.md)
 and mechanically enforced by `python -m egeo.substrate_lint`.
+
+`project.yaml` is optional during migration. When present, it is the validated
+source for the active project's canonical domain, tracked queries, tracked
+pages, and anti-spam/canibalization guardrails. `config.yaml` remains the
+machine-facing loop configuration. If `project.yaml` is absent, collectors use
+the legacy `config.yaml` fields and `egeo loop doctor` reports that fallback.
+See [`examples/project.yaml`](examples/project.yaml) for the portable contract.
 
 ### Commands
 

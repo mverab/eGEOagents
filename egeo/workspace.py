@@ -25,9 +25,11 @@ and ``egeo optimize`` behave exactly as before loop mode existed.
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 from . import repo_root
 
@@ -45,8 +47,13 @@ LAYOUT_DIRS = ("signals", "docs", "data", "domains", "prompts")
 MACHINERY_DOMAIN = "egeo-core"
 
 CONFIG_NAME = "config.yaml"
+PROJECT_CONFIG_NAME = "project.yaml"
 LOG_NAME = "LOG.md"
 SUBSTRATE_NAME = "SUBSTRATE.md"
+PROJECT_SCHEMA_VERSION = 1
+_PROJECT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_SECRET_KEY_RE = re.compile(r"(?:api[_-]?key|secret|token|password|credential|private[_-]?key|oauth)", re.I)
+_QUERY_CLASSES = {"branded", "generic", "commercial", "informational", "navigational", "other"}
 
 _LOG_HEADER = """# LOG
 
@@ -244,6 +251,223 @@ def append_log(domain: str, event: str, summary: str, home: Optional[Path] = Non
     with log.open("a", encoding="utf-8") as handle:
         handle.write(line + "\n")
     return line
+
+
+def project_config_path(home: Optional[Path] = None) -> Path:
+    """Return the active project's declarative contract path."""
+    return (home or resolve_home()) / PROJECT_CONFIG_NAME
+
+
+class ProjectConfigError(ValueError):
+    """Raised when the portable project contract is absent or invalid."""
+
+
+def _secret_paths(value: Any, path: str = "") -> List[str]:
+    """Find credential-like keys without returning their values."""
+    found: List[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            if _SECRET_KEY_RE.search(str(key)):
+                found.append(child_path)
+            else:
+                found.extend(_secret_paths(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found.extend(_secret_paths(child, f"{path}[{index}]"))
+    return found
+
+
+def _normalized_domain(value: str) -> str:
+    return (value or "").strip().lower().removeprefix("www.").rstrip(".")
+
+
+def _is_http_url(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc) and not parsed.username and not parsed.password
+
+
+def validate_project_config(data: Any) -> List[str]:
+    """Return deterministic, value-safe validation errors for project.yaml."""
+    errors: List[str] = []
+    if not isinstance(data, dict):
+        return ["root must be a mapping"]
+    if data.get("schema_version") != PROJECT_SCHEMA_VERSION:
+        errors.append(f"schema_version must be {PROJECT_SCHEMA_VERSION}")
+    secret_paths = _secret_paths(data)
+    if secret_paths:
+        errors.append("credential-like keys are forbidden: " + ", ".join(secret_paths))
+
+    project = data.get("project")
+    if not isinstance(project, dict):
+        errors.append("project must be a mapping")
+        project = {}
+    for key in ("id", "name", "repository", "canonical_domain", "canonical_url", "language"):
+        if not str(project.get(key) or "").strip():
+            errors.append(f"project.{key} is required")
+    project_id = str(project.get("id") or "")
+    if project_id and not _PROJECT_ID_RE.fullmatch(project_id):
+        errors.append("project.id must use lowercase letters, digits, and hyphens")
+    for key in ("repository", "canonical_url"):
+        if project.get(key) and not _is_http_url(project.get(key)):
+            errors.append(f"project.{key} must be an http(s) URL")
+    canonical_url = str(project.get("canonical_url") or "")
+    canonical_domain = _normalized_domain(str(project.get("canonical_domain") or ""))
+    if canonical_url and canonical_domain and _normalized_domain(urlparse(canonical_url).hostname or "") != canonical_domain:
+        errors.append("project.canonical_domain does not match project.canonical_url")
+
+    pages = data.get("pages", [])
+    if not isinstance(pages, list):
+        errors.append("pages must be a list")
+        pages = []
+    page_ids: set[str] = set()
+    page_urls: Dict[str, str] = {}
+    for index, page in enumerate(pages):
+        prefix = f"pages[{index}]"
+        if not isinstance(page, dict):
+            errors.append(f"{prefix} must be a mapping")
+            continue
+        page_id = str(page.get("id") or "")
+        if not page_id:
+            errors.append(f"{prefix}.id is required")
+        elif page_id in page_ids:
+            errors.append(f"duplicate page id: {page_id}")
+        else:
+            page_ids.add(page_id)
+        url = page.get("url")
+        if not _is_http_url(url):
+            errors.append(f"{prefix}.url must be an http(s) URL")
+        elif bool(page.get("active", True)):
+            normalized_url = str(url).split("#", 1)[0].rstrip("/") or "/"
+            if normalized_url in page_urls:
+                errors.append(f"duplicate active page URL: {page_urls[normalized_url]} and {page_id}")
+            else:
+                page_urls[normalized_url] = page_id
+
+    queries = data.get("queries", [])
+    if not isinstance(queries, list):
+        errors.append("queries must be a list")
+        queries = []
+    query_ids: set[str] = set()
+    ownership: Dict[tuple[str, str], List[tuple[str, str]]] = {}
+    for index, query in enumerate(queries):
+        prefix = f"queries[{index}]"
+        if not isinstance(query, dict):
+            errors.append(f"{prefix} must be a mapping")
+            continue
+        query_id = str(query.get("id") or "")
+        if not query_id:
+            errors.append(f"{prefix}.id is required")
+        elif query_id in query_ids:
+            errors.append(f"duplicate query id: {query_id}")
+        else:
+            query_ids.add(query_id)
+        active = bool(query.get("active", True))
+        text = str(query.get("text") or "").strip()
+        if active and not text:
+            errors.append(f"{prefix}.text is required for active queries")
+        query_class = str(query.get("class") or "").strip().lower()
+        if active and query_class not in _QUERY_CLASSES:
+            errors.append(f"{prefix}.class must be one of {sorted(_QUERY_CLASSES)}")
+        target_pages = query.get("target_pages", [])
+        if not isinstance(target_pages, list) or any(not isinstance(item, str) for item in target_pages):
+            errors.append(f"{prefix}.target_pages must be a list of page IDs")
+            target_pages = []
+        for page_id in target_pages:
+            if page_id not in page_ids:
+                errors.append(f"{prefix}.target_pages references unknown page: {page_id}")
+            if active and query.get("intent"):
+                ownership.setdefault((page_id, str(query.get("intent"))), []).append(
+                    (query_id, str(query.get("experiment") or ""))
+                )
+    for (page_id, intent), owners in ownership.items():
+        if len(owners) > 1 and not all(experiment for _, experiment in owners):
+            errors.append(f"canonical ownership collision: page {page_id!r}, intent {intent!r}, queries {[query_id for query_id, _ in owners]}")
+
+    measurement = data.get("measurement")
+    if not isinstance(measurement, dict):
+        errors.append("measurement must be a mapping")
+    else:
+        engines = measurement.get("engines")
+        if not isinstance(engines, list) or not engines or any(not isinstance(engine, str) or not engine.strip() for engine in engines):
+            errors.append("measurement.engines must be a non-empty list of names")
+        if not str(measurement.get("cadence") or "").strip():
+            errors.append("measurement.cadence is required")
+
+    guardrails = data.get("guardrails")
+    required_guardrails = ("no_duplicate_query_owners", "no_auto_publish_visible_copy", "no_fabricated_proof", "require_fresh_crawl_before_verdict")
+    if not isinstance(guardrails, dict):
+        errors.append("guardrails must be a mapping")
+    else:
+        for key in required_guardrails:
+            if guardrails.get(key) is not True:
+                errors.append(f"guardrails.{key} must be true")
+    return errors
+
+
+def load_project_config(home: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+    """Load and strictly validate optional ``project.yaml``.
+
+    ``None`` means the workspace is legacy and still uses config.yaml project
+    fields. An invalid file raises ``ProjectConfigError`` and never falls back.
+    """
+    path = project_config_path(home)
+    if not path.is_file():
+        return None
+    try:
+        import yaml  # type: ignore
+    except ImportError as exc:
+        raise ProjectConfigError(f"{path}: PyYAML is required to parse project.yaml") from exc
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise ProjectConfigError(f"{path}: cannot parse YAML: {exc}") from exc
+    errors = validate_project_config(data)
+    if errors:
+        raise ProjectConfigError(f"{path}: " + "; ".join(errors))
+    return data
+
+
+def project_summary(project: Optional[Dict[str, Any]], home: Optional[Path] = None) -> Dict[str, Any]:
+    """Return safe, machine-readable project status for doctor and run plans."""
+    if not project:
+        return {
+            "id": None,
+            "canonical_domain": None,
+            "config_source": "config.yaml (legacy fallback)",
+            "active_queries": 0,
+            "active_pages": 0,
+            "validated": False,
+        }
+    return {
+        "id": project["project"]["id"],
+        "canonical_domain": project["project"]["canonical_domain"],
+        "config_source": str(project_config_path(home)),
+        "active_queries": sum(1 for query in project.get("queries", []) if query.get("active", True)),
+        "active_pages": sum(1 for page in project.get("pages", []) if page.get("active", True)),
+        "validated": True,
+    }
+
+
+def project_inputs(project: Optional[Dict[str, Any]], config: Dict[str, Any]) -> Dict[str, Any]:
+    """Resolve project-specific collector inputs with explicit legacy fallback."""
+    if project:
+        active_queries = [query["text"] for query in project.get("queries", []) if query.get("active", True)]
+        active_pages = [page["url"] for page in project.get("pages", []) if page.get("active", True)]
+        return {
+            "queries": active_queries,
+            "urls": active_pages,
+            "target_domain": project["project"]["canonical_domain"],
+            "source": PROJECT_CONFIG_NAME,
+        }
+    return {
+        "queries": list(config_get(config, "collectors.serp.queries", []) or []),
+        "urls": list(config_get(config, "collectors.page.urls", []) or []),
+        "target_domain": str(config_get(config, "collectors.serp.target_domain", "") or ""),
+        "source": CONFIG_NAME + " (legacy fallback)",
+    }
 
 
 def load_config(home: Optional[Path] = None) -> Dict[str, Any]:

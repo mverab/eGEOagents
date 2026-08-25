@@ -175,12 +175,14 @@ def candidate_signals(deltas: List[Dict[str, Any]]) -> List[str]:
 
 def build_plan(domain: str, home: Path) -> Dict[str, Any]:
     """Assemble the run plan for ``domain``. Pure read; never writes."""
+    project = workspace.load_project_config(home)
     readme = workspace.domain_readme(domain, home)
     plan: Dict[str, Any] = {
         "domain": domain,
         "workspace": str(home),
         "charter_path": str(readme),
         "charter_exists": readme.is_file(),
+        "project": workspace.project_summary(project, home),
     }
     if readme.is_file():
         plan.update(parse_charter(readme.read_text(encoding="utf-8")))
@@ -195,6 +197,9 @@ def _print_plan(plan: Dict[str, Any], dry_run: bool) -> None:
     mode = "DRY RUN — nothing will be written" if dry_run else "run plan"
     print(f"egeo loop run: {plan['domain']} ({mode})")
     print(f"  workspace:     {plan['workspace']}")
+    project = plan.get("project", {})
+    print(f"  project:       {project.get('id') or 'legacy'} ({project.get('config_source')})")
+    print(f"  project stats: {project.get('active_queries', 0)} active querie(s), {project.get('active_pages', 0)} active page(s)")
     print(f"  charter:       {plan['charter_path']}")
     if not plan["charter_exists"]:
         print("  charter:       MISSING — create it (see egeo-core backlog) before running the agent")
@@ -271,6 +276,17 @@ def diagnose(home: Path) -> Tuple[List[str], List[str], Dict[str, Any]]:
                 problems.append(f"{key} must be a positive integer, got {value!r}")
         facts["models"] = workspace.config_get(config, "models", {})
 
+    project: Optional[Dict[str, Any]] = None
+    try:
+        project = workspace.load_project_config(home)
+    except workspace.ProjectConfigError as exc:
+        problems.append(str(exc))
+    else:
+        project_facts = workspace.project_summary(project, home)
+        facts.update({f"project.{key}": value for key, value in project_facts.items()})
+        if project is None:
+            warnings.append("project.yaml is absent: legacy config.yaml fallback is active")
+
     violations, artifacts, domains = substrate_lint.lint(home)
     facts["artifacts"] = artifacts
     facts["domains"] = domains
@@ -316,7 +332,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         workspace.bootstrap(home)
 
-    plan = build_plan(args.domain, home)
+    try:
+        plan = build_plan(args.domain, home)
+    except workspace.ProjectConfigError as exc:
+        print(f"egeo loop run: invalid project contract: {exc}", file=sys.stderr)
+        return 1
     if args.json:
         print(json.dumps(plan, indent=2, sort_keys=True))
     else:
@@ -366,6 +386,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
           f"{facts.get('streams', 0)} data stream(s)")
     print(f"  budgets:   queries/day={facts.get('budgets.queries_per_day')} "
           f"pages/day={facts.get('budgets.pages_per_day')}")
+    print(f"  project:   {facts.get('project.id') or 'legacy'} ({facts.get('project.config_source', 'unknown')})")
+    print(f"  targets:   queries={facts.get('project.active_queries', 0)} pages={facts.get('project.active_pages', 0)}")
     print(f"  reflect:   auto_apply={facts.get('reflect.auto_apply')}")
     print(f"  BRAVE_API_KEY: {'set' if facts.get('brave_api_key_set') else 'not set'}")
     overrides = facts.get("prompt_overrides") or []

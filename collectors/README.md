@@ -12,7 +12,9 @@ A collector in this directory MUST:
 1. **Be deterministic and LLM-free.** No model calls, no prompts, no
    interpretation. Given the same input it produces the same record.
 2. **Read configuration from the workspace, credentials from the environment.**
-   Inputs come from `$EGEO_HOME/config.yaml` (`collectors.<name>.*`); secrets
+   When `$EGEO_HOME/project.yaml` exists and validates, project identity,
+   queries, and tracked URLs come from that contract. Otherwise inputs come
+   from `$EGEO_HOME/config.yaml` (`collectors.<name>.*`); secrets
    come from env vars (`BRAVE_API_KEY`). Nothing is read from the repo tree and
    secret values are never printed or logged.
 3. **Append versioned JSONL.** One JSON object per observation, appended to
