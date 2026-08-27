@@ -50,11 +50,14 @@ configuration remains runnable and `egeo loop doctor` reports the fallback.
 Copy the shape from [`examples/project.yaml`](https://github.com/mverab/eGEOagents/blob/main/examples/project.yaml).
 The contract contains no API keys, OAuth tokens, or private Search Console data.
 
+`egeo loop decide` ranks **one** next action from that contract plus collector JSONL and `$EGEO_HOME/data/outcomes/ledger.jsonl`. It is LLM-free and never publishes. `--dry-run` writes nothing.
+
 ## Commands
 
 | Command | What it does |
 |---------|--------------|
 | `egeo loop doctor` | Bootstrap the workspace if missing, then health-check it (layout, config, budgets, substrate lint) |
+| `egeo loop decide` | Rank exactly one next action from collector JSONL + the outcome ledger (LLM-free; never publishes) |
 | `egeo loop collect serp` | Record a search-result snapshot (Brave API) into `data/serp/*.jsonl` |
 | `egeo loop collect page` | Record a page snapshot (hash, title, meta, JSON-LD types, word count) into `data/page/*.jsonl` |
 | `egeo loop run <domain>` | Resolve and print the run plan — current focus, fresh collector deltas, candidate signals |
