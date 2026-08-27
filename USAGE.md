@@ -4,7 +4,8 @@
 - `geo_eval.py`: evaluation + lightweight prompt meta-optimization
 - `llm_client.py`: OpenAI-compatible HTTP client (stdlib only)
 - `prompts/`: prompt templates
-- `egeo/loop.py`: loop-mode CLI (`egeo loop run|collect|doctor`)
+- `egeo/loop.py`: loop-mode CLI (`egeo loop run|collect|doctor|decide`)
+- `egeo/decide.py`: deterministic next-action ranking + outcome ledger
 - `egeo/workspace.py`: `$EGEO_HOME` resolution + substrate bootstrap
 - `collectors/`: deterministic collectors (`serp`, `page`) and their fixtures
 
@@ -73,6 +74,9 @@ egeo loop collect page --url https://example.com/pricing \
 
 # Print the run plan for a domain — writes nothing
 egeo loop run example-com --dry-run
+
+# Rank one next action from collector JSONL + the outcome ledger — writes nothing
+egeo loop decide --dry-run
 
 # Execute one bounded iteration (the agent does the interpretive work)
 claude -p "/geo:loop example-com"

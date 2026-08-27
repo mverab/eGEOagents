@@ -120,7 +120,7 @@ Additional hosts can be added by implementing the `RuntimeAdapter` interface in 
 Loop mode keeps state in a per-user workspace (`$EGEO_HOME`, default `~/.egeo`). These commands are the scheduler seam and make **zero LLM calls**.
 
 ```
-usage: egeo loop [-h] {run,collect,doctor} ...
+usage: egeo loop [-h] {run,collect,doctor,decide} ...
 ```
 
 ### `egeo loop run <domain> [--dry-run] [--json]`
@@ -139,6 +139,10 @@ egeo loop collect page --url https://example.com/pricing
 ### `egeo loop doctor [--json]`
 
 Bootstrap the workspace if needed, then self-check it: layout, config, substrate, budgets.
+
+### `egeo loop decide [--dry-run] [--json]`
+
+Rank exactly one next action from `project.yaml`, collector JSONL, and `$EGEO_HOME/data/outcomes/ledger.jsonl`. LLM-free. `--dry-run` writes nothing. Without it, the command may append one ledger row and one proposal doc. It never publishes, merges, or sets `status: applied`.
 
 Full loop-mode guide: [GEO Loop](/docs/geo-loop/).
 

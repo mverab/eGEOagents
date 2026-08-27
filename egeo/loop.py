@@ -1,4 +1,4 @@
-"""``egeo loop`` — the loop-mode surface: ``run``, ``collect``, ``doctor``.
+"""``egeo loop`` — the loop-mode surface: ``run``, ``collect``, ``doctor``, ``decide``.
 
 Loop mode turns one-shot GEO into a continuous one: deterministic collectors
 record ground truth into a per-user workspace (``$EGEO_HOME``), and an agent run
@@ -15,6 +15,8 @@ design:
   ``.claude/skills/geo-loop/SKILL.md`` (in Claude Code: ``/geo:loop <domain>``,
   headless: ``claude -p "/geo:loop <domain>"``).
 - ``egeo loop doctor`` self-checks the workspace.
+- ``egeo loop decide`` ranks exactly one next action from collector JSONL and
+  the outcome ledger. It never publishes or merges.
 
 Any scheduler drives these commands identically; Hermes cron is the reference.
 """
@@ -403,6 +405,54 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_decide(args: argparse.Namespace) -> int:
+    from . import decide
+
+    home = workspace.resolve_home()
+    if args.dry_run:
+        if not workspace.exists(home):
+            print(
+                f"egeo loop decide: {home} is not bootstrapped yet (dry run writes nothing).\n"
+                "Run `egeo loop doctor` to create the workspace.",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        workspace.bootstrap(home)
+    try:
+        project = workspace.load_project_config(home)
+    except workspace.ProjectConfigError as exc:
+        print(f"egeo loop decide: invalid project contract: {exc}", file=sys.stderr)
+        return 1
+    if project is None:
+        print(
+            "egeo loop decide: project.yaml is required. Copy examples/project.yaml "
+            "into $EGEO_HOME and fill the active project's identity and targets.",
+            file=sys.stderr,
+        )
+        return 1
+    action = decide.rank_action(home, project)
+    payload: Dict[str, Any] = {"action": action, "dry_run": bool(args.dry_run), "workspace": str(home)}
+    if not args.dry_run:
+        payload.update(decide.apply_decision(home, project, action))
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+    else:
+        print(f"egeo loop decide: {action['kind']} ({'DRY RUN' if args.dry_run else 'recorded'})")
+        print(f"  reason:    {action['reason']}")
+        print(f"  next_gate: {action['next_gate']}")
+        print(f"  auto_apply: {action['auto_apply']}")
+        if action.get("query_ids"):
+            print(f"  queries:   {', '.join(action['query_ids'])}")
+        if action.get("page_ids"):
+            print(f"  pages:     {', '.join(action['page_ids'])}")
+        if action.get("evidence"):
+            print(f"  evidence:  {', '.join(action['evidence'])}")
+        if payload.get("written"):
+            print(f"  wrote:     {', '.join(payload['written'])}")
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # parser
 # --------------------------------------------------------------------------- #
@@ -410,12 +460,13 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     """Register the ``loop`` subcommand group on the ``egeo`` parser."""
     parser = sub.add_parser(
         "loop",
-        help="Loop mode: collectors, run plans, and workspace health ($EGEO_HOME).",
+        help="Loop mode: collectors, run plans, workspace health, and decisions ($EGEO_HOME).",
         description=(
             "Loop mode keeps state in a per-user workspace ($EGEO_HOME, default ~/.egeo). "
             "These commands are the scheduler seam and make zero LLM calls: `collect` gathers "
             "ground truth, `run` resolves the plan for one unit of work, `doctor` checks the "
-            "workspace. The interpretive loop run itself is executed by an agent runtime via "
+            "workspace, `decide` ranks one next action from collector data and the outcome ledger. "
+            "The interpretive loop run itself is executed by an agent runtime via "
             ".claude/skills/geo-loop/SKILL.md (`/geo:loop <domain>`)."
         ),
     )
@@ -461,10 +512,23 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     doctor.add_argument("--json", action="store_true", help="Print the diagnosis as JSON.")
     doctor.set_defaults(loop_handler=cmd_doctor)
 
+    decide_p = loop_sub.add_parser(
+        "decide",
+        help="Rank exactly one next action from collector data and the outcome ledger (no LLM, never publishes).",
+        description=(
+            "Reads project.yaml, collector JSONL, and data/outcomes/ledger.jsonl, then ranks one "
+            "action. Without --dry-run it may append one ledger row, one proposal doc, and one LOG "
+            "line. It never sets status=applied, never edits the site, and never opens a PR."
+        ),
+    )
+    decide_p.add_argument("--dry-run", action="store_true", help="Print the ranked action and write nothing.")
+    decide_p.add_argument("--json", action="store_true", help="Print the decision as JSON.")
+    decide_p.set_defaults(loop_handler=cmd_decide)
+
 
 def main(args: argparse.Namespace) -> int:
     """Dispatch a parsed ``egeo loop ...`` namespace."""
     return int(args.loop_handler(args))
 
 
-__all__ = ["add_parser", "main", "build_plan", "diagnose", "load_collector", "parse_charter"]
+__all__ = ["add_parser", "main", "build_plan", "diagnose", "load_collector", "parse_charter", "cmd_decide"]
