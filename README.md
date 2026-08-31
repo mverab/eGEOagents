@@ -16,6 +16,7 @@
   <a href="https://github.com/mverab/eGEOagents/network/members"><img src="https://img.shields.io/github/forks/mverab/eGEOagents?style=social" alt="GitHub Forks" /></a>
   <a href="https://github.com/mverab/eGEOagents/issues"><img src="https://img.shields.io/github/issues/mverab/eGEOagents" alt="Issues" /></a>
   <a href="https://arxiv.org/abs/2511.20867"><img src="https://img.shields.io/badge/arXiv-2511.20867-b31b1b.svg" alt="Research Paper" /></a>
+  <a href="https://pypi.org/project/egeo/"><img src="https://img.shields.io/pypi/v/egeo" alt="PyPI" /></a>
 </p>
 
 <p>
@@ -250,12 +251,10 @@ duplicated optimization logic** — both runtimes share one source of truth.
 ### Install
 
 ```bash
-# From the repo root — installs the `egeo` console script + deps
-pip install -e .
-
-# ...or run without installing (deps: pip install pyyaml jsonschema)
-python -m egeo --help
+pip install egeo
 ```
+
+From a clone, `pip install -e .` still works. `python -m egeo --help` runs without installing (deps: `pip install pyyaml jsonschema`).
 
 ### Commands
 

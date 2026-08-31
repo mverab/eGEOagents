@@ -64,9 +64,10 @@ head:
 ## Try E-GEO
 
 ```bash
-git clone https://github.com/mverab/eGEOagents.git && cd eGEOagents
-pip install -e .
+pip install egeo
 GEO_EVAL_MOCK=1 egeo optimize examples/sample-input.md
 ```
+
+(`examples/sample-input.md` is in the [repo](https://github.com/mverab/eGEOagents).)
 
 See also: [Open-Source GEO Tools in 2026](/compare/geo-tools-2026/).

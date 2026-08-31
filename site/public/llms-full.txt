@@ -3,7 +3,8 @@
 > E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
 Site: https://egeoagents.com
-Source: https://github.com/mverab/eGEOagents (MIT license; 147 stars, 42 forks as of 2026-08)
+Source: https://github.com/mverab/eGEOagents (MIT license; 168 stars, 47 forks as of 2026-08-31)
+PyPI: https://pypi.org/project/egeo/
 Paper: https://arxiv.org/abs/2511.20867
 Skills: https://skills.sh/mverab/egeoagents
 
@@ -21,8 +22,8 @@ Differentiators:
 ## Install
 
 Standalone Python CLI:
-    git clone https://github.com/mverab/eGEOagents.git && cd eGEOagents
-    pip install -e .        # or: python -m egeo --help
+    pip install egeo
+    # clone + pip install -e . still works; or: python -m egeo --help
 Claude Code skills:
     npx skills add https://github.com/mverab/eGEOagents
 

@@ -16,7 +16,7 @@ head:
       }
 ---
 
-The `egeo` CLI (v2.0.0) is a runtime-agnostic wrapper around the same `geo_eval.py` and `llm_client.py` modules used by the Claude Code agents. Install with `pip install -e .` from the repo root, or run `python -m egeo` without installing.
+The `egeo` CLI (v2.0.0) is a runtime-agnostic wrapper around the same `geo_eval.py` and `llm_client.py` modules used by the Claude Code agents. Install with `pip install egeo`, or run `python -m egeo` from a clone without installing.
 
 ```
 usage: egeo [-h] [--version] {optimize,evaluate,optimize-prompts,runtimes,loop} ...
