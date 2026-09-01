@@ -2,7 +2,7 @@
 
 > E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
-E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered search engines: ChatGPT, Perplexity, Gemini, and Claude. It runs a full pipeline — analyze, rank-simulate, rewrite, generate JSON-LD schema — as a standalone Python CLI (`egeo`) or as Claude Code agents and skills. It ships a reproducible evaluation harness (offline, deterministic, no API key via GEO_EVAL_MOCK=1), a continuous geo-loop mode over a persistent workspace ($EGEO_HOME), llms.txt support, and schema markup generation. MIT licensed. Source: https://github.com/mverab/eGEOagents (147 stars as of 2026-08). Install: `pip install -e .` or `npx skills add https://github.com/mverab/eGEOagents`.
+E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered search engines: ChatGPT, Perplexity, Gemini, and Claude. It runs a full pipeline — analyze, rank-simulate, rewrite, generate JSON-LD schema — as a standalone Python CLI (`egeo`) or as Claude Code agents and skills. It ships a reproducible evaluation harness (offline, deterministic, no API key via GEO_EVAL_MOCK=1), a continuous geo-loop mode over a persistent workspace ($EGEO_HOME), llms.txt support, and schema markup generation. MIT licensed. Source: https://github.com/mverab/eGEOagents (168 stars as of 2026-08-31). PyPI: https://pypi.org/project/egeo/. Install: `pip install egeo` or `npx skills add https://github.com/mverab/eGEOagents`.
 
 ## Docs
 
@@ -35,6 +35,7 @@ E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered
 ## Optional
 
 - [Research behind E-GEO](https://egeoagents.com/research/): Princeton KDD 2024 + the E-GEO preprint, and how findings map to code
+- [Visibility case study](https://egeoagents.com/case-study/): weekly Perplexity measurements 2026-08-05–2026-08-24; head query still false
 - [Research paper (arXiv:2511.20867)](https://arxiv.org/abs/2511.20867): the research behind E-GEO
 - [GitHub repository](https://github.com/mverab/eGEOagents): source code, issues, discussions
 - [skills.sh collection](https://skills.sh/mverab/egeoagents): Claude Code skills distribution

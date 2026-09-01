@@ -54,6 +54,8 @@ What it reports:
 
 Because a GEO tool whose own claims can't be traced to sources is selling the exact disease it claims to cure. Every claim on this site links to its ground truth — code, paper, or measured data — and the [comparison pages](/compare/geo-tools-2026/) credit competitors' real strengths, including the one with more stars than us.
 
+The measurement log of applying that rule to E-GEO itself is the [visibility case study](/case-study/) (weekly Perplexity snapshots from 2026-08-05; head query still false).
+
 ---
 
 **In short:** E-GEO stands on the peer-reviewed Princeton GEO study (KDD 2024) plus the project's own applied preprint (arXiv:2511.20867), and every finding maps to a specific, inspectable part of the codebase. Verify, don't trust: [github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents).

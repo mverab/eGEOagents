@@ -64,7 +64,7 @@ Full comparison: [E-GEO vs geo-optimizer-skill](/compare/e-geo-vs-geo-optimizer-
 **Yes.** The standalone `egeo` Python CLI runs the full pipeline anywhere Python runs — local shells, notebooks, Docker, CI:
 
 ```bash
-pip install -e .
+pip install egeo
 egeo optimize path/to/page.md
 ```
 

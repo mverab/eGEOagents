@@ -30,12 +30,10 @@ E-GEO runs in two ways: as a **standalone Python CLI** (`egeo`) or as a set of *
 ### Option 1: Standalone Python CLI
 
 ```bash
-git clone https://github.com/mverab/eGEOagents.git
-cd eGEOagents
-pip install -e .
+pip install egeo
 ```
 
-Or run without installing:
+From a clone, `pip install -e .` still works. Or run without installing:
 
 ```bash
 pip install pyyaml jsonschema
