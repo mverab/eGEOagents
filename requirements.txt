@@ -3,3 +3,4 @@
 
 pyyaml>=6.0        # SKILL.md frontmatter parsing (scripts/validate_skills.py)
 jsonschema>=4.0    # JSON-LD envelope validation (scripts/validate_jsonld.py)
+pytest>=7.0        # Test runner for tests/ (unittest discover does not collect pytest-style tests)

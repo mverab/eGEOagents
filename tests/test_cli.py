@@ -13,6 +13,7 @@ def test_optimize_command_parser():
     assert args.input == "example.md"
     assert args.out_dir == "geo-output"
     assert args.schema_type == "Article"
+    assert args.format == "markdown"
     assert args.runtime == "python"
 
 
@@ -26,6 +27,8 @@ def test_optimize_command_custom_options():
         "output",
         "--schema-type",
         "FAQPage",
+        "--format",
+        "html",
         "--runtime",
         "other"
     ])
@@ -33,4 +36,5 @@ def test_optimize_command_custom_options():
     assert args.input == "content.md"
     assert args.out_dir == "output"
     assert args.schema_type == "FAQPage"
+    assert args.format == "html"
     assert args.runtime == "other"

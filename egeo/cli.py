@@ -69,6 +69,12 @@ def _add_optimize_parser(sub: argparse._SubParsersAction) -> None:
         choices=["Organization", "Product", "Service", "Article", "FAQPage"],
         help="JSON-LD schema template to emit (default: Article).",
     )
+    p.add_argument(
+        "--format",
+        default="markdown",
+        choices=["markdown", "html"],
+        help="Export format for optimized content (default: markdown).",
+    )
     p.add_argument("--runtime", default="python", help="Runtime to use (default: python).")
     p.add_argument("--ranker-model", default=os.environ.get("RANKER_MODEL", "gpt-4o"))
     p.add_argument("--rewriter-model", default=os.environ.get("REWRITER_MODEL", "gpt-4o"))
@@ -154,6 +160,7 @@ def _cmd_optimize(args: argparse.Namespace) -> int:
         output_dir=Path(args.out_dir),
         query=args.query,
         schema_type=args.schema_type,
+        export_format=args.format,
     )
 
     if args.json:
