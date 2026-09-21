@@ -38,3 +38,10 @@ def test_optimize_command_custom_options():
     assert args.schema_type == "FAQPage"
     assert args.format == "html"
     assert args.runtime == "other"
+
+
+def test_rank_command_parser():
+    parser = build_parser()
+    args = parser.parse_args(["rank", "--limit", "2"])
+    assert args.cmd == "rank"
+    assert args.limit == 2

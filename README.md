@@ -264,6 +264,7 @@ From a clone, `pip install -e .` still works. `python -m egeo --help` runs witho
 | `egeo evaluate` | Run the evaluation harness (reuses `geo_eval.py`, identical metrics) |
 | `egeo optimize-prompts` | Meta-optimize the rewriter prompt (non-destructive by default) |
 | `egeo runtimes` | List available runtime adapters and their status |
+| `egeo rank` | **Jev judge** — score candidates for a query and sort in code. Does not rewrite. Requires `TYPESAFE_API_KEY`. |
 | `egeo loop <run\|collect\|doctor>` | [Loop mode](#-loop-mode-continuous-geo) — plan a run, run a collector, or check the workspace |
 
 ```bash

@@ -7,9 +7,11 @@ Runtime-agnostic entry point for the GEO pipeline. Subcommands:
 - ``optimize-prompts``    thin wrapper over ``geo_eval.optimize`` (meta-optimizer).
 - ``runtimes``            list available runtimes and their status.
 - ``loop``                loop mode: ``run``, ``collect``, ``doctor`` (see :mod:`egeo.loop`).
+- ``rank``                Jev judge: score candidates for a query and sort in code.
 
-Everything honors ``GEO_EVAL_MOCK=1`` (via ``llm_client.get_client``), so the
-CLI runs offline in CI without an API key.
+``optimize`` / ``evaluate`` honor ``GEO_EVAL_MOCK=1`` (via ``llm_client.get_client``).
+``rank`` does not: missing ``TYPESAFE_API_KEY`` aborts rather than inventing ranks.
+The rewriter is unchanged; Jev only replaces the ranking judge.
 """
 from __future__ import annotations
 
@@ -35,6 +37,12 @@ def _add_evaluate_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--ranker",
+        default=os.environ.get("EGEO_RANKER", "llm"),
+        choices=["llm", "jev"],
+        help="Ranking judge: llm (default OpenAI-compatible) or jev (TypeSafe). Rewriter is always an LLM.",
+    )
 
 
 def _add_optimize_prompts_parser(sub: argparse._SubParsersAction) -> None:
@@ -88,6 +96,53 @@ def _cmd_loop(args: argparse.Namespace) -> int:
     return loop.main(args)
 
 
+def _add_rank_parser(sub: argparse._SubParsersAction) -> None:
+    p = sub.add_parser(
+        "rank",
+        help="Score candidates with Jev and sort in code (does not rewrite).",
+    )
+    p.add_argument(
+        "--dataset",
+        default=str(repo_root() / "eval" / "datasets" / "geo_smoke.jsonl"),
+        help="JSONL with query, target_id, candidates (default: geo_smoke).",
+    )
+    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--out", default=None, help="Write JSON here (default: stdout).")
+    p.add_argument("--model", default=os.environ.get("TYPESAFE_MODEL", "jev-latest"))
+
+
+def _cmd_rank(args: argparse.Namespace) -> int:
+    from .jev_ranker import RankerConfigError, RankerProviderError, rank_dataset
+
+    path = Path(args.dataset)
+    if not path.is_file():
+        print(f"ERROR: dataset not found: {path}", file=sys.stderr)
+        return 1
+    examples = []
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            examples.append(json.loads(line))
+            if args.limit is not None and len(examples) >= args.limit:
+                break
+    try:
+        result = rank_dataset(examples, model=args.model)
+    except RankerConfigError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2 if "TYPESAFE_API_KEY" in str(exc) else 1
+    except RankerProviderError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 3
+    text = json.dumps(result, indent=2, sort_keys=True)
+    if args.out:
+        Path(args.out).write_text(text + "\n", encoding="utf-8")
+    else:
+        print(text)
+    return 0
+
+
 def _add_runtimes_parser(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser("runtimes", help="List available runtimes and their status.")
     p.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
@@ -105,6 +160,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
         seed=args.seed,
         limit=args.limit,
         verbose=args.verbose,
+        ranker_engine=args.ranker,
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
@@ -209,6 +265,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_evaluate_parser(sub)
     _add_optimize_prompts_parser(sub)
     _add_runtimes_parser(sub)
+    _add_rank_parser(sub)
     from . import loop
 
     loop.add_parser(sub)
@@ -220,6 +277,7 @@ _DISPATCH = {
     "evaluate": _cmd_evaluate,
     "optimize-prompts": _cmd_optimize_prompts,
     "runtimes": _cmd_runtimes,
+    "rank": _cmd_rank,
     "loop": _cmd_loop,
 }
 

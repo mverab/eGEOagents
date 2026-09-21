@@ -132,7 +132,15 @@ def _rank_candidates(
     query: str,
     candidates: Sequence[Candidate],
     temperature: float,
+    ranker_engine: Optional[str] = None,
 ) -> List[str]:
+    engine = (ranker_engine or os.environ.get("EGEO_RANKER") or "llm").strip().lower()
+    if engine in {"jev", "typesafe"}:
+        from egeo.jev_ranker import order_candidates
+
+        return list(order_candidates(query, candidates)["ordered_ids"])
+    if engine not in {"llm", "openai", ""}:
+        raise LLMError(f"Unknown ranker engine: {engine}")
     user = _render_template(
         user_template,
         {
@@ -205,6 +213,7 @@ def evaluate(
     seed: int,
     limit: Optional[int],
     verbose: bool,
+    ranker_engine: str = "llm",
 ) -> Dict[str, Any]:
     client = get_client()
 
@@ -236,6 +245,7 @@ def evaluate(
             query=ex.query,
             candidates=candidates,
             temperature=temperature,
+            ranker_engine=ranker_engine,
         )
         base_rank = _rank_position(base_order, target_id)
 
@@ -264,6 +274,7 @@ def evaluate(
             query=ex.query,
             candidates=candidates_after,
             temperature=temperature,
+            ranker_engine=ranker_engine,
         )
         new_rank = _rank_position(new_order, target_id)
 
