@@ -7,9 +7,10 @@ Runtime-agnostic entry point for the GEO pipeline. Subcommands:
 - ``optimize-prompts``    thin wrapper over ``geo_eval.optimize`` (meta-optimizer).
 - ``runtimes``            list available runtimes and their status.
 - ``loop``                loop mode: ``run``, ``collect``, ``doctor`` (see :mod:`egeo.loop`).
+- ``citation-gap``        optional Jev evaluator on imported AI answers (never auto-applies).
 
-Everything honors ``GEO_EVAL_MOCK=1`` (via ``llm_client.get_client``), so the
-CLI runs offline in CI without an API key.
+``optimize`` / ``evaluate`` honor ``GEO_EVAL_MOCK=1`` (via ``llm_client.get_client``).
+``citation-gap`` does not: missing TypeSafe credentials abort rather than invent scores.
 """
 from __future__ import annotations
 
@@ -86,6 +87,51 @@ def _cmd_loop(args: argparse.Namespace) -> int:
     from . import loop
 
     return loop.main(args)
+
+
+def _add_citation_gap_parser(sub: argparse._SubParsersAction) -> None:
+    p = sub.add_parser(
+        "citation-gap",
+        help="Compare an imported AI answer to a target page using provided evidence (optional Jev; never auto-applies).",
+    )
+    p.add_argument(
+        "--input",
+        required=True,
+        help="JSON file with query, imported AI answer, target text, and evidence texts. Does not crawl.",
+    )
+    p.add_argument("--out", default=None, help="Write the run result JSON here (default: stdout).")
+    p.add_argument(
+        "--record",
+        action="store_true",
+        help="Append one proposed ledger row via the existing $EGEO_HOME decide path. Never applied.",
+    )
+    p.add_argument("--model", default=os.environ.get("TYPESAFE_MODEL", "jev-latest"))
+
+
+def _cmd_citation_gap(args: argparse.Namespace) -> int:
+    from .citation_gap import CitationGapError, ProviderError, run_from_path
+
+    input_path = Path(args.input)
+    if not input_path.is_file():
+        print(f"ERROR: input file not found: {input_path}", file=sys.stderr)
+        return 1
+    out_path = Path(args.out) if args.out else None
+    try:
+        result = run_from_path(
+            input_path,
+            out=out_path,
+            record=bool(args.record),
+            model=args.model,
+        )
+    except CitationGapError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2 if "TYPESAFE_API_KEY" in str(exc) else 1
+    except ProviderError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 3
+    if out_path is None:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
 
 
 def _add_runtimes_parser(sub: argparse._SubParsersAction) -> None:
@@ -209,6 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_evaluate_parser(sub)
     _add_optimize_prompts_parser(sub)
     _add_runtimes_parser(sub)
+    _add_citation_gap_parser(sub)
     from . import loop
 
     loop.add_parser(sub)
@@ -220,6 +267,7 @@ _DISPATCH = {
     "evaluate": _cmd_evaluate,
     "optimize-prompts": _cmd_optimize_prompts,
     "runtimes": _cmd_runtimes,
+    "citation-gap": _cmd_citation_gap,
     "loop": _cmd_loop,
 }
 

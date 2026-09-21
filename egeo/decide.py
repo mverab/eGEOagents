@@ -18,7 +18,7 @@ LEDGER_REL = Path("data") / "outcomes" / "ledger.jsonl"
 SCHEMA_VERSION = 1
 WINDOWS_DAYS = (7, 14, 28)
 OPEN_STATUSES = {"proposed", "applied"}
-OWNER_KINDS = {"escalate_absent", "propose_page_owner", "propose_schema"}
+OWNER_KINDS = {"escalate_absent", "propose_page_owner", "propose_schema", "propose_citation_gap"}
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 

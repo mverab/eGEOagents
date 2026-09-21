@@ -264,6 +264,7 @@ From a clone, `pip install -e .` still works. `python -m egeo --help` runs witho
 | `egeo evaluate` | Run the evaluation harness (reuses `geo_eval.py`, identical metrics) |
 | `egeo optimize-prompts` | Meta-optimize the rewriter prompt (non-destructive by default) |
 | `egeo runtimes` | List available runtime adapters and their status |
+| `egeo citation-gap --input <file>` | Optional Jev citation-gap on an imported AI answer + provided source/target text. Never crawls, never auto-applies. |
 | `egeo loop <run\|collect\|doctor>` | [Loop mode](#-loop-mode-continuous-geo) — plan a run, run a collector, or check the workspace |
 
 ```bash
@@ -275,13 +276,18 @@ egeo evaluate --dataset eval/datasets/geo_smoke.jsonl --limit 5
 
 # Inspect the runtime adapters
 egeo runtimes
+
+# Citation gap (optional TypeSafe/Jev). Input must already include page/source text.
+# Requires TYPESAFE_API_KEY. GEO_EVAL_MOCK is not a fallback scorer.
+egeo citation-gap --input examples/citation-gap-input.json --out /tmp/citation-gap.json
 ```
+
+Citation-gap scope: compare a captured AI answer to your page using evidence text you supply. Output is JSON (relevance / support / coverage, abstention, fragments, optional owner proposal). Model confidence is **not** future citation probability. Actionable findings become an owner-gated `propose_citation_gap` ledger row (`auto_apply=false`). Cited source text is **not** copied into a page rewrite; the owner must supply verified first-party facts. Relevance must be `> 0.5` and both Choice confidences `> 0.5`.
 
 ### Offline / deterministic mode
 
-Every command honors `GEO_EVAL_MOCK=1`, which swaps in a deterministic mock LLM
-client — **no API key required**. This is exactly how the CLI is exercised in
-[CI](.github/workflows/ci.yml):
+`egeo optimize`, `egeo evaluate`, and `egeo optimize-prompts` honor `GEO_EVAL_MOCK=1`, which swaps in a deterministic mock LLM client — **no API key required**. This is exactly how those commands are exercised in
+[CI](.github/workflows/ci.yml). `egeo citation-gap` does **not** honor that mock: without `TYPESAFE_API_KEY` it aborts instead of inventing scores.
 
 ```bash
 GEO_EVAL_MOCK=1 egeo optimize examples/sample-input.md --out-dir /tmp/egeo
@@ -515,6 +521,7 @@ E-GEO uses **4 specialized AI agents** orchestrated by Claude Code:
 
 egeo/                            # Standalone CLI package
 ├── cli.py                       # `egeo` entrypoint
+├── citation_gap.py              # Optional Jev citation-gap evaluator
 ├── loop.py                      # `egeo loop run|collect|doctor`
 ├── workspace.py                 # $EGEO_HOME resolution + bootstrap
 └── substrate_lint.py            # SUBSTRATE.md enforcement
