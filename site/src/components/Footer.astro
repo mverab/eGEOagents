@@ -1,0 +1,87 @@
+---
+// Wraps Starlight's footer with a conversion block: every docs page gets
+// star + pip install (developers); marketer-facing sections also get the audit.
+import Default from '@astrojs/starlight/components/Footer.astro';
+
+const id = Astro.locals.starlightRoute.id;
+const showAudit = /^(guides|concepts|compare)\//.test(id) || id === 'case-study';
+const auditHref = `https://buy.stripe.com/dRm5kD7CrcPs8ILaco3Ru0j?utm_source=egeoagents&utm_medium=docs_cta&utm_campaign=geo_audit&utm_content=${encodeURIComponent(id)}`;
+---
+
+<aside id="egeo-cta" class="egeo-cta" aria-label="Try E-GEO">
+	<div class="egeo-cta-row">
+		<p><strong>Try it on your own page</strong> — open source (MIT), no API key needed for a mock run:</p>
+		<pre><code>pip install egeo
+GEO_EVAL_MOCK=1 egeo optimize your-page.md</code></pre>
+		<a class="egeo-cta-btn" href="https://github.com/mverab/eGEOagents">
+			⭐ Star on GitHub <span data-cta-stars></span>
+		</a>
+	</div>
+	{
+		showAudit && (
+			<div class="egeo-cta-row egeo-cta-audit">
+				<p>
+					<strong>Rather have it done for you?</strong> GEO audit + one priority page rewritten +
+					schema pack for your domain — $199, delivered in 5 business days.
+				</p>
+				<a class="egeo-cta-btn" href={auditHref}>Book the audit →</a>
+			</div>
+		)
+	}
+</aside>
+<Default />
+
+<script>
+	fetch('https://api.github.com/repos/mverab/eGEOagents')
+		.then((r) => (r.ok ? r.json() : null))
+		.then((d) => {
+			if (!d || typeof d.stargazers_count !== 'number') return;
+			document.querySelectorAll('[data-cta-stars]').forEach((el) => {
+				el.textContent = `· ${d.stargazers_count}`;
+			});
+		})
+		.catch(() => {});
+</script>
+
+<style>
+	.egeo-cta {
+		margin-top: 3rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		padding: 1rem 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+	.egeo-cta-row {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.6rem;
+	}
+	.egeo-cta p {
+		margin: 0;
+	}
+	.egeo-cta pre {
+		margin: 0;
+		max-width: 100%;
+		overflow-x: auto;
+		font-size: var(--sl-text-sm);
+	}
+	.egeo-cta-audit {
+		border-top: 1px solid var(--sl-color-gray-5);
+		padding-top: 1rem;
+	}
+	.egeo-cta-btn {
+		display: inline-block;
+		padding: 0.4rem 0.9rem;
+		border-radius: 0.4rem;
+		background: var(--sl-color-accent);
+		color: var(--sl-color-black);
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.egeo-cta-btn:hover {
+		background: var(--sl-color-accent-high);
+	}
+</style>
