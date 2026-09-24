@@ -37,11 +37,6 @@ head:
           },
           {
             "@type": "Question",
-            "name": "What is trygeoaudit.com?",
-            "acceptedAnswer": {"@type": "Answer", "text": "trygeoaudit.com is GEO Audit — our free audit that checks how ready your brand is for AI answer engines (\"your brand's passport control for AI\"). E-GEO is the open-source toolkit that fixes what the audit flags."}
-          },
-          {
-            "@type": "Question",
             "name": "Does E-GEO fabricate statistics or testimonials?",
             "acceptedAnswer": {"@type": "Answer", "text": "No. E-GEO never invents statistics, testimonials, or ratings. If content lacks social proof, the report flags it as a gap with recommendations on how to add real proof."}
           }
@@ -105,10 +100,6 @@ GEO is the practice of optimizing content to rank higher in AI-powered search en
 ### Is E-GEO based on real research?
 
 Yes. E-GEO is based on the paper *"E-GEO: Optimizing Content for Generative Engines"* ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)), which identified 10 universal features that consistently improve AI-engine rankings.
-
-### What is trygeoaudit.com?
-
-[trygeoaudit.com](https://trygeoaudit.com/) is **GEO Audit** — our free audit that checks how ready your brand is for AI answer engines ("your brand's passport control for AI"). E-GEO is the open-source toolkit that fixes what the audit flags.
 
 ### Do I need coding skills to use E-GEO?
 
