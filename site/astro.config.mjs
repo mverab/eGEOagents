@@ -33,6 +33,9 @@ export default defineConfig({
 					href: 'https://github.com/mverab/eGEOagents',
 				},
 			],
+			components: {
+				Footer: './src/components/Footer.astro',
+			},
 			editLink: {
 				baseUrl: 'https://github.com/mverab/eGEOagents/edit/main/site/',
 			},

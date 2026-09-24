@@ -43,6 +43,22 @@ grep_check 'id="answer-block"' "$DIST/index.html" "answer block present on /"
 grep_check 'id="answer-card"' "$DIST/index.html" "hero answer-card element present on /"
 grep_check '<loc>https://egeoagents.com/</loc>' "$DIST/sitemap-0.xml" "sitemap includes /"
 
+# docs CTA — star/pip on every docs page; audit offer only on marketer-facing pages
+G="$DIST/guides/rank-in-chatgpt-search/index.html"
+D="$DIST/docs/getting-started/index.html"
+grep_check 'id="egeo-cta"' "$G" "docs CTA on guides page"
+grep_check 'id="egeo-cta"' "$D" "docs CTA on docs page"
+grep_check 'pip install egeo' "$G" "pip install in docs CTA"
+grep_check 'data-cta-stars' "$G" "live star count hook in docs CTA"
+grep_check 'buy.stripe.com/dRm5kD7CrcPs8ILaco3Ru0j?utm_source=egeoagents' "$G" "audit CTA with UTM on guides page"
+grep_check 'buy.stripe.com/dRm5kD7CrcPs8ILaco3Ru0j?utm_source=egeoagents' "$DIST/index.html" "landing audit link carries UTM"
+if grep -q 'buy.stripe.com' "$D" 2>/dev/null; then
+  echo "FAIL  audit CTA shown on developer docs page"
+  fail=1
+else
+  echo "PASS  no audit CTA on developer docs page"
+fi
+
 # hero motion graphic (citation field) — persistent animation, not one-shot reveal
 grep_check 'id="citation-field"' "$DIST/index.html" "hero motion root #citation-field present"
 grep_check '<svg' "$DIST/index.html" "inline SVG graphic present"
