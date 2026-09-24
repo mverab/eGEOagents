@@ -13,7 +13,7 @@ head:
         "description": "A dated, honest roundup of open-source Generative Engine Optimization tools and resources.",
         "url": "https://egeoagents.com/compare/geo-tools-2026/",
         "datePublished": "2026-08-05",
-        "dateModified": "2026-08-08",
+        "dateModified": "2026-09-24",
         "author": {"@type": "Person", "name": "Miguel Vera", "sameAs": ["https://github.com/mverab"]},
         "mainEntity": {
           "@type": "ItemList",
@@ -27,13 +27,17 @@ head:
       }
 ---
 
-**Last verified: 2026-08-08.** This roundup is maintained by the E-GEO project. We list the tools we would actually evaluate, including the one with more stars than ours, because a GEO tool caught inflating itself in a comparison page loses the only thing that matters in this space: being a source AI engines can trust. Community counts are snapshots, not quality scores.
+**Last verified: 2026-08-08.** This roundup is maintained by the E-GEO project. We list the tools we would actually evaluate, including the one with more stars than ours, because a GEO tool caught inflating itself in a comparison page loses the only thing that matters in this space: being a source AI engines can trust. Community counts are snapshots, not quality scores. Bookmark it: we update this GEO tools 2026 roundup as the ecosystem moves.
 
 ## Short answer
 
 There is no single best open-source GEO tool in 2026 — and every serious open source AEO tool (Answer Engine Optimization is the same problem surface under another name) is on this page. For the deepest site audit, start with [geo-optimizer-skill](https://github.com/Auriti-Labs/geo-optimizer-skill). For a reproducible content pipeline, evaluation harness, and continuous loop, evaluate [E-GEO](https://github.com/mverab/eGEOagents). For the foundational research implementation, use [GEO-optim](https://github.com/GEO-optim/GEO). For ecosystem discovery, browse [Awesome GEO](https://github.com/amplifying-ai/awesome-generative-engine-optimization).
 
 This is a use-case answer, not a claim that one project wins every category.
+
+## GEO tools vergelijken — korte samenvatting (NL)
+
+Dit overzicht vergelijkt open-source GEO tools in 2026. Er is geen enkele "beste" tool: [geo-optimizer-skill](https://github.com/Auriti-Labs/geo-optimizer-skill) geeft de diepste site-audit (0–100, 47 methoden), [E-GEO](https://github.com/mverab/eGEOagents) biedt de volledige pipeline (analyseren → herschrijven → schema) met een reproduceerbare evaluatie, [GEO-optim](https://github.com/GEO-optim/GEO) is de originele Princeton-onderzoekscode, en [Awesome GEO](https://github.com/amplifying-ai/awesome-generative-engine-optimization) is een samengestelde lijst voor het ecosysteem. De volledige vergelijking hierboven is in het Engels.
 
 ## How this roundup is built
 
