@@ -75,6 +75,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Rank in ChatGPT Search', slug: 'guides/rank-in-chatgpt-search' },
 						{ label: 'Get Cited by Perplexity', slug: 'guides/rank-in-perplexity' },
+						{ label: 'Track AI Citations', slug: 'guides/track-ai-citations' },
 					],
 				},
 				{
