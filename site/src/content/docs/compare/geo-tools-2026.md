@@ -27,7 +27,7 @@ head:
       }
 ---
 
-**Last verified: 2026-08-08.** This roundup is maintained by the E-GEO project. We list the tools we would actually evaluate, including the one with more stars than ours, because a GEO tool caught inflating itself in a comparison page loses the only thing that matters in this space: being a source AI engines can trust. Community counts are snapshots, not quality scores. Bookmark it: we update this GEO tools 2026 roundup as the ecosystem moves.
+**Last verified: 2026-09-24.** This roundup is maintained by the E-GEO project. We list the tools we would actually evaluate, including the one with more stars than ours, because a GEO tool caught inflating itself in a comparison page loses the only thing that matters in this space: being a source AI engines can trust. Community counts are snapshots, not quality scores. Bookmark it: we update this GEO tools 2026 roundup as the ecosystem moves.
 
 ## Short answer
 
@@ -41,7 +41,7 @@ Dit overzicht vergelijkt open-source GEO tools in 2026. Er is geen enkele "beste
 
 ## How this roundup is built
 
-The comparison uses public evidence available on 2026-08-08:
+The comparison uses public evidence available on 2026-09-24:
 
 1. The project has an open-source repository or a clearly published open-source resource.
 2. Its purpose is explicitly connected to Generative Engine Optimization (GEO), Answer Engine Optimization (AEO), GEO research, or the surrounding ecosystem.
@@ -55,22 +55,22 @@ Where a claim is project-specific, follow the source links in the table and the 
 
 | Tool | Type | Best for | Stars |
 |---|---|---|---|
-| [geo-optimizer-skill](https://github.com/Auriti-Labs/geo-optimizer-skill) (Auriti-Labs) | CLI + Python lib + MCP + Astro integration | Broad site audits (0–100, 47 methods) | ~644 |
-| [E-GEO](https://github.com/mverab/eGEOagents) | Python CLI + Claude Code skills + MCP-based validation | Full rewrite pipeline, reproducible evaluation, continuous loops | 147 |
-| GEO (original research repo, GEO-optim) | Research code | Reproducing the Princeton KDD 2024 experiments | — |
-| Awesome GEO | Curated list | Discovering the ecosystem | — |
+| [geo-optimizer-skill](https://github.com/Auriti-Labs/geo-optimizer-skill) (Auriti-Labs) | CLI + Python lib + MCP + Astro integration | Broad site audits (0–100, 47 methods) + citation tracking | 895 |
+| [E-GEO](https://github.com/mverab/eGEOagents) | Python CLI + Claude Code skills + MCP-based validation | Full rewrite pipeline, reproducible evaluation, continuous loops | 194 |
+| [GEO](https://github.com/GEO-optim/GEO) (original research repo, GEO-optim) | Research code | Reproducing the Princeton KDD 2024 experiments | 337 |
+| [Awesome GEO](https://github.com/amplifying-ai/awesome-generative-engine-optimization) | Curated list | Discovering the ecosystem | 514 |
 
 ## 1. geo-optimizer-skill (Auriti-Labs)
 
-The most popular open-source GEO tool by stars (~644). It scores sites 0–100 across **47 methods** and offers a CLI, a Python library, MCP support, and a native Astro integration. Audit-focused: it tells you what to fix with unmatched granularity, and if you run Astro it slots straight into your build. It does not rewrite your content for you, and it has no reproducible evaluation harness or continuous mode. MIT licensed.
+The most popular dedicated open-source GEO tool by stars (895). It scores sites 0–100 across **47 methods** and offers a CLI, a Python library, MCP support, and a native Astro integration. It tells you what to fix with unmatched granularity, and if you run Astro it slots straight into your build. It also checks whether real answer engines cite your domain (`geo citations`) and tracks results over time (`geo monitor`, `geo track`). By its own description it prioritizes technical infrastructure over content rewriting, and its README does not document a reproducible evaluation harness. MIT licensed.
 
-**Choose it when:** you want the deepest audit score, especially on an Astro site.
+**Choose it when:** you want the deepest audit score or built-in citation tracking, especially on an Astro site.
 
 ## 2. E-GEO (this project)
 
 E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
-Smaller community (147 stars, 42 forks as of 2026-08) and fewer scoring dimensions (10 research-derived features vs 47 methods), but a different shape of tool:
+Smaller community (194 stars, 56 forks as of 2026-09-24) and fewer scoring dimensions (10 research-derived features vs 47 methods), but a different shape of tool:
 
 - **Full pipeline** — analyze → rank-simulate → rewrite → JSON-LD schema, outputting copy-paste-ready content.
 - **Reproducible evaluation harness** — verify the rewriter's effect yourself, offline and deterministically; the same check runs in CI. Its [documented limitation](/docs/evaluation/): metrics are an LLM-ranker proxy, not real engine rankings.
@@ -92,9 +92,53 @@ A curated list of GEO tools, papers, and resources. Not a tool — a map of the 
 
 **Choose it when:** you're surveying the space.
 
+## Directory: more open-source GEO & AEO projects
+
+Beyond the four above, these are the open-source projects we found with an explicit GEO, AEO or llms.txt purpose, a public repository, and roughly 100+ GitHub stars. Descriptions paraphrase each project's own README; we have not benchmarked them. Stars and licenses checked on 2026-09-24.
+
+### Audit and optimization toolkits
+
+| Project | What it does (per its README) | Stars | License |
+|---|---|---|---|
+| [claude-seo](https://github.com/AgriciDaniel/claude-seo) | General SEO skill for Claude Code with GEO/AEO and llms.txt sub-skills | 17,575 | MIT |
+| [gtm-engineer-skills](https://github.com/onvoyage-ai/gtm-engineer-skills) | Claude Code skill that scores AEO/GEO with 16 checks and framework-specific fixes | 1,310 | MIT |
+| [geo-optimizer](https://github.com/geo-team-red/geo-optimizer) | Pluggable GEO framework in Go with custom strategies | 192 | MIT |
+| [GEO-Content-Optimizer-Skill](https://github.com/liangdabiao/GEO-Content-Optimizer-Skill) | Three agent skills covering the GEO content workflow (docs in Chinese) | 188 | not stated |
+| [aeo.js](https://github.com/rubenmarcus/aeo.js) | Generates llms.txt, robots.txt, sitemap and JSON-LD for web apps | 136 | not stated |
+| [dualmark](https://github.com/dodopayments/dualmark) | Serves Markdown twins to AI agents via HTTP content negotiation | 104 | Apache-2.0 |
+
+### AI visibility and citation trackers
+
+| Project | What it does (per its README) | Stars | License |
+|---|---|---|---|
+| [GEORank](https://github.com/yaojingang/GEORank) | GEO ranking and optimization platform | 478 | Apache-2.0 |
+| [GetCito](https://github.com/ai-search-guru/getcito-worlds-first-open-source-aio-aeo-or-geo-tool) | AI search visibility tracking | 420 | see repo |
+| [Elmo](https://github.com/elmohq/elmo) | Self-hostable tracking of brand mentions and citations across ChatGPT, Claude, Perplexity, Gemini, Copilot, Grok and AI Overviews | 356 | MIT |
+| [gego](https://github.com/AI2HU/gego) | Tracks a brand's GEO across multiple LLMs | 97 | GPL-3.0 |
+
+### llms.txt tooling
+
+| Project | What it does (per its README) | Stars | License |
+|---|---|---|---|
+| [llms-txt](https://github.com/AnswerDotAI/llms-txt) | The `/llms.txt` proposal itself | 2,629 | Apache-2.0 |
+| [llms-txt-hub](https://github.com/thedaviddias/llms-txt-hub) | Directory of sites and tools implementing llms.txt | 906 | see repo |
+| [llmstxt-generator](https://github.com/firecrawl/llmstxt-generator) | Generates llms.txt and llms-full.txt for any site (last updated 2025-06) | 537 | not stated |
+| [llmstxt](https://github.com/dotenvx/llmstxt) | Converts `sitemap.xml` to `llms.txt` | 148 | BSD-3-Clause |
+
+### Research and curated lists
+
+| Project | What it is | Stars | License |
+|---|---|---|---|
+| [AutoGEO](https://github.com/cxcscmu/AutoGEO) | ICLR 2026 framework that learns engine preferences and rewrites content | 221 | MIT |
+| [Awesome-GEO (research)](https://github.com/DavidHuji/Awesome-GEO) | Curated list of GEO research papers | 121 | not stated |
+| [awesome-geo](https://github.com/luka2chat/awesome-geo) | Curated GEO resources | 143 | CC0-1.0 |
+| [generative-engine-optimization-tools](https://github.com/izak-fisher/generative-engine-optimization-tools) | Curated list of GEO tools | 113 | see repo |
+
+Missing a project? [Open an issue](https://github.com/mverab/eGEOagents/issues) with the repo link — we add projects that meet the criteria above, including direct competitors.
+
 ## Honest bottom line
 
-There is no single "best" GEO tool in 2026. In this roundup, geo-optimizer-skill has the broadest audit surface; E-GEO's differentiator is the combination of content rewriting, a reproducible evaluation harness, and continuous loop mode in one MIT-licensed package. They are complementary more than they are rivals — audit with one, rewrite and monitor with the other. Detailed head-to-head: [E-GEO vs geo-optimizer-skill](/compare/e-geo-vs-geo-optimizer-skill/).
+There is no single "best" GEO tool in 2026. In this roundup, geo-optimizer-skill has the broadest audit surface and built-in citation tracking; E-GEO's differentiator is content rewriting plus a reproducible evaluation harness in one MIT-licensed package. They are complementary more than they are rivals — audit and track with one, rewrite and verify with the other. Detailed head-to-head: [E-GEO vs geo-optimizer-skill](/compare/e-geo-vs-geo-optimizer-skill/).
 
 ## Sources and verification
 

@@ -65,9 +65,9 @@ Opt-in continuous GEO. State lives in $EGEO_HOME (LOG.md, config.yaml, SUBSTRATE
 
 geo_eval.py + llm_client.py measure rank_improvement = rank_before - rank_after using an LLM re-ranking judge over a fixed candidate list. These metrics are a PROXY for prompt iteration, not a measurement of real ChatGPT/Perplexity/Gemini/Claude rankings. Mock-mode values are deterministic by construction and verify the pipeline, not model quality. Reproduce the CI smoke result: GEO_EVAL_MOCK=1 python geo_eval.py evaluate --dataset eval/datasets/geo_smoke.jsonl --limit 5 --verbose
 
-## Honest comparison (last verified 2026-08-05)
+## Honest comparison (last verified 2026-09-24)
 
-geo-optimizer-skill (Auriti-Labs, ~644 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; audit-focused. It has more stars and broader scoring than E-GEO. E-GEO (147 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, geo-loop continuous mode, a published research basis, and Claude Code skills distribution. The tools are complementary: audit with one, rewrite and monitor with the other.
+geo-optimizer-skill (Auriti-Labs, 895 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; checks real answer-engine citations (geo citations) and tracks them over time (geo monitor, geo track); by its own description prioritizes technical infrastructure over content rewriting. It has more stars, broader scoring and built-in citation tracking. E-GEO (194 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, a published research basis, and Claude Code skills distribution. The tools are complementary: audit and track with one, rewrite and verify with the other. Full directory of open-source GEO/AEO projects: https://egeoagents.com/compare/geo-tools-2026/
 
 ## Pages
 
