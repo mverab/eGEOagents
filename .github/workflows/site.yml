@@ -56,12 +56,13 @@ jobs:
           set -euo pipefail
           expected="$(sha256sum site/dist/index.html | awk '{print $1}')"
           matched=0
-          for attempt in $(seq 1 12); do
-            actual="$(curl --fail --silent --show-error --location "$SITE_URL/" | sha256sum | awk '{print $1}')"
+          for attempt in $(seq 1 40); do
+            actual="$(curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' --max-time 20 "$SITE_URL/" | sha256sum | awk '{print $1}')"
             if [ "$actual" = "$expected" ]; then
               matched=1
               break
             fi
+            echo "attempt $attempt: served $actual != expected $expected; waiting for CDN propagation"
             sleep 5
           done
           test "$matched" = 1
