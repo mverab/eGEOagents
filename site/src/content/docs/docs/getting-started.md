@@ -19,6 +19,8 @@ head:
 
 E-GEO runs in two ways: as a **standalone Python CLI** (`egeo`) or as a set of **Claude Code agents and skills**. Both share the same optimization logic — there is one source of truth.
 
+If you arrived here looking for **GEO for Claude** specifically — yes: the Claude Code skills turn Claude into a GEO agent running this same pipeline, no separate tooling required.
+
 ## Prerequisites
 
 - Python 3 for the standalone CLI, or [Claude Code](https://claude.com/claude-code) for the agent workflow

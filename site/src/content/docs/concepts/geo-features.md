@@ -20,6 +20,8 @@ head:
 
 The E-GEO research preprint ([arXiv:2511.20867](https://arxiv.org/abs/2511.20867)), building on the Princeton GEO study ([Aggarwal et al., KDD 2024](https://arxiv.org/abs/2311.09735)), identifies 10 content features that consistently appear in content that AI answer engines rank and cite highly. These are the same 10 features E-GEO's analyzer scores — the list below is the canonical definition used by the code.
 
+Most GEO tools score a subset of these features and stop there; E-GEO's analyzer scores all ten and its rewriter optimizes against them directly.
+
 ## 1. Ranking emphasis
 
 Frame the content as a leading choice for a specific use case ("best for X"). Engines prefer sources that take a clear position over sources that list options neutrally.
