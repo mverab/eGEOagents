@@ -26,12 +26,12 @@
 
 <br />
 
-> **🚀 One command. Premium results.**<br />
-> Rank higher in **ChatGPT**, **Perplexity**, **Claude**, and **Gemini**.
+> **Get your pages cited by ChatGPT, Perplexity, Claude and Gemini.**<br />
+> Open-source CLI + Claude Code skills, built on published GEO research.
 
 <br />
 
-[**📖 Docs**](docs/getting-started.md) • [**🐛 Issues**](https://github.com/mverab/eGEOagents/issues) • [**💬 Discussions**](https://github.com/mverab/eGEOagents/discussions) • [**📝 Research Paper**](https://arxiv.org/abs/2511.20867)
+[**🌐 Website**](https://egeoagents.com/) • [**📊 Case study**](https://egeoagents.com/case-study/) • [**📖 Docs**](docs/getting-started.md) • [**🐛 Issues**](https://github.com/mverab/eGEOagents/issues) • [**💬 Discussions**](https://github.com/mverab/eGEOagents/discussions) • [**📝 Research Paper**](https://arxiv.org/abs/2511.20867)
 
 ---
 
@@ -41,6 +41,21 @@
 <p align="center">
   <sub>🤖 <strong>AI-Assisted Development</strong> — <a href="CONTRIBUTING.md#ai-transparency">See what's AI-generated vs human-authored</a></sub>
 </p>
+
+---
+
+## ⚡ Try it in 30 seconds
+
+```bash
+pip install egeo
+GEO_EVAL_MOCK=1 egeo optimize your-page.md   # any Markdown page; mock run, no API key
+```
+
+You get `geo-output/` with a GEO score, a rewritten page, JSON-LD schema and a report. Drop `GEO_EVAL_MOCK=1` and set an OpenAI-compatible key for a real run ([getting started](docs/getting-started.md)).
+
+**Does it work?** We measure it on ourselves every week: a fixed set of 10 queries in Perplexity. E-GEO was cited in **3/10** answers for weeks; the 2026-09-21 snapshot reached **5/10**, including generic queries like *"open source AEO tools"* (one snapshot, not yet a trend). Method and earlier snapshots: [public case study](https://egeoagents.com/case-study/).
+
+⭐ **If this is useful, hit Star at the top of this page** — it is how other developers (and answer engines) find it.
 
 ---
 
