@@ -56,3 +56,5 @@ E-GEO's schema/affordance step generates `llms.txt` and JSON-LD alongside rewrit
 ---
 
 **In short:** llms.txt is a Markdown index at your site root that tells AI systems what content matters and what your entity is. It's an unofficial proposal with zero cost and growing agent-side adoption — ship it, keep it curated and fresh, but don't expect it to substitute for real citations. **E-GEO** generates it as part of its optimization pipeline: [github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents).
+
+**Related:** [How to rank in ChatGPT search](/guides/rank-in-chatgpt-search/) — crawler access and Bing indexation: the steps llms.txt does not replace.

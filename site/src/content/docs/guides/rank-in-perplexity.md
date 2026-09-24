@@ -71,3 +71,5 @@ We track 10 fixed queries (2 branded, 8 generic) weekly against Perplexity and s
 ---
 
 **In short:** Perplexity visibility is earned off your own site first — get into the curator sources it cites, keep `PerplexityBot` unblocked, publish dated citable pages, and measure weekly with a fixed query set. **E-GEO** implements this loop as open-source tooling (fixed query sets, snapshot diffs, content optimization): [github.com/mverab/eGEOagents](https://github.com/mverab/eGEOagents).
+
+**Related:** [How to rank in ChatGPT search](/guides/rank-in-chatgpt-search/) — the same measurement loop against `OAI-SearchBot` and Bing's index.
