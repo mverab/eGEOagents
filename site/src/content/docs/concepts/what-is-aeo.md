@@ -19,7 +19,7 @@ head:
       }
 ---
 
-**Answer Engine Optimization (AEO)** is the practice of structuring content so AI answer engines can **parse it, extract a direct answer, and cite you as the source**.
+**Answer Engine Optimization (AEO)** — *answer engine optimisation*, if you write in British English — is the practice of structuring content so AI answer engines can **parse it, extract a direct answer, and cite you as the source**.
 
 ## Answer engines vs search engines
 
