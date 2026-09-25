@@ -63,12 +63,14 @@ Tracking only helps if it changes what you publish. The loop:
 
 1. **Measure** with any option above.
 2. **Pick the losers**: queries where competitors are cited and you are not.
-3. **Fix the page** that should answer that query:
+3. **Fix the page** that should answer that query. For one page:
 
 ```bash
 pip install egeo
 egeo optimize your-page.md --query "best open source geo tools"
 ```
+
+   Or feed the whole tracker report to [`egeo fix-gaps`](/docs/cli/#egeo-fix-gaps), which maps every uncited query to its page through `project.yaml` and rewrites each losing page once (new in the next release; install from GitHub until then: `pip install git+https://github.com/mverab/eGEOagents`).
 
 4. **Get mentioned on the cited sources** for that query — on-page fixes alone rarely flip a citation.
 5. **Re-measure** on the next scheduled run, and keep the dated snapshots.
