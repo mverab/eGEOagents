@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `egeo fix-gaps`: reads an AI-visibility tracker's report (geo-optimizer-skill `geo citations --format json`, or a generic `query`/`cited` JSON/CSV), maps each uncited query to its local page through `project.yaml`, and rewrites each losing page once with the `optimize` pipeline. Writes `fix-gaps.json` with unmatched/skipped reasons and a re-measure list. Source files are never modified.
+- `project.yaml`: optional `pages[].source` (path to the page's local file).
+
 ## [2.0.1] - 2026-09-14
 
 First release where the published PyPI package actually runs the full CLI

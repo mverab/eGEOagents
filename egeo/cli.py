@@ -179,6 +179,12 @@ def _cmd_optimize(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_fix_gaps(args: argparse.Namespace) -> int:
+    from . import gaps
+
+    return gaps.cli(args)
+
+
 def _cmd_runtimes(args: argparse.Namespace) -> int:
     from .runtimes import runtime_status
 
@@ -209,8 +215,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_evaluate_parser(sub)
     _add_optimize_prompts_parser(sub)
     _add_runtimes_parser(sub)
-    from . import loop
+    from . import gaps, loop
 
+    gaps.add_parser(sub)
     loop.add_parser(sub)
     return parser
 
@@ -220,6 +227,7 @@ _DISPATCH = {
     "evaluate": _cmd_evaluate,
     "optimize-prompts": _cmd_optimize_prompts,
     "runtimes": _cmd_runtimes,
+    "fix-gaps": _cmd_fix_gaps,
     "loop": _cmd_loop,
 }
 

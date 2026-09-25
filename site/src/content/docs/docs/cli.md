@@ -1,6 +1,6 @@
 ---
 title: CLI Reference
-description: Complete reference for the egeo command line — optimize, evaluate, optimize-prompts, runtimes, and loop.
+description: Complete reference for the egeo command line — optimize, fix-gaps, evaluate, optimize-prompts, runtimes, and loop.
 head:
   - tag: script
     attrs:
@@ -114,6 +114,29 @@ usage: egeo runtimes [-h] [--json]
 | `claude-code` | `claude` | host-executed | Executes the `.claude/` agents via Claude Code `/geo` slash commands. Auto-detected when a `.claude/` directory is present. |
 
 Additional hosts can be added by implementing the `RuntimeAdapter` interface in `egeo/runtimes.py`.
+
+## `egeo fix-gaps`
+
+Turn an AI-visibility tracker's report into page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and runs the `optimize` pipeline once per page. Your source files are never modified.
+
+```bash
+# 1. Measure with any tracker, e.g. geo-optimizer-skill:
+geo citations --brand "Acme" --domain acme.com --format json --output gaps.json
+# 2. Plan (writes nothing, calls no model):
+egeo fix-gaps gaps.json --project project.yaml --dry-run
+# 3. Rewrite the losing pages:
+egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
+```
+
+**Inputs (auto-detected):**
+- geo-optimizer-skill `geo citations --format json` output. Entries with `domain_cited: false` are gaps; entries with an `error` are skipped, never rewritten.
+- A generic gaps file any tracker can export: a JSON array or CSV with `query` and `cited` (true/false, 1/0, yes/no), plus optional `sources`.
+
+**Mapping:** the gap query must match an active `queries[].text` in `project.yaml` (case, spacing and trailing punctuation ignored). Its `target_pages` point to `pages[]`, and each page needs a `source` path to its local file (relative to `project.yaml`). Unmapped gaps are reported with a reason (`query_not_in_project`, `no_target_page`, `page_has_no_source`, `source_not_found`), never guessed. A page that loses several queries is rewritten once, against the first.
+
+**Output:** `<out-dir>/<page-id>/` with the usual `optimized/`, `schema/` and `report.md`, plus `<out-dir>/fix-gaps.json` listing pages, unmatched and skipped gaps, and a `remeasure` list (with the exact `geo citations` command for geo-optimizer-skill input). Rank before/after is the LLM-ranker proxy; re-measure with your tracker to confirm real citations.
+
+Flags: `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html`, `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize`. `GEO_EVAL_MOCK=1` runs it offline.
 
 ## `egeo loop`
 
