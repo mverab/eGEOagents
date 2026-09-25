@@ -1,7 +1,7 @@
 # citation-gap-fixing Specification
 
 ## Purpose
-TBD - created by archiving change add-fix-gaps. Update Purpose after archive.
+Turn an AI-visibility tracker's citation report into page rewrites: `egeo fix-gaps` maps each query where the project domain is not cited to its local page through `project.yaml` and rewrites that page with the `optimize` pipeline, without guessing mappings, touching source files, or acting on failed measurements.
 
 ## Requirements
 
