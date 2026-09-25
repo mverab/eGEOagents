@@ -61,8 +61,10 @@ SCORERS = ("noul", "choice")
 import argparse
 import datetime
 import json
+import random
 
 from egeo import judge as _judge
+from egeo.jev import noul_question
 from egeo.sources import host_of, normalize_source
 
 
@@ -104,30 +106,51 @@ def build_query_candidates(item, docs, own_domain):
 
 
 def score_candidates_noul(query: str, candidates: Sequence[Any], client: Any) -> Dict[str, float]:
-    raise NotImplementedError
+    if not candidates:
+        raise ValueError("need at least one candidate")
+    state = {"query": query, "candidates": {c.id: c.text[:_judge.MAX_CANDIDATE_CHARS] for c in candidates}}
+    questions = {c.id: noul_question(NOUL_INSTRUCTIONS.format(cid=c.id)) for c in candidates}
+    answers = client.ask(state, questions).answers
+    return {c.id: answers[c.id].noul for c in candidates}
 
 
 def bootstrap_ci(values: Sequence[float], *, n: int = 2000, seed: int = 0, alpha: float = 0.05) -> Optional[Tuple[float, float]]:
-    raise NotImplementedError
+    if len(values) < 2:
+        return None
+    rng = random.Random(seed)
+    means = sorted(sum(rng.choices(values, k=len(values))) / len(values) for _ in range(n))
+    return means[int(alpha / 2 * n)], means[int((1 - alpha / 2) * n) - 1]
 
 
-def score_query(item, docs, client, own_domain):
+def score_query(item, docs, client, own_domain, scorer="noul"):
+    if scorer not in SCORERS:
+        raise ValueError(f"unknown scorer: {scorer}")
     cands, labels = build_query_candidates(item, docs, own_domain)
     if len(cands) < 2:
-        return {"query": item["query"], "skipped": "too_few_candidates"}
-    sel = _judge.select_best(item["query"], cands, client)
-    pr = sel.probabilities
-    pos = [pr.get(i, 0.0) for i, l in labels.items() if l == 1]
-    neg = [pr.get(i, 0.0) for i, l in labels.items() if l == 0]
+        return {"query": item["query"], "scorer": scorer, "skipped": "too_few_candidates"}
+    if scorer == "noul":
+        score = score_candidates_noul(item["query"], cands, client)
+    else:
+        score = dict(_judge.select_best(item["query"], cands, client).probabilities)
+    pos = [score.get(i, 0.0) for i, l in labels.items() if l == 1]
+    neg = [score.get(i, 0.0) for i, l in labels.items() if l == 0]
     has_own = any(c.id == "own" for c in cands)
-    own_prob = pr.get("own", 0.0) if has_own else None
-    own_rank = (1 + sum(1 for c in cands if pr.get(c.id, 0.0) > own_prob)) if has_own else None
-    pred = (own_prob >= min(pos)) if (has_own and pos) else None
-    return {"query": item["query"], "auc": auc(pos, neg), "n_pos": len(pos), "n_neg": len(neg), "own_prob": own_prob,
-            "own_rank": own_rank, "own_predicted_cited": pred, "egeo_cited": item.get("egeo_cited"), "winner": sel.winner}
+    if has_own:
+        own_score = score.get("own", 0.0)
+        own_rank = 1 + sum(1 for c in cands if score.get(c.id, 0.0) > own_score)
+        pred = (own_rank <= len(pos)) if pos else None
+    else:
+        own_score = own_rank = pred = None
+    winner = None
+    for c in cands:
+        if winner is None or score.get(c.id, 0.0) > score.get(winner, 0.0):
+            winner = c.id
+    return {"query": item["query"], "scorer": scorer, "auc": auc(pos, neg), "n_pos": len(pos), "n_neg": len(neg),
+            "own_score": own_score, "own_rank": own_rank, "own_predicted_cited": pred,
+            "egeo_cited": item.get("egeo_cited"), "winner": winner}
 
 
-def run(dataset, client, fetch, own_domain="egeoagents.com"):
+def run(dataset, client, fetch, own_domain="egeoagents.com", scorer="noul"):
     urls = []
     for it in dataset:
         for v in [*it.get("cited_urls", []), *it.get("serp_urls", []), it.get("own_url", "")]:
@@ -135,12 +158,14 @@ def run(dataset, client, fetch, own_domain="egeoagents.com"):
             if u and u not in urls:
                 urls.append(u)
     docs = fetch(urls)
-    per = [score_query(it, docs, client, own_domain) for it in dataset]
+    per = [score_query(it, docs, client, own_domain, scorer=scorer) for it in dataset]
     aucs = [p["auc"] for p in per if p.get("auc") is not None]
     mean = sum(aucs) / len(aucs) if aucs else None
+    ci = bootstrap_ci(aucs)
     owns = [p for p in per if p.get("own_predicted_cited") is not None]
     acc = sum(1 for p in owns if p["own_predicted_cited"] == p["egeo_cited"]) / len(owns) if owns else None
-    return {"per_query": per, "mean_auc": mean, "n_scored": len(aucs), "own_accuracy": acc,
+    return {"per_query": per, "scorer": scorer, "mean_auc": mean, "mean_auc_ci": list(ci) if ci else None,
+            "n_scored": len(aucs), "own_accuracy": acc,
             "gate_passed": mean is not None and mean >= GATE_MIN_AUC and len(aucs) >= GATE_MIN_QUERIES,
             "jev_model": client.model, "jev_usage": dict(client.totals), "date": datetime.date.today().isoformat()}
 
@@ -150,6 +175,7 @@ def main(argv=None):
     parser.add_argument("--dataset", required=True, help="Dataset JSON (see module docstring).")
     parser.add_argument("--out", required=True, help="Where to write the results JSON.")
     parser.add_argument("--mock", action="store_true", help="Offline deterministic run (no TypeSafe, no network).")
+    parser.add_argument("--scorer", default="noul", choices=list(SCORERS), help="Candidate scoring (default: noul).")
     parser.add_argument("--own-domain", default="egeoagents.com")
     args = parser.parse_args(argv)
 
@@ -162,9 +188,11 @@ def main(argv=None):
     client = _jev.make_client(mock=args.mock)
     source_fn = _sources.placeholder_sources if args.mock else _sources.fetch_sources
     fetch = lambda urls: {d.url: d for d in source_fn(urls, limit=len(urls))}  # noqa: E731
-    result = run(dataset, client, fetch, own_domain=args.own_domain)
+    result = run(dataset, client, fetch, own_domain=args.own_domain, scorer=args.scorer)
     Path(args.out).write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"scorer: {result['scorer']}")
     print(f"mean_auc: {result['mean_auc']}")
+    print(f"mean_auc_ci: {result['mean_auc_ci']}")
     print(f"n_scored: {result['n_scored']}")
     print("GATE PASS" if result["gate_passed"] else "GATE FAIL")
     return 0
