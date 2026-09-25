@@ -1,38 +1,48 @@
-"""Does Jev choose sources like Perplexity does?  (validation gate for section-mode fix-gaps)
+"""Does Jev judge sources like Perplexity cites them?  (validation gate for section-mode fix-gaps)
 
-SCAFFOLD — implement until ``tests/test_jev_selection_eval.py`` passes; then run it live
-(plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md, Lane G).
+v2 CONTRACT (2026-09-25 review of the v1 run). Implement until ``tests/test_jev_selection_eval.py``
+passes. Plan: docs/plans/2026-09-25-fix-gaps-sections-plan-v2.md.
+
+Why v2: v1 scored candidates with ONE Choice question, which spreads probability over 1-2 candidates;
+44% of candidates got p < 0.01, so AUC was dominated by ties at ~0 and ``own_predicted_cited``
+(compared against the MINIMUM cited probability, 0.0 in 9/10 queries) was always True. A re-run on
+the same data moved mean AUC from 0.6493 to 0.6272, i.e. the 0.65 gate sat inside run-to-run noise.
 
 Dataset (JSON list), one item per query, produced on the VPS by the collector described in the plan:
-    {"query": str, "egeo_cited": bool, "own_url": str,
+    {"query": str, "egeo_cited": bool, "own_url": str | "" | null,
      "cited_urls": [str, ...],   # URLs Perplexity cited in its answer  -> label 1
      "serp_urls":  [str, ...]}   # top web results for the same query  -> label 0 unless also cited
 
-Per query:
-- ``build_query_candidates(item, docs, own_domain)``: normalize with ``egeo.sources.normalize_source``;
-  drop URLs whose host is ``own_domain`` (or a subdomain) from cited/serp; cited = first
-  ``MAX_PER_CLASS`` unique cited URLs; uncited = first ``MAX_PER_CLASS`` unique serp URLs not in
-  cited. Keep only URLs whose ``docs[url].ok`` is true. Candidate ids: ``src_1..`` in order
-  (cited first, then uncited), kind "source", label = host, text = doc text. If ``own_url``
-  normalizes to a URL with an ok doc, add ``Candidate("own", "own", host, text)`` LAST.
-  Returns ``(candidates, labels)`` where ``labels`` maps source ids to 1/0 (own not included).
-- ``score_query``: skip (``{"query", "skipped": reason}``) when there are < 2 candidates
-  (``"too_few_candidates"``). Otherwise ``egeo.judge.select_best(query, candidates, client)``;
-  ``auc`` over sources = ``auc([p for label 1], [p for label 0])`` (None when a class is empty);
-  own: ``own_prob``, ``own_rank`` (1 = highest probability, ties share the better rank),
-  ``own_predicted_cited = own_prob >= min(prob of label-1 sources)`` (None without cited sources or
-  without own). Return ``{"query", "auc", "n_pos", "n_neg", "own_prob", "own_rank",
+- ``build_query_candidates``: unchanged from v1 (see tests).
+- ``score_candidates_noul(query, candidates, client) -> {id: float}``: ONE request with one Noul
+  question per candidate (question id = candidate id, instructions =
+  ``NOUL_INSTRUCTIONS.format(cid=<id>)``). State = ``{"query": query, "candidates":
+  {id: text[:egeo.judge.MAX_CANDIDATE_CHARS]}}``. Returns each candidate's ``noul``.
+  ``ValueError`` when ``candidates`` is empty.
+- ``score_query(item, docs, client, own_domain, scorer="noul")``:
+  ``scorer`` is ``"noul"`` (per-candidate scores above) or ``"choice"`` (probabilities from
+  ``egeo.judge.select_best``); anything else -> ``ValueError``. Fewer than 2 candidates ->
+  ``{"query", "scorer", "skipped": "too_few_candidates"}``. Otherwise, with ``score = {id: float}``:
+    auc          = auc(scores of label-1 sources, scores of label-0 sources)   (None if a class is empty)
+    own_score    = score["own"] if an own candidate exists else None
+    own_rank     = 1 + number of candidates with a strictly higher score        (None without own)
+    own_predicted_cited = own_rank <= n_pos   # "would own make the top-k", k = cited sources present
+                          (None without own or when n_pos == 0)
+    winner       = id with the highest score (ties -> earliest candidate)
+  Return ``{"query", "scorer", "auc", "n_pos", "n_neg", "own_score", "own_rank",
   "own_predicted_cited", "egeo_cited", "winner"}``.
-- ``run(dataset, client, fetch)``: fetch every URL once through ``fetch(urls) -> {url: SourceDoc}``,
-  score each query, then ``mean_auc`` = mean of non-None AUCs (None if none), ``n_scored`` = count
-  of non-None AUCs, ``own_accuracy`` = share of queries with non-None ``own_predicted_cited`` where it
-  equals ``egeo_cited`` (None if none), ``gate_passed = mean_auc is not None and mean_auc >=
-  GATE_MIN_AUC and n_scored >= GATE_MIN_QUERIES``. Also include ``"per_query"``, ``"jev_model"``,
-  ``"jev_usage"`` (client.totals) and ``"date"`` (UTC ISO date).
-- ``auc(pos, neg)``: Mann-Whitney: (#pairs pos > neg + 0.5 * #ties) / (len(pos) * len(neg)).
-- CLI: ``python -m eval.jev_selection.run --dataset D.json --out R.json [--mock] [--own-domain egeoagents.com]``
-  (mock: ``egeo.jev.make_client(mock=True)`` and ``egeo.sources.placeholder_sources``; otherwise the
-  real client and ``egeo.sources.fetch_sources``). Prints mean AUC, n_scored and GATE PASS/FAIL.
+- ``bootstrap_ci(values, *, n=2000, seed=0, alpha=0.05)``: None when fewer than 2 values. Otherwise
+  ``rng = random.Random(seed)``; ``n`` times take ``rng.choices(values, k=len(values))`` and record its
+  mean; sort; return ``(means[int(alpha / 2 * n)], means[int((1 - alpha / 2) * n) - 1])``.
+- ``run(dataset, client, fetch, own_domain="egeoagents.com", scorer="noul")``: as v1 (one ``fetch``
+  call for every unique normalized URL) plus ``"scorer"`` and ``"mean_auc_ci"`` =
+  ``bootstrap_ci(<non-None per-query AUCs>)`` (a list ``[low, high]`` or None).
+  ``gate_passed = mean_auc is not None and mean_auc >= GATE_MIN_AUC and n_scored >= GATE_MIN_QUERIES``.
+- ``auc``: unchanged (Mann-Whitney with 0.5 for ties).
+- CLI: add ``--scorer {noul,choice}`` (default ``noul``); also print the CI.
+
+Pre-registration (do not change after seeing results): scorer ``noul``, GATE_MIN_AUC 0.65,
+GATE_MIN_QUERIES 25, dataset v2 collected once, evaluated once.
 """
 from __future__ import annotations
 
@@ -40,7 +50,12 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 MAX_PER_CLASS = 8
 GATE_MIN_AUC = 0.65
-GATE_MIN_QUERIES = 6
+GATE_MIN_QUERIES = 25
+NOUL_INSTRUCTIONS = (
+    "Would an AI answer engine cite candidates.{cid} as a source when answering `query`? "
+    "Answer yes only if that candidate's own text directly and credibly answers `query`."
+)
+SCORERS = ("noul", "choice")
 
 
 import argparse
@@ -86,6 +101,14 @@ def build_query_candidates(item, docs, own_domain):
     if ou and docs.get(ou) is not None and docs[ou].ok:
         cands.append(_judge.Candidate("own", "own", host_of(ou), docs[ou].text))
     return cands, labels
+
+
+def score_candidates_noul(query: str, candidates: Sequence[Any], client: Any) -> Dict[str, float]:
+    raise NotImplementedError
+
+
+def bootstrap_ci(values: Sequence[float], *, n: int = 2000, seed: int = 0, alpha: float = 0.05) -> Optional[Tuple[float, float]]:
+    raise NotImplementedError
 
 
 def score_query(item, docs, client, own_domain):

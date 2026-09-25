@@ -263,9 +263,21 @@ SECTION_STATUSES = (
 )
 
 SECTIONS_NOTE = (
-    "Section mode: Jev's choice among your sections and the sources the tracker says were cited is a "
-    "proxy for an answer engine's citation choice, not a live engine result (validation: "
-    "eval/jev_selection). Re-check the queries in `remeasure` with your tracker."
+    "Section mode: Jev scores text competitiveness, i.e. which candidate's TEXT best answers the query "
+    "among your sections and the sources the tracker says were cited. It does not model authority or "
+    "links, so it is not a prediction of citation (validation: eval/jev_selection). Re-check the "
+    "queries in `remeasure` with your tracker."
+)
+
+# v2 (2026-09-25 review) — CONTRACT for Lane F2, see docs/plans/2026-09-25-fix-gaps-sections-plan-v2.md.
+# Every page dict gets an "offpage" key. For status "already_best" it is
+#   {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE, "sources": [url of every ok fetched doc, in fetch order]}
+# and for every other status it is None. The CLI line for an already_best page is
+#   f"already_best: {page_id} (off-page: {len(sources)} cited sources)".
+OFFPAGE_REASON = "text_already_competitive"
+OFFPAGE_MESSAGE = (
+    "Your text already wins Jev's choice for this query, so rewriting it is unlikely to help. "
+    "The gap is probably off-page: get your page mentioned or linked by the sources the answer engine cited."
 )
 
 

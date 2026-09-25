@@ -124,6 +124,8 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     assert saved == report
     assert saved["mode"] == "sections" and saved["jev_model"] == "fake"
     assert saved["note"] == gaps.SECTIONS_NOTE
+    assert "not a prediction of citation" in saved["note"]
+    assert page["offpage"] is None
     assert saved["jev_usage"]["requests"] == 3
     assert saved["thresholds"] == {
         "fidelity_gate": judge.FIDELITY_GATE, "improve_delta": judge.IMPROVE_DELTA,
@@ -153,8 +155,13 @@ def test_already_best_does_not_rewrite(project: Path) -> None:
         raise AssertionError("must not rewrite")
 
     report = _run(project, ScriptedJev(WON), rewrite)
-    assert report["pages"][0]["status"] == "already_best"
-    assert report["pages"][0]["diagnosis"]["target_section"] is None
+    page = report["pages"][0]
+    assert page["status"] == "already_best"
+    assert page["diagnosis"]["target_section"] is None
+    assert page["offpage"] == {"reason": gaps.OFFPAGE_REASON, "message": gaps.OFFPAGE_MESSAGE,
+                               "sources": ["https://toolradar.com/x"]}
+    saved = json.loads((project / "out" / "compare" / "diagnosis.json").read_text(encoding="utf-8"))
+    assert saved["offpage"] == page["offpage"]
     _no_output(project)
 
 
@@ -164,6 +171,7 @@ def test_no_sources_skips_jev_and_rewrite(project: Path) -> None:
                   fetch=lambda values, **kw: [SourceDoc(url="https://toolradar.com/x", ok=False, error="http_404")])
     page = report["pages"][0]
     assert page["status"] == "no_competitor_sources" and jev.requests == []
+    assert page["offpage"] is None
     assert page["sources"] == [{"url": "https://toolradar.com/x", "ok": False, "error": "http_404"}]
     _no_output(project)
 
@@ -199,6 +207,7 @@ def test_worse_is_rejected(project: Path) -> None:
     report = _run(project, ScriptedJev(LOSES, FAITHFUL, worse), lambda *a: GOOD_REWRITE)
     page = report["pages"][0]
     assert page["status"] == "rejected_worse" and page["verification"]["outcome"] == "worse"
+    assert page["offpage"] is None
     _no_output(project)
 
 
@@ -230,7 +239,7 @@ def test_cli_section_dry_run_needs_no_key_and_fetches_nothing(project: Path, mon
     assert "compare" in capsys.readouterr().out
 
 
-def test_cli_mock_end_to_end_offline(project: Path, monkeypatch) -> None:
+def test_cli_mock_end_to_end_offline(project: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("GEO_EVAL_MOCK", "1")
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     monkeypatch.setattr(sources, "fetch_sources", lambda *a, **k: pytest.fail("mock mode must not fetch"))
@@ -240,6 +249,9 @@ def test_cli_mock_end_to_end_offline(project: Path, monkeypatch) -> None:
     report = json.loads((project / "out" / "fix-gaps.json").read_text(encoding="utf-8"))
     assert report["mode"] == "sections" and report["jev_model"] == "mock"
     assert report["pages"][0]["status"] in gaps.SECTION_STATUSES
+    # with the deterministic mock, the "Tools" section overlaps the query and wins -> already_best
+    assert report["pages"][0]["status"] == "already_best"
+    assert "already_best: compare (off-page: 1 cited sources)" in capsys.readouterr().out
     assert (project / "content" / "compare.md").read_text(encoding="utf-8") == PAGE
 
 

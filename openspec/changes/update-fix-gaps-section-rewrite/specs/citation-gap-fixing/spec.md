@@ -25,7 +25,7 @@ The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode sections|page] [--dry-ru
 
 ### Requirement: Report And Re-Measure List
 
-Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev's choice and the ranking harness are proxies, not live engine results.
+Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation.
 
 #### Scenario: Report after a mock run
 
@@ -49,6 +49,7 @@ In `sections` mode, for each processed page the command SHALL fetch the text of 
 - **WHEN** Jev selects one of the page's own sections
 - **THEN** the page status is `already_best`
 - **AND** no rewrite is attempted
+- **AND** the page result carries an `offpage` recommendation listing the fetched cited sources, stating that the gap is likely off-page (mentions and links), not the page text
 
 #### Scenario: No source text could be fetched
 
@@ -110,9 +111,14 @@ With `GEO_EVAL_MOCK=1`, `sections` mode SHALL run without network access: source
 
 ### Requirement: Jev Selection Is Validated Against A Live Engine
 
-The repository SHALL include `eval/jev_selection/`, which scores Jev's Choice probabilities against Perplexity's cited sources (positives) and uncited SERP results (negatives) per query and reports the mean ROC AUC. Documentation of section-mode verification SHALL cite the latest result and its date.
+The repository SHALL include `eval/jev_selection/`, which scores each candidate with an independent Jev Noul question (default; Choice probabilities remain available for comparison) against Perplexity's cited sources (positives) and uncited SERP results (negatives) per query, and reports the mean ROC AUC with a bootstrap 95% interval. The gate SHALL be pre-registered (Noul scorer, mean AUC >= 0.65, at least 25 scored queries, one collection and one evaluation) and SHALL NOT be re-tuned after seeing results. Documentation SHALL cite the latest result, its interval and its date.
 
 #### Scenario: Eval run
 
 - **WHEN** the eval runs on a dataset of queries with cited and uncited URLs
-- **THEN** it writes per-query AUC, the mean AUC and the number of scored queries
+- **THEN** it writes per-query AUC, the mean AUC, its bootstrap interval, the scorer and the number of scored queries
+
+#### Scenario: Own-page prediction
+
+- **WHEN** a query has an own candidate and k cited sources among the candidates
+- **THEN** the own page is predicted cited only if its score ranks within the top k
