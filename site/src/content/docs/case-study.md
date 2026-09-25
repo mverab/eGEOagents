@@ -1,6 +1,6 @@
 ---
 title: We Measured Our Own AI-Search Invisibility
-description: Three weeks of a fixed Perplexity query set on an open-source GEO tool that did not show up — what moved, what did not, and what we still cannot claim.
+description: Seven weeks of a fixed Perplexity query set on an open-source GEO tool — invisible on the head query for six weeks, first named on 2026-09-21. What moved, what did not, and what we still cannot claim.
 head:
   - tag: script
     attrs:
@@ -10,19 +10,19 @@ head:
         "@context": "https://schema.org",
         "@type": "Article",
         "headline": "We Measured Our Own AI-Search Invisibility",
-        "description": "Weekly Perplexity measurements of E-GEO from 2026-08-05 to 2026-08-24: branded mentions, one fragile generic hit, and a still-false head query.",
+        "description": "Weekly Perplexity measurements of E-GEO from 2026-08-05 to 2026-09-21: branded mentions, a fragile generic hit, and the head query turning true once on 2026-09-21.",
         "url": "https://egeoagents.com/case-study/",
         "datePublished": "2026-08-31",
-        "dateModified": "2026-08-31",
+        "dateModified": "2026-09-25",
         "author": {"@type": "Person", "name": "Miguel Vera", "sameAs": ["https://github.com/mverab"]}
       }
 ---
 
-**Last verified: 2026-08-24.** Six snapshots. Same 10 queries. Same model (`sonar`). This is not six months of data and it is not a ranking guarantee.
+**Last verified: 2026-09-25.** Ten valid snapshots (one more discarded as invalid). Same 10 queries. Same model (`sonar`). This is not six months of data and it is not a ranking guarantee.
 
 E-GEO is an open-source GEO/AEO toolkit. For a month we optimized the repo (topics, description, README) and still did not appear when Perplexity was asked the category question: *What are the best open-source generative engine optimization (GEO) tools on GitHub in 2026?*
 
-That query is still **false** on every snapshot. This page is the measurement log, not a success story.
+That query was **false** on every snapshot for six weeks. On **2026-09-21** it turned **true** for the first time — one snapshot, not yet a trend. This page is the measurement log, not a success story.
 
 ## What we measured
 
@@ -36,10 +36,15 @@ A fixed set of 10 queries, weekly, via Perplexity Sonar. A mention is a binary: 
 | 2026-08-11 | 3/10 | false | same |
 | 2026-08-17 | 4/10 | false | harness + `open source tool to rank in ChatGPT and Perplexity` |
 | 2026-08-24 | 3/10 | false | harness only (the extra 2026-08-17 hit did not hold) |
+| 2026-08-31 | 3/10 | false | harness only |
+| 2026-09-07 | — | — | **discarded**: every answer came back empty (API failure); the script now marks such runs invalid instead of recording zeros |
+| 2026-09-11 | 3/10 | false | harness only |
+| 2026-09-14 | 3/10 | false | harness only |
+| 2026-09-21 | 5/10 | **true** | head query + `open source AEO tools` + harness |
 
 The two branded queries (`eGEOagents`, `eGEOagents GitHub`) were true from day one. They do not count as category visibility.
 
-Single-run answers vary. 3/10 on 2026-08-24 is one sample, not a trend. We do not launch a course off it.
+Single-run answers vary. The 5/10 on 2026-09-21 is one sample. Two of those five are branded, so the category picture is 3 generic hits in one run. In that run, the sources Perplexity cited for the head query included LibHunt, GitHub and egeoagents.com itself.
 
 ## What actually changed off-repo
 
@@ -52,13 +57,13 @@ On-repo metadata was already exhausted by 2026-08-05. After that we shipped exte
 | GitHub Sponsors + a $199 GEO audit | 2026-08 | live |
 | [`egeo` on PyPI](https://pypi.org/project/egeo/) | 2026-08-31 | live (`pip install egeo`) |
 
-GitHub stars moved 147 → 168 over the same window. The head query did not. Stars were never the bottleneck — projects with 17–37 stars already appeared in that answer because they were in the sources Perplexity cites.
+GitHub stars moved 147 → 168 in August (194 by 2026-09-25). The head query did not move for six weeks. Stars were never the bottleneck — projects with 17–37 stars already appeared in that answer because they were in the sources Perplexity cites.
 
 ## What we still cannot claim
 
-- We are **not** in the head-query ranking. geo-optimizer-skill, geo-lint, xanlens, open-geo, GEO-optim/GEO, and the izak-fisher / amplifying-ai lists still are.
-- The 2026-08-17 extra generic mention **regressed** the following week.
-- PyPI shipped *after* the last snapshot. It cannot be credited for 3/10.
+- One true head-query snapshot is not a position. We need it to hold before claiming we are in that answer; geo-optimizer-skill, geo-lint, xanlens, open-geo, GEO-optim/GEO and the izak-fisher / amplifying-ai lists appeared in it more consistently.
+- The 2026-08-17 extra generic mention **regressed** the following week. The 2026-09-21 hits may too.
+- Several things shipped between 2026-08-31 and 2026-09-21 (this case-study page on 2026-09-01, PyPI releases 2.0.0 and 2.0.1). We cannot attribute the 2026-09-21 change to any single one.
 - arXiv:2511.20867 is a **preprint**, not a peer-reviewed paper. The peer-reviewed GEO anchor is Aggarwal et al., KDD 2024 ([arXiv:2311.09735](https://arxiv.org/abs/2311.09735)).
 - E-GEO consumes MCP servers as a **client**. It is not an MCP server.
 - Indexation, crawl, and citation are different events. We do not claim Google or Perplexity will index or cite a URL because we asked.
@@ -75,8 +80,8 @@ The playbook distilled from this log is in [How to get cited by Perplexity](/gui
 
 ## Next measurement
 
-The next weekly snapshot is 2026-08-31. Gate A in our public plan is **≥3/10 sustained or ≥300 GitHub stars**. Today: 3/10 on one later snapshot, 168 stars. Neither bar is met.
+The next weekly snapshot is 2026-09-28. Gate A in our public plan is **≥3/10 sustained or ≥300 GitHub stars**. Numerically, ≥3/10 has held on the last five valid snapshots — but two of those three-plus hits are branded every time, so we do not count the gate as met until the generic hits hold. Stars: 194 of 300.
 
 ---
 
-**In short:** a GEO tool with a polished README still does not exist to Perplexity until curator sources name it. We measured that on ourselves. The head query remains unanswered by us. [Install `egeo`](https://pypi.org/project/egeo/) or read the [source](https://github.com/mverab/eGEOagents).
+**In short:** a GEO tool with a polished README still does not exist to Perplexity until curator sources name it. We measured that on ourselves: six weeks invisible on the head query, then one true snapshot once the curator sources and our own site were in place. [Install `egeo`](https://pypi.org/project/egeo/) or read the [source](https://github.com/mverab/eGEOagents).
