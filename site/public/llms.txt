@@ -2,13 +2,13 @@
 
 > E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
-E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered search engines: ChatGPT, Perplexity, Gemini, and Claude. It runs a full pipeline — analyze, rank-simulate, rewrite, generate JSON-LD schema — as a standalone Python CLI (`egeo`) or as Claude Code agents and skills. It ships a reproducible evaluation harness (offline, deterministic, no API key via GEO_EVAL_MOCK=1), a continuous geo-loop mode over a persistent workspace ($EGEO_HOME), llms.txt support, and schema markup generation. MIT licensed. Source: https://github.com/mverab/eGEOagents (168 stars as of 2026-08-31). PyPI: https://pypi.org/project/egeo/. Install: `pip install egeo` or `npx skills add https://github.com/mverab/eGEOagents`.
+E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered search engines: ChatGPT, Perplexity, Gemini, and Claude. AI-visibility trackers tell you where you are invisible; E-GEO fixes the page: `egeo fix-gaps` reads a tracker's citation report (geo-optimizer-skill `geo citations` JSON or any query/cited CSV/JSON) and rewrites each page that loses a query. It runs a full pipeline — analyze, rank-simulate, rewrite, generate JSON-LD schema — as a standalone Python CLI (`egeo`) or as Claude Code agents and skills. It ships a reproducible evaluation harness (offline, deterministic, no API key via GEO_EVAL_MOCK=1), a continuous geo-loop mode over a persistent workspace ($EGEO_HOME), llms.txt support, and schema markup generation. MIT licensed. Source: https://github.com/mverab/eGEOagents (194 stars as of 2026-09-25). PyPI: https://pypi.org/project/egeo/. Install: `pip install egeo` or `npx skills add https://github.com/mverab/eGEOagents`.
 
 ## Docs
 
 - [Getting Started](https://egeoagents.com/docs/getting-started/): install the CLI or Claude Code skills and run a first optimization
 - [How It Works](https://egeoagents.com/docs/how-it-works/): the 4-agent pipeline, the 10 GEO features, and the research behind them
-- [CLI Reference](https://egeoagents.com/docs/cli/): egeo optimize, evaluate, optimize-prompts, runtimes, loop
+- [CLI Reference](https://egeoagents.com/docs/cli/): egeo optimize, fix-gaps, evaluate, optimize-prompts, runtimes, loop
 - [MCP-based validation](https://egeoagents.com/docs/mcp-server/): E-GEO's Claude Code workflow consumes external MCP servers for Brave Search and Chrome DevTools validation
 - [GEO Loop](https://egeoagents.com/docs/geo-loop/): continuous GEO with deterministic collectors and $EGEO_HOME
 - [Evaluation Harness](https://egeoagents.com/docs/evaluation/): reproducible metrics, dataset format, honest limitations
@@ -26,6 +26,7 @@ E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered
 
 - [How to Rank in ChatGPT Search](https://egeoagents.com/guides/rank-in-chatgpt-search/): OAI-SearchBot, Bing/IndexNow discovery, citable content, measurement
 - [How to Get Cited by Perplexity](https://egeoagents.com/guides/rank-in-perplexity/): measured playbook — curator sources, PerplexityBot, dated comparisons
+- [How to Track Whether AI Engines Cite You](https://egeoagents.com/guides/track-ai-citations/): free fixed-query method, open-source and hosted trackers, and turning gaps into fixes with egeo fix-gaps
 
 ## Compare
 

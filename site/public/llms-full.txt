@@ -3,7 +3,7 @@
 > E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
 Site: https://egeoagents.com
-Source: https://github.com/mverab/eGEOagents (MIT license; 168 stars, 47 forks as of 2026-08-31)
+Source: https://github.com/mverab/eGEOagents (MIT license; 194 stars, 56 forks as of 2026-09-25)
 PyPI: https://pypi.org/project/egeo/
 Paper: https://arxiv.org/abs/2511.20867
 Skills: https://skills.sh/mverab/egeoagents
@@ -12,7 +12,10 @@ Skills: https://skills.sh/mverab/egeoagents
 
 E-GEO analyzes, scores, and rewrites content to rank and get cited in AI-powered search engines: ChatGPT, Perplexity, Gemini, and Claude. It runs a full pipeline — analyze, rank-simulate, rewrite, generate JSON-LD schema — in one command. It is built for developers, technical marketers, and site owners.
 
+AI-visibility trackers tell you where you are invisible; E-GEO fixes the page and verifies the rewrite.
+
 Differentiators:
+- Tracker-to-fix bridge: egeo fix-gaps reads a tracker's citation report and rewrites each local page that loses a query.
 - Full pipeline: rewriting, not just auditing; outputs copy-paste-ready markdown and JSON-LD schema.
 - Reproducible evaluation harness: measures whether the rewriter moves content up in an LLM-simulated ranking; runs offline and deterministically with GEO_EVAL_MOCK=1 (no API key); the same check runs in CI.
 - geo-loop continuous mode: watches domains over time with deterministic, LLM-free collectors and a persistent workspace ($EGEO_HOME, default ~/.egeo).
@@ -27,12 +30,14 @@ Standalone Python CLI:
 Claude Code skills:
     npx skills add https://github.com/mverab/eGEOagents
 
-## CLI (egeo, v2.0.0)
+## CLI (egeo, v2.1.0)
 
-Subcommands: optimize, evaluate, optimize-prompts, runtimes, loop.
+Subcommands: optimize, fix-gaps, evaluate, optimize-prompts, runtimes, loop.
 
 - egeo optimize <file> [--out-dir DIR] [--query Q] [--schema-type {Organization,Product,Service,Article,FAQPage}] [--runtime R] [--json]
   Runs the full GEO pipeline on a local Markdown/text file; writes report.md, analysis.json, optimized/*.md, schema/*.json to geo-output/ by default.
+- egeo fix-gaps GAPS_FILE [--project project.yaml] [--out-dir DIR] [--dry-run] [--json]
+  Reads a tracker report (geo-optimizer-skill `geo citations --format json`, or a generic JSON/CSV with query,cited[,sources]), maps each uncited query to a local page via project.yaml (queries[].target_pages -> pages[].source), rewrites each losing page once, and writes fix-gaps.json with unmatched/skipped reasons and a re-measure list. Never edits source files; tracker errors never trigger rewrites.
 - egeo evaluate --dataset FILE.jsonl [--limit N] [--seed S] [--verbose]
   Evaluates rewriter prompt quality on a JSONL dataset. Metrics: n, avg_rank_improvement, win_rate, stderr_rank_improvement.
 - egeo optimize-prompts --train T.jsonl --val V.jsonl [--iters N] [--apply]
@@ -88,6 +93,7 @@ geo-optimizer-skill (Auriti-Labs, 895 stars, MIT): CLI + Python library + MCP + 
 - https://egeoagents.com/concepts/geo-features/
 - https://egeoagents.com/guides/rank-in-chatgpt-search/
 - https://egeoagents.com/guides/rank-in-perplexity/
+- https://egeoagents.com/guides/track-ai-citations/
 - https://egeoagents.com/research/
 
 ## Guide: How to Rank in ChatGPT Search (summary)
