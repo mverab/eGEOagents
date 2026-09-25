@@ -105,32 +105,61 @@ class Verification:
     outcome: str  # "won" | "improved" | "no_change" | "worse"
 
 
-def own_candidates(sections) -> List[Candidate]:
-    raise NotImplementedError
+from .jev import choice_question
+from .sources import host_of
 
 
-def source_candidates(docs) -> List[Candidate]:
-    raise NotImplementedError
+def own_candidates(sections):
+    return [Candidate(f"own_{s.id}", "own", s.heading or "(intro)", s.text) for s in sections if s.word_count >= MIN_SECTION_WORDS]
 
 
-def select_best(query: str, candidates: Sequence[Candidate], client: JevClient) -> Selection:
-    raise NotImplementedError
+def source_candidates(docs):
+    out = []
+    for d in docs:
+        if d.ok:
+            out.append(Candidate(f"src_{len(out) + 1}", "source", host_of(d.url), d.text))
+    return out
 
 
-def diagnose(query: str, own: Sequence[Candidate], sources: Sequence[Candidate], client: JevClient) -> Diagnosis:
-    raise NotImplementedError
+def select_best(query, candidates, client):
+    ids = [c.id for c in candidates]
+    if len(ids) < 2 or len(set(ids)) != len(ids):
+        raise ValueError("need >= 2 unique candidates")
+    state = {"query": query, "candidates": {c.id: c.text[:MAX_CANDIDATE_CHARS] for c in candidates}}
+    q = choice_question(SELECT_INSTRUCTIONS, {c.id: f"The candidate whose text is candidates.{c.id}" for c in candidates})
+    a = client.ask(state, {SELECT_QID: q}).answers[SELECT_QID]
+    kind = {c.id: c.kind for c in candidates}[a.choice]
+    return Selection(a.choice, kind, dict(a.probabilities), a.confidence)
 
 
-def judge_fidelity(original: str, rewrite: str, client: JevClient) -> FidelityVerdict:
-    raise NotImplementedError
+def diagnose(query, own, sources, client):
+    if not own:
+        return Diagnosis(None, None, "no_own_candidates")
+    if not sources:
+        return Diagnosis(None, None, "no_competitor_sources")
+    sel = select_best(query, [*own, *sources], client)
+    if sel.winner_kind == "own":
+        return Diagnosis(sel, None, "already_best")
+    best = max(own, key=lambda c: (sel.probabilities.get(c.id, 0.0), -own.index(c)))
+    return Diagnosis(sel, best.id, "loses")
 
 
-def verify(
-    query: str,
-    own_after: Sequence[Candidate],
-    sources: Sequence[Candidate],
-    target_id: str,
-    before: Selection,
-    client: JevClient,
-) -> Verification:
-    raise NotImplementedError
+def judge_fidelity(original, rewrite, client):
+    a = client.ask({"original": original, "rewrite": rewrite},
+                   {FIDELITY_QID: choice_question(FIDELITY_INSTRUCTIONS, FIDELITY_CRITERIA)}).answers[FIDELITY_QID]
+    return FidelityVerdict(a.choice, a.confidence, a.choice == "faithful" and a.confidence >= FIDELITY_GATE)
+
+
+def verify(query, own_after, sources, target_id, before, client):
+    after = select_best(query, [*own_after, *sources], client)
+    pb, pa = before.probabilities.get(target_id, 0.0), after.probabilities.get(target_id, 0.0)
+    eps = 1e-9
+    if after.winner_kind == "own":
+        o = "won"
+    elif pa - pb >= IMPROVE_DELTA - eps:
+        o = "improved"
+    elif pb - pa >= IMPROVE_DELTA - eps:
+        o = "worse"
+    else:
+        o = "no_change"
+    return Verification(pb, pa, after.winner, after.winner_kind, o)

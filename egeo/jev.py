@@ -101,31 +101,110 @@ def noul_question(instructions: str) -> Dict[str, Any]:
     return {"type": "noul", "instructions": instructions}
 
 
+import json as _json
+import os as _os
+import re as _re
+import urllib.error
+import urllib.request
+
+
 def key_configured() -> bool:
-    raise NotImplementedError
+    return bool((_os.environ.get("TYPESAFE_API_KEY") or "").strip())
 
 
 class HttpTransport:
-    def post_json(self, url: str, body: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        raise NotImplementedError
+    def post_json(self, url, body):
+        key = (_os.environ.get("TYPESAFE_API_KEY") or "").strip()
+        if not key:
+            raise JevConfigError("TYPESAFE_API_KEY is not set")
+        req = urllib.request.Request(url, data=_json.dumps(body).encode(), method="POST",
+                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                status, raw = r.status, r.read().decode()
+        except urllib.error.HTTPError as e:
+            status, raw = e.code, e.read().decode(errors="replace")
+        except urllib.error.URLError as e:
+            raise JevProviderError("TypeSafe request failed") from e
+        try:
+            data = _json.loads(raw) if raw else {}
+        except _json.JSONDecodeError as e:
+            raise JevProviderError("TypeSafe returned non-JSON") from e
+        if not isinstance(data, dict):
+            raise JevProviderError("TypeSafe returned a non-object")
+        return status, data
+
+
+def _words(t):
+    return set(_re.findall(r"\w+", str(t).lower()))
 
 
 class MockJevTransport:
-    def post_json(self, url: str, body: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        raise NotImplementedError
+    def post_json(self, url, body):
+        state = body.get("state"); answers = {}
+        for qid, q in body.get("questions", {}).items():
+            if q.get("type") == "choice":
+                opts = list(q["criteria"])
+                cands = state.get("candidates") if isinstance(state, dict) else None
+                qw = _words(state.get("query", "")) if isinstance(state, dict) else set()
+                scores = [1 + (len(qw & _words(cands[o])) if isinstance(cands, dict) and o in cands else 0) for o in opts]
+                tot = sum(scores); raw = [s / tot for s in scores]
+                peak = max(raw); best = opts[raw.index(peak)]; n = len(opts)
+                conf = 1.0 if n == 1 else max(0.0, min(1.0, (n * peak - 1) / (n - 1)))
+                answers[qid] = {"type": "choice", "choice": best, "confidence": round(conf, 4),
+                                "probabilities": {o: round(p, 4) for o, p in zip(opts, raw)}}
+            else:
+                answers[qid] = {"type": "noul", "noul": 0.9}
+        return 200, {"model": "mock", "answers": answers, "usage": {"input_tokens": 0, "output_tokens": 0}}
+
+
+def _unit(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and 0.0 <= float(x) <= 1.0
 
 
 @dataclass
 class JevClient:
     transport: Optional[Transport] = None
     model: str = DEFAULT_MODEL
-    totals: Dict[str, float] = field(
-        default_factory=lambda: {"requests": 0, "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0}
-    )
+    totals: Dict[str, float] = field(default_factory=lambda: {"requests": 0, "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0})
 
-    def ask(self, state: Any, questions: Mapping[str, Mapping[str, Any]]) -> JevResponse:
-        raise NotImplementedError
+    def ask(self, state, questions):
+        if not questions:
+            raise JevConfigError("questions must be a non-empty dict")
+        t = self.transport or HttpTransport()
+        status, payload = t.post_json(TYPESAFE_URL, {"model": self.model, "state": state, "questions": questions})
+        if status != 200:
+            raise JevProviderError(f"TypeSafe HTTP {status}")
+        got = payload.get("answers")
+        if not isinstance(got, dict):
+            raise JevProviderError("missing answers")
+        out = {}
+        for qid, q in questions.items():
+            a = got.get(qid)
+            if not isinstance(a, dict) or a.get("type") != q.get("type"):
+                raise JevProviderError(f"bad answer for {qid}")
+            if q["type"] == "choice":
+                crit = q["criteria"]; probs = a.get("probabilities")
+                if a.get("choice") not in crit or not _unit(a.get("confidence")) or not isinstance(probs, dict) \
+                        or any(k not in crit or not _unit(v) for k, v in probs.items()):
+                    raise JevProviderError(f"bad choice answer for {qid}")
+                full = {k: float(probs.get(k, 0.0)) for k in crit}
+                out[qid] = ChoiceAnswer(a["choice"], float(a["confidence"]), full)
+            else:
+                if not _unit(a.get("noul")):
+                    raise JevProviderError(f"bad noul answer for {qid}")
+                out[qid] = NoulAnswer(float(a["noul"]))
+        u = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+        try:
+            it, ot = int(u.get("input_tokens", 0)), int(u.get("output_tokens", 0))
+        except (TypeError, ValueError):
+            it, ot = 0, 0
+        cost = it / 1e6 * INPUT_USD_PER_MTOK
+        for k, v in (("requests", 1), ("input_tokens", it), ("output_tokens", ot), ("cost_usd", cost)):
+            self.totals[k] += v
+        m = payload.get("model") if isinstance(payload.get("model"), str) else self.model
+        return JevResponse(out, m, it, ot, cost)
 
 
 def make_client(*, mock: bool, model: str = DEFAULT_MODEL) -> JevClient:
-    raise NotImplementedError
+    return JevClient(MockJevTransport(), model="mock") if mock else JevClient(HttpTransport(), model=model)
