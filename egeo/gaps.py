@@ -302,7 +302,8 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
     srcs = judge.source_candidates(docs)
     res = {"page_id": page.page_id, "source": str(page.source), "query": page.query, "other_gaps": list(page.other_gaps),
            "status": "", "sources": [{"url": d.url, "ok": d.ok, "error": d.error} for d in docs],
-           "diagnosis": None, "fidelity": None, "verification": None, "output_file": None, "diff_file": None, "reasons": []}
+           "diagnosis": None, "fidelity": None, "verification": None, "output_file": None, "diff_file": None,
+           "offpage": None, "reasons": []}
     try:
         diag = judge.diagnose(page.query, own, srcs, jev_client)
         if diag.selection is None or diag.status == "already_best":
@@ -310,6 +311,9 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
             res["diagnosis"] = None if sel is None else {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind,
                                                         "confidence": sel.confidence, "probabilities": dict(sel.probabilities), "target_section": None}
             res["status"] = diag.status
+            if diag.status == "already_best":
+                res["offpage"] = {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE,
+                                  "sources": [d.url for d in docs if d.ok]}
             return res
         sid = diag.target_id[len("own_"):]
         sec = next(s for s in secs if s.id == sid)
@@ -421,7 +425,10 @@ def cli(args: Any) -> int:
             print(json.dumps(report, indent=2, ensure_ascii=False))
         else:
             for p in report["pages"]:
-                print(f"{p['status']}: {p['page_id']}")
+                if p["status"] == "already_best" and p.get("offpage"):
+                    print(f"already_best: {p['page_id']} (off-page: {len(p['offpage']['sources'])} cited sources)")
+                else:
+                    print(f"{p['status']}: {p['page_id']}")
             print(f"Report: {out / REPORT_NAME}")
         return 0
 
