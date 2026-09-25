@@ -29,20 +29,34 @@ SYSTEM_PROMPT_FILE = "section_rewriter_system.txt"
 USER_PROMPT_FILE = "section_rewriter_user.txt"
 
 
-def render_prompts(query: str, section_text: str, page_title: str) -> Tuple[str, str]:
-    raise NotImplementedError
+import os as _os
+from pathlib import Path as _Path
 
 
-def clean_output(raw: str, original: str) -> str:
-    raise NotImplementedError
+def _prompt(name):
+    import egeo
+    return (_Path(egeo.resource_root()) / "prompts" / name).read_text(encoding="utf-8")
 
 
-def rewrite_section(
-    query: str,
-    section_text: str,
-    *,
-    page_title: str,
-    model: str,
-    client: Optional[Any] = None,
-) -> str:
-    raise NotImplementedError
+def render_prompts(query, section_text, page_title):
+    return _prompt(SYSTEM_PROMPT_FILE), _prompt(USER_PROMPT_FILE).format(query=query, page_title=page_title, section=section_text)
+
+
+def clean_output(raw, original):
+    t = raw.strip()
+    lines = t.split("\n")
+    if len(lines) >= 2 and lines[0].strip().startswith("```") and lines[-1].strip() == "```":
+        t = "\n".join(lines[1:-1])
+    t = t.strip()
+    return t + original[len(original.rstrip()):]
+
+
+def rewrite_section(query, section_text, *, page_title, model, client=None):
+    if (_os.environ.get("GEO_EVAL_MOCK") or "").strip().lower() in {"1", "true", "yes"}:
+        return section_text
+    if client is None:
+        import llm_client
+        client = llm_client.get_client()
+    system, user = render_prompts(query, section_text, page_title)
+    raw = client.chat_text(model=model, system=system, user=user, temperature=REWRITE_TEMPERATURE)
+    return clean_output(raw, section_text)
