@@ -47,26 +47,28 @@ directory is left untouched.
 
 ## Fix gaps (`egeo fix-gaps`)
 
-Turn an AI-visibility tracker's report into page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and runs the `optimize` pipeline once per page. Your source files are never modified.
+Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and — in the default **section mode** — rewrites only the one section that loses the query. Your source files are never modified.
 
 ```bash
 # 1. Measure with any tracker, e.g. geo-optimizer-skill:
 geo citations --brand "Acme" --domain acme.com --format json --output gaps.json
-# 2. Plan (writes nothing, calls no model):
+# 2. Plan (writes nothing, calls no model, needs no key):
 egeo fix-gaps gaps.json --project project.yaml --dry-run
-# 3. Rewrite the losing pages:
+# 3. Rewrite the losing sections:
 egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
 ```
 
-**Inputs (auto-detected):**
-- geo-optimizer-skill `geo citations --format json` output. Entries with `domain_cited: false` are gaps; entries with an `error` are skipped, never rewritten.
-- A generic gaps file any tracker can export: a JSON array or CSV with `query` and `cited` (true/false, 1/0, yes/no), plus optional `sources`.
+Inputs: geo-optimizer-skill `geo citations --format json`, or a generic JSON/CSV with `query`, `cited` and optional `sources` (URLs the engine cited instead of you). Mapping and unmatched reasons work exactly as documented in the CLI reference.
 
-**Mapping:** the gap query must match an active `queries[].text` in `project.yaml` (case, spacing and trailing punctuation ignored). Its `target_pages` point to `pages[]`, and each page needs a `source` path to its local file (relative to `project.yaml`). Unmapped gaps are reported with a reason (`query_not_in_project`, `no_target_page`, `page_has_no_source`, `source_not_found`), never guessed. A page that loses several queries is rewritten once, against the first.
+Section mode flow: pick the own section that loses → rewrite only it → deterministic **fidelity rules** (heading, links, numbers, tables, code, length) → Jev fidelity judge → Jev re-check. Statuses: `rewritten`, `already_best`, `no_competitor_sources`, `no_own_candidates`, `no_change_proposed`, `rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`, `jev_error`.
 
-**Output:** `<out-dir>/<page-id>/` with the usual `optimized/`, `schema/` and `report.md`, plus `<out-dir>/fix-gaps.json` listing pages, unmatched and skipped gaps, and a `remeasure` list (with the exact `geo citations` command for geo-optimizer-skill input). Rank before/after is the LLM-ranker proxy; re-measure with your tracker to confirm real citations.
+> **Experimental: the Jev comparison.** The Jev steps measure *text competitiveness* only — not authority, links or citation. Pre-registered validation (30 queries, 2026-09-25): mean AUC 0.64, 95% CI 0.57–0.71, below the 0.65 bar (`eval/jev_selection/README.md`). Every report carries the figures in `jev_validation` and marks Jev judgments `"experimental": true`. Prove impact by re-running your tracker on `remeasure`, never from Jev.
 
-Flags: `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html`, `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize`. `GEO_EVAL_MOCK=1` runs it offline.
+`already_best` means your text already competes — the gap is probably off-page; the report lists the cited sources to get mentioned or linked by. Output: `<out-dir>/<page-id>/` (rewritten file, `section.diff`, `diagnosis.json`) plus `<out-dir>/fix-gaps.json`.
+
+Requirements: `TYPESAFE_API_KEY` for section mode (fails closed), `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`) for the rewriter, `GEO_EVAL_MOCK=1` for offline runs.
+
+Flags: `--mode sections|page` (default `sections`; `page` = legacy whole-page rewrite), `--max-sources`, `--jev-model`, `--project`, `--out-dir`, `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the `optimize` runtime/model flags (page mode).
 
 ## Loop mode
 

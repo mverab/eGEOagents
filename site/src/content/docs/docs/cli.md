@@ -117,26 +117,48 @@ Additional hosts can be added by implementing the `RuntimeAdapter` interface in 
 
 ## `egeo fix-gaps`
 
-Turn an AI-visibility tracker's report into page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and runs the `optimize` pipeline once per page. Your source files are never modified.
+Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and — in the default **section mode** — rewrites only the one section that loses the query. Your source files are never modified.
 
 ```bash
 # 1. Measure with any tracker, e.g. geo-optimizer-skill:
 geo citations --brand "Acme" --domain acme.com --format json --output gaps.json
-# 2. Plan (writes nothing, calls no model):
+# 2. Plan (writes nothing, calls no model, needs no key):
 egeo fix-gaps gaps.json --project project.yaml --dry-run
-# 3. Rewrite the losing pages:
+# 3. Rewrite the losing sections:
 egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
 ```
 
 **Inputs (auto-detected):**
 - geo-optimizer-skill `geo citations --format json` output. Entries with `domain_cited: false` are gaps; entries with an `error` are skipped, never rewritten.
-- A generic gaps file any tracker can export: a JSON array or CSV with `query` and `cited` (true/false, 1/0, yes/no), plus optional `sources`.
+- A generic gaps file any tracker can export: a JSON array or CSV with `query` and `cited` (true/false, 1/0, yes/no), plus optional `sources` (the URLs the engine cited instead of you).
 
 **Mapping:** the gap query must match an active `queries[].text` in `project.yaml` (case, spacing and trailing punctuation ignored). Its `target_pages` point to `pages[]`, and each page needs a `source` path to its local file (relative to `project.yaml`). Unmapped gaps are reported with a reason (`query_not_in_project`, `no_target_page`, `page_has_no_source`, `source_not_found`), never guessed. A page that loses several queries is rewritten once, against the first.
 
-**Output:** `<out-dir>/<page-id>/` with the usual `optimized/`, `schema/` and `report.md`, plus `<out-dir>/fix-gaps.json` listing pages, unmatched and skipped gaps, and a `remeasure` list (with the exact `geo citations` command for geo-optimizer-skill input). Rank before/after is the LLM-ranker proxy; re-measure with your tracker to confirm real citations.
+**Section mode (default) flow:** split the page into sections → pick the own section that loses the query against the cited sources → rewrite **only that section** → **fidelity rules** (heading, links, numbers, table rows, code blocks, length ratio must be preserved) → Jev fidelity judge → Jev re-check. Any rejection keeps your original text untouched. Per-page statuses in `fix-gaps.json`:
 
-Flags: `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html`, `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize`. `GEO_EVAL_MOCK=1` runs it offline.
+| Status | Meaning |
+|---|---|
+| `rewritten` | accepted rewrite written with a `section.diff` |
+| `already_best` | your text already competes — see the off-page recommendation below |
+| `no_competitor_sources` | none of the cited sources could be fetched |
+| `no_own_candidates` | no own section long enough to compete |
+| `no_change_proposed` | the rewriter returned the section unchanged |
+| `rejected_fidelity_rules` | rewrite broke a deterministic fidelity rule |
+| `rejected_fidelity_judge` | Jev fidelity judge did not accept the rewrite |
+| `rejected_worse` | the re-check scored the rewrite worse than the original |
+| `jev_error` | TypeSafe failed for this page (other pages continue) |
+
+:::caution[Experimental: the Jev comparison]
+The two Jev steps (which section loses, and the before/after re-check) measure **text competitiveness** — whether a candidate's *text* directly answers the query. They do **not** model authority, links or brand, and they are **not a prediction of citation**. In a pre-registered validation (30 queries, 2026-09-25) Jev separated Perplexity-cited from uncited sources with mean AUC **0.64 (95% CI 0.57–0.71)** — real but weak, and below the 0.65 bar we set. Numbers and method: `eval/jev_selection/README.md`. Every `fix-gaps.json` carries the same figures in `jev_validation`, and every diagnosis/verification is marked `"experimental": true`. **Proof of impact never comes from Jev:** re-run your tracker on the `remeasure` queries.
+:::
+
+**`already_best` → off-page recommendation:** when your text already wins the comparison, rewriting it is unlikely to help — the gap is probably off-page. The report lists the sources the engine cited so you can get your page mentioned or linked by them.
+
+**Output:** `<out-dir>/<page-id>/` with the rewritten file, `section.diff` and `diagnosis.json`, plus `<out-dir>/fix-gaps.json` listing pages, statuses, unmatched/skipped gaps, `jev_validation`, and a `remeasure` list (with the exact `geo citations` command for geo-optimizer-skill input).
+
+**Requirements:** section mode needs `TYPESAFE_API_KEY` (it fails closed with a clear error otherwise) and an OpenAI-compatible key for the rewriter (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, model via `--rewriter-model`). `GEO_EVAL_MOCK=1` runs fully offline, deterministically.
+
+Flags: `--mode sections|page` (default `sections`; `page` is the legacy whole-page rewrite from v2.1), `--max-sources` (default 6), `--jev-model`, `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize` (page mode).
 
 ## `egeo loop`
 
