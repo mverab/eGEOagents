@@ -56,17 +56,69 @@ class FidelityResult:
     violations: Tuple[str, ...]
 
 
+import re as _re
+
+_MD_LINK = _re.compile(r"!?\[[^\]]*\]\(([^\s)]+)")
+_AUTOLINK = _re.compile(r"<(https?://[^>\s]+)>")
+_BARE = _re.compile(r"https?://[^\s)>\]\"']+")
+_NUM = _re.compile(r"(?<![\w.])[$€£]?\d[\d,]*(?:\.\d+)?%?")
+_WORD = _re.compile(r"\w+")
+
+
+def _code_blocks(text):
+    blocks, cur, fence = [], [], None
+    for line in text.split("\n"):
+        st = line.strip()
+        m = _re.match(r"^(`{3,}|~{3,})", st)
+        if fence is None:
+            if m:
+                fence = m.group(1); cur = [line]
+        else:
+            cur.append(line)
+            if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and st == m.group(1):
+                blocks.append("\n".join(cur)); cur, fence = [], None
+    return tuple(blocks)
+
+
+def _links(text):
+    found = set(_MD_LINK.findall(text)) | set(_AUTOLINK.findall(text))
+    for u in _BARE.findall(text):
+        found.add(u.rstrip(".,;:"))
+    return frozenset(found)
+
+
 def extract_invariants(text: str) -> Invariants:
-    """Extract the fact-bearing invariants of a Markdown section."""
-    raise NotImplementedError
+    first = text.split("\n", 1)[0]
+    heading = first.strip() if _re.match(r"^#{1,6}[ \t]", first) else ""
+    blocks = _code_blocks(text)
+    prose = text
+    for b in blocks:
+        prose = prose.replace(b, " ")
+    links = _links(prose)
+    for u in sorted(links, key=len, reverse=True):
+        prose = prose.replace(u, " ")
+    numbers = frozenset(_re.sub(r"[$€£,]", "", n) for n in _NUM.findall(prose))
+    rows = sum(1 for ln in text.split("\n") if ln.strip().startswith("|"))
+    return Invariants(heading, links, numbers, rows, blocks, len(_WORD.findall(text)))
 
 
-def check_fidelity(
-    original: str,
-    rewritten: str,
-    *,
-    min_ratio: float = MIN_RATIO,
-    max_ratio: float = MAX_RATIO,
-) -> FidelityResult:
-    """Compare invariants; ``passed`` is True only when there are no violations."""
-    raise NotImplementedError
+def check_fidelity(original: str, rewritten: str, *, min_ratio: float = MIN_RATIO, max_ratio: float = MAX_RATIO) -> FidelityResult:
+    a, b = extract_invariants(original), extract_invariants(rewritten)
+    v = []
+    if a.heading_line and a.heading_line != b.heading_line:
+        v.append("heading_changed")
+    v += [f"link_removed:{u}" for u in sorted(a.links - b.links)]
+    v += [f"link_added:{u}" for u in sorted(b.links - a.links)]
+    v += [f"number_removed:{n}" for n in sorted(a.numbers - b.numbers)]
+    v += [f"number_added:{n}" for n in sorted(b.numbers - a.numbers)]
+    if b.table_rows < a.table_rows:
+        v.append("table_rows_decreased")
+    if a.code_blocks != b.code_blocks:
+        v.append("code_block_changed")
+    if a.word_count >= MIN_WORDS_FOR_RATIO:
+        r = b.word_count / a.word_count
+        if r < min_ratio:
+            v.append("too_short")
+        elif r > max_ratio:
+            v.append("too_long")
+    return FidelityResult(passed=not v, violations=tuple(v))
