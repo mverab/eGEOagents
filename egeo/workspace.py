@@ -336,6 +336,8 @@ def validate_project_config(data: Any) -> List[str]:
             errors.append(f"duplicate page id: {page_id}")
         else:
             page_ids.add(page_id)
+        if "source" in page and (not isinstance(page["source"], str) or not page["source"].strip()):
+            errors.append(f"{prefix}.source must be a non-empty relative path")
         url = page.get("url")
         if not _is_http_url(url):
             errors.append(f"{prefix}.url must be an http(s) URL")
@@ -416,6 +418,11 @@ def load_project_config(home: Optional[Path] = None) -> Optional[Dict[str, Any]]
     path = project_config_path(home)
     if not path.is_file():
         return None
+    return load_project_file(path)
+
+
+def load_project_file(path: Path) -> Dict[str, Any]:
+    """Load and strictly validate a ``project.yaml`` at an explicit path."""
     try:
         import yaml  # type: ignore
     except ImportError as exc:
