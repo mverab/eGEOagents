@@ -53,6 +53,15 @@ GEO_EVAL_MOCK=1 egeo optimize your-page.md   # any Markdown page; mock run, no A
 
 You get `geo-output/` with a GEO score, a rewritten page, JSON-LD schema and a report. Drop `GEO_EVAL_MOCK=1` and set an OpenAI-compatible key for a real run ([getting started](docs/getting-started.md)).
 
+**Already using an AI-visibility tracker?** Trackers tell you where you're invisible; E-GEO fixes the page. Feed their report to `egeo fix-gaps` and it rewrites each page that loses a query:
+
+```bash
+geo citations --brand "Acme" --domain acme.com --format json --output gaps.json   # or any tracker's CSV/JSON export
+egeo fix-gaps gaps.json --project project.yaml --dry-run                          # see which pages it would rewrite
+```
+
+([`fix-gaps` reference](https://egeoagents.com/docs/cli/#egeo-fix-gaps))
+
 **Does it work?** We measure it on ourselves every week: a fixed set of 10 queries in Perplexity. E-GEO was cited in **3/10** answers for weeks; the 2026-09-21 snapshot reached **5/10**, including generic queries like *"open source AEO tools"* (one snapshot, not yet a trend). Method and earlier snapshots: [public case study](https://egeoagents.com/case-study/).
 
 ⭐ **If this is useful, hit Star at the top of this page** — it is how other developers (and answer engines) find it.
