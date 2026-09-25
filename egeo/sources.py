@@ -52,37 +52,130 @@ class SourceDoc:
     error: str = ""
 
 
+import json as _json
+import re as _re
+from html.parser import HTMLParser
+from urllib.parse import urlparse
+
+
 def normalize_source(value: str) -> str:
-    raise NotImplementedError
+    v = (value or "").strip()
+    if not v or _re.search(r"\s", v):
+        return ""
+    if v.startswith(("http://", "https://")):
+        return v
+    host, _, path = v.partition("/")
+    if "." not in host:
+        return ""
+    return "https://" + host + ("/" + path if path else "/")
 
 
 def host_of(url: str) -> str:
-    raise NotImplementedError
+    h = (urlparse(url).hostname or "").lower()
+    return h[4:] if h.startswith("www.") else h
 
 
-def html_to_excerpt(html: str, *, max_chars: int = DEFAULT_MAX_CHARS) -> Tuple[str, str]:
-    raise NotImplementedError
+_SKIP = {"head", "script", "style", "noscript", "nav", "footer", "header", "svg", "form", "template"}
 
 
-def default_fetcher(url: str) -> Tuple[int, str, str]:
-    raise NotImplementedError
+class _P(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.depth = 0; self.in_title = False; self.title = []; self.desc = ""; self.body = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "title":
+            self.in_title = True
+        if tag == "meta":
+            d = {k.lower(): (v or "") for k, v in attrs}
+            if d.get("name", "").lower() == "description":
+                self.desc = d.get("content", "")
+        if tag in _SKIP:
+            self.depth += 1
+
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self.in_title = False
+        if tag in _SKIP and self.depth:
+            self.depth -= 1
+
+    def handle_data(self, data):
+        if self.in_title:
+            self.title.append(data)
+        elif not self.depth:
+            self.body.append(data)
 
 
-def fetch_source(url: str, *, fetcher: Optional[Fetcher] = None, max_chars: int = DEFAULT_MAX_CHARS) -> SourceDoc:
-    raise NotImplementedError
+def _ws(s):
+    return _re.sub(r"\s+", " ", s).strip()
 
 
-def fetch_sources(
-    values: Iterable[str],
-    *,
-    exclude_domain: str = "",
-    limit: int = DEFAULT_MAX_SOURCES,
-    fetcher: Optional[Fetcher] = None,
-    cache_path: Optional[Path] = None,
-    max_chars: int = DEFAULT_MAX_CHARS,
-) -> List[SourceDoc]:
-    raise NotImplementedError
+def html_to_excerpt(html: str, *, max_chars: int = DEFAULT_MAX_CHARS):
+    p = _P(); p.feed(html); p.close()
+    title = _ws("".join(p.title)); desc = _ws(p.desc); body = _ws(" ".join(p.body))
+    excerpt = "\n".join(x for x in (title, desc, body) if x)[:max_chars].rstrip()
+    return title, excerpt
 
 
-def placeholder_sources(values: Iterable[str], *, exclude_domain: str = "", limit: int = DEFAULT_MAX_SOURCES) -> List[SourceDoc]:
-    raise NotImplementedError
+def default_fetcher(url: str):
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        raw = r.read(2_000_000)
+        cs = r.headers.get_content_charset() or "utf-8"
+        return r.status, r.headers.get("Content-Type", ""), raw.decode(cs, errors="replace")
+
+
+def fetch_source(url: str, *, fetcher=None, max_chars: int = DEFAULT_MAX_CHARS) -> SourceDoc:
+    f = fetcher or default_fetcher
+    try:
+        status, ctype, text = f(url)
+    except Exception as exc:
+        return SourceDoc(url=url, ok=False, error=type(exc).__name__)
+    if status != 200:
+        return SourceDoc(url=url, ok=False, error=f"http_{status}")
+    if "html" not in (ctype or ""):
+        return SourceDoc(url=url, ok=False, error="not_html")
+    title, excerpt = html_to_excerpt(text, max_chars=max_chars)
+    return SourceDoc(url=url, ok=True, title=title, text=excerpt)
+
+
+def _select(values, exclude_domain, limit):
+    out, seen = [], set()
+    ex = (exclude_domain or "").lower()
+    for v in values:
+        u = normalize_source(v)
+        if not u or u in seen:
+            continue
+        seen.add(u)
+        h = host_of(u)
+        if ex and (h == ex or h.endswith("." + ex)):
+            continue
+        out.append(u)
+    return out[:limit]
+
+
+def fetch_sources(values, *, exclude_domain: str = "", limit: int = DEFAULT_MAX_SOURCES, fetcher=None,
+                  cache_path=None, max_chars: int = DEFAULT_MAX_CHARS):
+    cache = {}
+    if cache_path and Path(cache_path).exists():
+        cache = _json.loads(Path(cache_path).read_text(encoding="utf-8"))
+    docs = []
+    for u in _select(values, exclude_domain, limit):
+        c = cache.get(u)
+        if c and c.get("ok"):
+            docs.append(SourceDoc(**c)); continue
+        d = fetch_source(u, fetcher=fetcher, max_chars=max_chars)
+        cache[u] = d.__dict__.copy(); docs.append(d)
+    if cache_path:
+        Path(cache_path).write_text(_json.dumps(cache, indent=2), encoding="utf-8")
+    return docs
+
+
+def placeholder_sources(values, *, exclude_domain: str = "", limit: int = DEFAULT_MAX_SOURCES):
+    docs = []
+    for u in _select(values, exclude_domain, limit):
+        h = host_of(u)
+        words = [w for w in _re.split(r"[/\-_.]", urlparse(u).path) if w]
+        docs.append(SourceDoc(url=u, ok=True, title=h, text=" ".join([h, *words])))
+    return docs
