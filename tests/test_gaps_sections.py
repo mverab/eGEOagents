@@ -125,6 +125,11 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     assert saved["mode"] == "sections" and saved["jev_model"] == "fake"
     assert saved["note"] == gaps.SECTIONS_NOTE
     assert "not a prediction of citation" in saved["note"]
+    assert "EXPERIMENTAL" in saved["note"] and "0.64" in saved["note"]
+    assert saved["jev_validation"] == gaps.JEV_VALIDATION
+    assert saved["jev_validation"]["status"] == "experimental" and saved["jev_validation"]["gate_passed"] is False
+    assert page["diagnosis"]["experimental"] is True
+    assert page["verification"]["experimental"] is True
     assert page["offpage"] is None
     assert saved["jev_usage"]["requests"] == 3
     assert saved["thresholds"] == {
@@ -158,6 +163,8 @@ def test_already_best_does_not_rewrite(project: Path) -> None:
     page = report["pages"][0]
     assert page["status"] == "already_best"
     assert page["diagnosis"]["target_section"] is None
+    assert page["diagnosis"]["experimental"] is True
+    assert report["jev_validation"] == gaps.JEV_VALIDATION
     assert page["offpage"] == {"reason": gaps.OFFPAGE_REASON, "message": gaps.OFFPAGE_MESSAGE,
                                "sources": ["https://toolradar.com/x"]}
     saved = json.loads((project / "out" / "compare" / "diagnosis.json").read_text(encoding="utf-8"))
@@ -215,6 +222,7 @@ def test_jev_error_marks_page(project: Path) -> None:
     report = _run(project, ScriptedJev(JevProviderError("TypeSafe HTTP 500")), lambda *a: GOOD_REWRITE)
     page = report["pages"][0]
     assert page["status"] == "jev_error" and page["reasons"] == ["TypeSafe HTTP 500"]
+    assert page["diagnosis"] is None and page["verification"] is None
     _no_output(project)
 
 

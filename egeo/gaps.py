@@ -263,11 +263,27 @@ SECTION_STATUSES = (
 )
 
 SECTIONS_NOTE = (
-    "Section mode: Jev scores text competitiveness, i.e. which candidate's TEXT best answers the query "
-    "among your sections and the sources the tracker says were cited. It does not model authority or "
-    "links, so it is not a prediction of citation (validation: eval/jev_selection). Re-check the "
-    "queries in `remeasure` with your tracker."
+    "Section mode: the Jev comparison between your sections and the sources the tracker says were cited is "
+    "EXPERIMENTAL. It scores text competitiveness (which candidate's text best answers the query) and does not "
+    "model authority or links, so it is not a prediction of citation. In a pre-registered test (30 queries, "
+    "2026-09-25) it separated cited from uncited sources with mean AUC 0.64 (95% CI 0.57-0.71), below the 0.65 "
+    "bar (eval/jev_selection/README.md). Confirm any change by re-checking the queries in `remeasure` with your tracker."
 )
+
+# v3 (owner decision 2026-09-25, option A) — CONTRACT for Lane F3, see docs/plans/2026-09-25-fix-gaps-sections-plan-v3.md.
+# - The section-mode report carries "jev_validation": dict(JEV_VALIDATION) (an exact copy).
+# - Every non-null page "diagnosis" dict and every non-null "verification" dict carries "experimental": True.
+JEV_VALIDATION = {
+    "status": "experimental",
+    "scorer": "noul",
+    "mean_auc": 0.637,
+    "ci95": [0.568, 0.706],
+    "n_queries": 30,
+    "gate_auc": 0.65,
+    "gate_passed": False,
+    "date": "2026-09-25",
+    "details": "eval/jev_selection/README.md",
+}
 
 # v2 (2026-09-25 review) — CONTRACT for Lane F2, see docs/plans/2026-09-25-fix-gaps-sections-plan-v2.md.
 # Every page dict gets an "offpage" key. For status "already_best" it is
@@ -276,8 +292,8 @@ SECTIONS_NOTE = (
 #   f"already_best: {page_id} (off-page: {len(sources)} cited sources)".
 OFFPAGE_REASON = "text_already_competitive"
 OFFPAGE_MESSAGE = (
-    "Your text already wins Jev's choice for this query, so rewriting it is unlikely to help. "
-    "The gap is probably off-page: get your page mentioned or linked by the sources the answer engine cited."
+    "Jev (experimental) rates your text as already competitive with the sources the answer engine cited, so "
+    "rewriting it is unlikely to help. The gap is probably off-page: get your page mentioned or linked by those sources."
 )
 
 

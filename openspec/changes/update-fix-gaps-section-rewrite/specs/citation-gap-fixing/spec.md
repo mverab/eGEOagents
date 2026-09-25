@@ -25,7 +25,13 @@ The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode sections|page] [--dry-ru
 
 ### Requirement: Report And Re-Measure List
 
-Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation.
+Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation. Until the validation gate passes, the Jev comparison SHALL be labeled experimental: the report SHALL carry a `jev_validation` object with the latest pre-registered result (scorer, mean AUC, 95% interval, number of queries, gate, pass/fail, date) and every Jev diagnosis and verification SHALL carry `"experimental": true`.
+
+#### Scenario: Experimental labeling while the gate has not passed
+
+- **WHEN** the latest validation result is below the gate
+- **THEN** `fix-gaps.json` contains `jev_validation` with `"status": "experimental"` and `"gate_passed": false`
+- **AND** each non-null diagnosis and verification carries `"experimental": true`
 
 #### Scenario: Report after a mock run
 
