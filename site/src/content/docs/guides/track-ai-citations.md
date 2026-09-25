@@ -70,7 +70,7 @@ pip install egeo
 egeo optimize your-page.md --query "best open source geo tools"
 ```
 
-   Or feed the whole tracker report to [`egeo fix-gaps`](/docs/cli/#egeo-fix-gaps), which maps every uncited query to its page through `project.yaml` and rewrites each losing page once (new in the next release; install from GitHub until then: `pip install git+https://github.com/mverab/eGEOagents`).
+   Or feed the whole tracker report to [`egeo fix-gaps`](/docs/cli/#egeo-fix-gaps), which maps every uncited query to its page through `project.yaml` and rewrites each losing page once (`pip install -U egeo`, v2.1.0+).
 
 4. **Get mentioned on the cited sources** for that query — on-page fixes alone rarely flip a citation.
 5. **Re-measure** on the next scheduled run, and keep the dated snapshots.
