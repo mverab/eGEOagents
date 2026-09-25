@@ -176,7 +176,7 @@ def plan_fixes(gaps_input: GapsInput, project: Dict[str, Any], project_dir: Path
             if page_id in planned:
                 planned[page_id].other_gaps.append(gap.query)
             else:
-                planned[page_id] = PagePlan(page_id=page_id, source=source_path, query=gap.query)
+                planned[page_id] = PagePlan(page_id=page_id, source=source_path, query=gap.query, sources=list(gap.sources))
         if not matched:
             unmatched.append({"query": gap.query, "reason": reason})
     return FixPlan(input=gaps_input, pages=list(planned.values()), unmatched=unmatched)
@@ -270,28 +270,89 @@ SECTIONS_NOTE = (
 
 
 def mock_enabled() -> bool:
-    """True when GEO_EVAL_MOCK is 1/true/yes (case-insensitive)."""
-    raise NotImplementedError
+    import os
+    return (os.environ.get("GEO_EVAL_MOCK") or "").strip().lower() in {"1", "true", "yes"}
 
 
-def run_section_fixes(
-    plan: FixPlan,
-    *,
-    out_dir: Path,
-    jev_client: Any,
-    rewrite_fn: Any,
-    fetch_fn: Any,
-    exclude_domain: str = "",
-    max_sources: int = 6,
-) -> Dict[str, Any]:
-    """Section-mode pipeline for every PagePlan. See the plan (Lane F) for the exact steps.
+def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_domain, max_sources):
+    import difflib
+    from . import fidelity, judge
+    from .jev import JevConfigError, JevProviderError
+    from .pipeline import _derive_title_and_body, _extract_frontmatter
+    from .sections import join_sections, replace_section, split_sections
 
-    rewrite_fn(query, section_text, page_title) -> str
-    fetch_fn(values, *, exclude_domain, limit) -> List[SourceDoc]
-    Writes <out_dir>/<page_id>/diagnosis.json for every page, plus the rewritten file and
-    section.diff for status "rewritten", then <out_dir>/fix-gaps.json. Returns the report dict.
-    """
-    raise NotImplementedError
+    content = page.source.read_text(encoding="utf-8")
+    raw_fm, body, _ = _extract_frontmatter(content)
+    title = _derive_title_and_body(content)[0]
+    secs = split_sections(body)
+    own = judge.own_candidates(secs)
+    docs = fetch_fn(page.sources, exclude_domain=exclude_domain, limit=max_sources)
+    srcs = judge.source_candidates(docs)
+    res = {"page_id": page.page_id, "source": str(page.source), "query": page.query, "other_gaps": list(page.other_gaps),
+           "status": "", "sources": [{"url": d.url, "ok": d.ok, "error": d.error} for d in docs],
+           "diagnosis": None, "fidelity": None, "verification": None, "output_file": None, "diff_file": None, "reasons": []}
+    try:
+        diag = judge.diagnose(page.query, own, srcs, jev_client)
+        if diag.selection is None or diag.status == "already_best":
+            sel = diag.selection
+            res["diagnosis"] = None if sel is None else {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind,
+                                                        "confidence": sel.confidence, "probabilities": dict(sel.probabilities), "target_section": None}
+            res["status"] = diag.status
+            return res
+        sid = diag.target_id[len("own_"):]
+        sec = next(s for s in secs if s.id == sid)
+        sel = diag.selection
+        res["diagnosis"] = {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind, "confidence": sel.confidence,
+                            "probabilities": dict(sel.probabilities), "target_section": {"id": sid, "heading": sec.heading}}
+        new_text = rewrite_fn(page.query, sec.text, title)
+        if new_text == sec.text:
+            res["status"] = "no_change_proposed"; return res
+        rules = fidelity.check_fidelity(sec.text, new_text)
+        res["fidelity"] = {"rules": {"passed": rules.passed, "violations": list(rules.violations)}, "judge": None}
+        if not rules.passed:
+            res["status"] = "rejected_fidelity_rules"; return res
+        v = judge.judge_fidelity(sec.text, new_text, jev_client)
+        res["fidelity"]["judge"] = {"verdict": v.verdict, "confidence": v.confidence, "accepted": v.accepted}
+        if not v.accepted:
+            res["status"] = "rejected_fidelity_judge"; return res
+        own_after = [judge.Candidate(c.id, c.kind, c.label, new_text if c.id == diag.target_id else c.text) for c in own]
+        ver = judge.verify(page.query, own_after, srcs, diag.target_id, sel, jev_client)
+        res["verification"] = {"p_before": ver.p_before, "p_after": ver.p_after, "winner_after": ver.winner_after,
+                               "winner_after_kind": ver.winner_after_kind, "outcome": ver.outcome}
+        if ver.outcome == "worse":
+            res["status"] = "rejected_worse"; return res
+    except (JevProviderError, JevConfigError) as exc:
+        res["status"] = "jev_error"; res["reasons"] = [str(exc)]; return res
+    new_content = raw_fm + join_sections(replace_section(secs, sid, new_text))
+    pdir = Path(out_dir) / page.page_id; pdir.mkdir(parents=True, exist_ok=True)
+    outf = pdir / page.source.name; outf.write_text(new_content, encoding="utf-8")
+    name = page.source.name
+    diff = "".join(difflib.unified_diff(content.splitlines(keepends=True), new_content.splitlines(keepends=True),
+                                        fromfile=f"a/{name}", tofile=f"b/{name}"))
+    difff = pdir / "section.diff"; difff.write_text(diff, encoding="utf-8")
+    res["status"] = "rewritten"; res["output_file"] = str(outf); res["diff_file"] = str(difff)
+    return res
+
+
+def run_section_fixes(plan, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_domain="", max_sources=6):
+    from . import judge
+    out_dir = Path(out_dir)
+    pages = []
+    for page in plan.pages:
+        r = _section_page(page, out_dir=out_dir, jev_client=jev_client, rewrite_fn=rewrite_fn, fetch_fn=fetch_fn,
+                          exclude_domain=exclude_domain, max_sources=max_sources)
+        pdir = out_dir / page.page_id; pdir.mkdir(parents=True, exist_ok=True)
+        (pdir / "diagnosis.json").write_text(json.dumps(r, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        pages.append(r)
+    report = {"format": plan.input.format, "mode": "sections", "pages": pages, "unmatched": plan.unmatched,
+              "skipped": plan.skipped, "remeasure": _remeasure(plan), "note": SECTIONS_NOTE,
+              "jev_model": jev_client.model, "jev_usage": dict(jev_client.totals),
+              "thresholds": {"fidelity_gate": judge.FIDELITY_GATE, "improve_delta": judge.IMPROVE_DELTA,
+                             "min_section_words": judge.MIN_SECTION_WORDS, "max_candidate_chars": judge.MAX_CANDIDATE_CHARS,
+                             "max_sources": max_sources}}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / REPORT_NAME).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return report
 
 
 def describe_plan(plan: FixPlan) -> str:
@@ -326,6 +387,31 @@ def cli(args: Any) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     plan = plan_fixes(loaded, project, project_path.parent)
+
+    if args.mode == "sections" and not args.dry_run:
+        from . import jev as _jev, section_rewriter, sources as _sources
+        mock = mock_enabled()
+        if not mock and not _jev.key_configured():
+            print("ERROR: section mode needs TYPESAFE_API_KEY (or GEO_EVAL_MOCK=1 for an offline run); "
+                  "use --mode page for the legacy whole-page rewrite.", file=sys.stderr)
+            return 2
+        client = _jev.make_client(mock=mock, model=args.jev_model)
+        out = Path(args.out_dir)
+        if mock:
+            fetch_fn = _sources.placeholder_sources
+        else:
+            def fetch_fn(values, *, exclude_domain, limit):
+                return _sources.fetch_sources(values, exclude_domain=exclude_domain, limit=limit, cache_path=out / "sources-cache.json")
+        rewrite_fn = lambda q, t, title: section_rewriter.rewrite_section(q, t, page_title=title, model=args.rewriter_model)
+        report = run_section_fixes(plan, out_dir=out, jev_client=client, rewrite_fn=rewrite_fn, fetch_fn=fetch_fn,
+                                   exclude_domain=str(project["project"].get("canonical_domain") or ""), max_sources=args.max_sources)
+        if args.json:
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+        else:
+            for p in report["pages"]:
+                print(f"{p['status']}: {p['page_id']}")
+            print(f"Report: {out / REPORT_NAME}")
+        return 0
 
     if args.dry_run:
         if args.json:
@@ -371,6 +457,9 @@ def add_parser(sub: Any) -> None:
     p.add_argument("--out-dir", default="fix-gaps-output", help="Output directory (default: fix-gaps-output).")
     p.add_argument("--format", default="markdown", choices=["markdown", "html"], help="Export format for optimized pages.")
     p.add_argument("--dry-run", action="store_true", help="Print the plan; write nothing and call no model.")
+    p.add_argument("--mode", default="sections", choices=["sections", "page"])
+    p.add_argument("--max-sources", type=int, default=6)
+    p.add_argument("--jev-model", default="jev-latest")
     p.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     p.add_argument("--runtime", default="python", help="Runtime to use (default: python).")
     p.add_argument("--ranker-model", default=os.environ.get("RANKER_MODEL", "gpt-4o"))
