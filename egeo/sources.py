@@ -168,6 +168,7 @@ def fetch_sources(values, *, exclude_domain: str = "", limit: int = DEFAULT_MAX_
         d = fetch_source(u, fetcher=fetcher, max_chars=max_chars)
         cache[u] = d.__dict__.copy(); docs.append(d)
     if cache_path:
+        Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
         Path(cache_path).write_text(_json.dumps(cache, indent=2), encoding="utf-8")
     return docs
 
