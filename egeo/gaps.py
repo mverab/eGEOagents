@@ -325,7 +325,8 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
         if diag.selection is None or diag.status == "already_best":
             sel = diag.selection
             res["diagnosis"] = None if sel is None else {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind,
-                                                        "confidence": sel.confidence, "probabilities": dict(sel.probabilities), "target_section": None}
+                                                        "confidence": sel.confidence, "probabilities": dict(sel.probabilities),
+                                                        "target_section": None, "experimental": True}
             res["status"] = diag.status
             if diag.status == "already_best":
                 res["offpage"] = {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE,
@@ -335,7 +336,8 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
         sec = next(s for s in secs if s.id == sid)
         sel = diag.selection
         res["diagnosis"] = {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind, "confidence": sel.confidence,
-                            "probabilities": dict(sel.probabilities), "target_section": {"id": sid, "heading": sec.heading}}
+                            "probabilities": dict(sel.probabilities), "target_section": {"id": sid, "heading": sec.heading},
+                            "experimental": True}
         new_text = rewrite_fn(page.query, sec.text, title)
         if new_text == sec.text:
             res["status"] = "no_change_proposed"; return res
@@ -350,7 +352,7 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
         own_after = [judge.Candidate(c.id, c.kind, c.label, new_text if c.id == diag.target_id else c.text) for c in own]
         ver = judge.verify(page.query, own_after, srcs, diag.target_id, sel, jev_client)
         res["verification"] = {"p_before": ver.p_before, "p_after": ver.p_after, "winner_after": ver.winner_after,
-                               "winner_after_kind": ver.winner_after_kind, "outcome": ver.outcome}
+                               "winner_after_kind": ver.winner_after_kind, "outcome": ver.outcome, "experimental": True}
         if ver.outcome == "worse":
             res["status"] = "rejected_worse"; return res
     except (JevProviderError, JevConfigError) as exc:
@@ -378,6 +380,7 @@ def run_section_fixes(plan, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclud
         pages.append(r)
     report = {"format": plan.input.format, "mode": "sections", "pages": pages, "unmatched": plan.unmatched,
               "skipped": plan.skipped, "remeasure": _remeasure(plan), "note": SECTIONS_NOTE,
+              "jev_validation": dict(JEV_VALIDATION),
               "jev_model": jev_client.model, "jev_usage": dict(jev_client.totals),
               "thresholds": {"fidelity_gate": judge.FIDELITY_GATE, "improve_delta": judge.IMPROVE_DELTA,
                              "min_section_words": judge.MIN_SECTION_WORDS, "max_candidate_chars": judge.MAX_CANDIDATE_CHARS,
