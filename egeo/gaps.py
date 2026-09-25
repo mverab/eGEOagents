@@ -59,6 +59,9 @@ class PagePlan:
     source: Path
     query: str
     other_gaps: List[str] = field(default_factory=list)
+    # SCAFFOLD (section mode): sources the tracker reported for `query` (the primary gap).
+    # plan_fixes must set this from Gap.sources when it creates the PagePlan.
+    sources: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -239,6 +242,56 @@ def run_fix_gaps(
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / REPORT_NAME).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return report
+
+
+# --------------------------------------------------------------------------- #
+# Section mode (SCAFFOLD) — openspec/changes/update-fix-gaps-section-rewrite
+# Implement until tests/test_gaps_sections.py passes. Plan:
+# docs/plans/2026-09-25-fix-gaps-sections-plan.md (Lane F).
+# --------------------------------------------------------------------------- #
+
+SECTION_STATUSES = (
+    "rewritten",               # accepted rewrite written to disk
+    "already_best",            # an own section already wins the Jev choice
+    "no_competitor_sources",   # no source text could be fetched
+    "no_own_candidates",       # no own section with >= MIN_SECTION_WORDS words
+    "no_change_proposed",      # the rewriter returned the section unchanged
+    "rejected_fidelity_rules", # deterministic fidelity rules failed
+    "rejected_fidelity_judge", # Jev fidelity judge did not accept
+    "rejected_worse",          # verification outcome "worse"
+    "jev_error",               # TypeSafe failed for this page (JevProviderError / JevConfigError)
+)
+
+SECTIONS_NOTE = (
+    "Section mode: Jev's choice among your sections and the sources the tracker says were cited is a "
+    "proxy for an answer engine's citation choice, not a live engine result (validation: "
+    "eval/jev_selection). Re-check the queries in `remeasure` with your tracker."
+)
+
+
+def mock_enabled() -> bool:
+    """True when GEO_EVAL_MOCK is 1/true/yes (case-insensitive)."""
+    raise NotImplementedError
+
+
+def run_section_fixes(
+    plan: FixPlan,
+    *,
+    out_dir: Path,
+    jev_client: Any,
+    rewrite_fn: Any,
+    fetch_fn: Any,
+    exclude_domain: str = "",
+    max_sources: int = 6,
+) -> Dict[str, Any]:
+    """Section-mode pipeline for every PagePlan. See the plan (Lane F) for the exact steps.
+
+    rewrite_fn(query, section_text, page_title) -> str
+    fetch_fn(values, *, exclude_domain, limit) -> List[SourceDoc]
+    Writes <out_dir>/<page_id>/diagnosis.json for every page, plus the rewritten file and
+    section.diff for status "rewritten", then <out_dir>/fix-gaps.json. Returns the report dict.
+    """
+    raise NotImplementedError
 
 
 def describe_plan(plan: FixPlan) -> str:
