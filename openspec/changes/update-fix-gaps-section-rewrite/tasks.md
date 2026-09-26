@@ -17,7 +17,7 @@ v3 (ship with Jev labeled experimental, owner decision A): `docs/plans/2026-09-2
 ## 3. Wave 3 — integration
 - [x] 3.1 `egeo/gaps.py` section mode + `egeo/cli.py` flags (tests: `tests/test_gaps_sections.py`) — incl. off-page reframe (v2) and experimental labeling with `jev_validation` numbers (v3)
 - [x] 3.2 Docs: CLI reference, USAGE.md, CHANGELOG `[Unreleased]`
-- [ ] 3.3 Real dogfood run on E-GEO's gaps; hand outputs to review
+- [x] 3.3 Real dogfood run on E-GEO's gaps; hand outputs to review
 - [x] 3.4 Review fixes: report the choice scorer's numbers (the one section mode runs, on full-page excerpts), `rewriter_error` status + `OPENAI_API_KEY` pre-check
 
 ## 4. Follow-ups (not in this change)
