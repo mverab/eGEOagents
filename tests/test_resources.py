@@ -26,6 +26,8 @@ RESOURCE_FILES = [
     "prompts/rewriter_user.txt",
     "prompts/meta_optimizer_system.txt",
     "prompts/meta_optimizer_user.txt",
+    "prompts/section_rewriter_system.txt",
+    "prompts/section_rewriter_user.txt",
     "collectors/_common.py",
     "collectors/serp.py",
     "collectors/page.py",
