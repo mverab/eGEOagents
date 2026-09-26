@@ -17,7 +17,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 # Repository root = parent of this package directory. Adding it to sys.path lets
 # ``import geo_eval`` / ``import llm_client`` succeed even when the CLI is run

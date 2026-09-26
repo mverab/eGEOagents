@@ -30,7 +30,7 @@ Standalone Python CLI:
 Claude Code skills:
     npx skills add https://github.com/mverab/eGEOagents
 
-## CLI (egeo, v2.1.0)
+## CLI (egeo, v2.2.0)
 
 Subcommands: optimize, fix-gaps, evaluate, optimize-prompts, runtimes, loop.
 
