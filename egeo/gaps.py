@@ -59,6 +59,8 @@ class PagePlan:
     source: Path
     query: str
     other_gaps: List[str] = field(default_factory=list)
+    # Section mode: sources the tracker reported for `query` (the primary gap), from Gap.sources.
+    sources: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -173,7 +175,7 @@ def plan_fixes(gaps_input: GapsInput, project: Dict[str, Any], project_dir: Path
             if page_id in planned:
                 planned[page_id].other_gaps.append(gap.query)
             else:
-                planned[page_id] = PagePlan(page_id=page_id, source=source_path, query=gap.query)
+                planned[page_id] = PagePlan(page_id=page_id, source=source_path, query=gap.query, sources=list(gap.sources))
         if not matched:
             unmatched.append({"query": gap.query, "reason": reason})
     return FixPlan(input=gaps_input, pages=list(planned.values()), unmatched=unmatched)
@@ -241,6 +243,161 @@ def run_fix_gaps(
     return report
 
 
+# --------------------------------------------------------------------------- #
+# Section mode — openspec/changes/update-fix-gaps-section-rewrite
+# Plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md (+ v2, v3).
+# --------------------------------------------------------------------------- #
+
+SECTION_STATUSES = (
+    "rewritten",               # accepted rewrite written to disk
+    "already_best",            # an own section already wins the Jev choice
+    "no_competitor_sources",   # no source text could be fetched
+    "no_own_candidates",       # no own section with >= MIN_SECTION_WORDS words
+    "no_change_proposed",      # the rewriter returned the section unchanged
+    "rejected_fidelity_rules", # deterministic fidelity rules failed
+    "rejected_fidelity_judge", # Jev fidelity judge did not accept
+    "rejected_worse",          # verification outcome "worse"
+    "jev_error",               # TypeSafe failed for this page (JevProviderError / JevConfigError)
+    "rewriter_error",          # the rewriter LLM failed for this page (LLMError); nothing written
+)
+
+# The figures below are the pre-registered v2 run of the *choice* scorer: the same single Choice question
+# (judge.select_best) that section mode uses to diagnose and verify. The gate-deciding noul scorer
+# (AUC 0.637) is not what section mode runs, so its numbers are not quoted here.
+SECTIONS_NOTE = (
+    "Section mode: the Jev comparison between your sections and the sources the tracker says were cited is "
+    "EXPERIMENTAL. It scores text competitiveness (which candidate's text best answers the query) and does not "
+    "model authority or links, so it is not a prediction of citation. In a pre-registered test (30 queries, "
+    "2026-09-25) the same single-choice comparison separated cited from uncited sources with mean AUC 0.62 "
+    "(95% CI 0.56-0.67), below the 0.65 bar, and matched the engine's cited/not-cited outcome for the own page "
+    "in only 17% of the queries that had one. That test compared full-page excerpts, not sections "
+    "(eval/jev_selection/README.md). Confirm any change by re-checking the queries in `remeasure` with your tracker."
+)
+
+# Copied verbatim into every section-mode report as "jev_validation"; every non-null page "diagnosis" and
+# "verification" also carries "experimental": True (owner decision 2026-09-25, plan v3).
+JEV_VALIDATION = {
+    "status": "experimental",
+    "scorer": "choice",
+    "mean_auc": 0.619,
+    "ci95": [0.561, 0.674],
+    "own_accuracy": 0.167,
+    "n_queries": 30,
+    "unit": "full-page excerpts (<= 1500 chars), not sections",
+    "gate_auc": 0.65,
+    "gate_passed": False,
+    "date": "2026-09-25",
+    "details": "eval/jev_selection/README.md",
+}
+
+# Every page dict gets an "offpage" key (plan v2). For status "already_best" it is
+#   {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE, "sources": [url of every ok fetched doc, in fetch order]}
+# and for every other status it is None. The CLI line for an already_best page is
+#   f"already_best: {page_id} (off-page: {len(sources)} cited sources)".
+OFFPAGE_REASON = "text_already_competitive"
+OFFPAGE_MESSAGE = (
+    "Jev (experimental) rates your text as already competitive with the sources the answer engine cited, so "
+    "rewriting it is unlikely to help. The gap is probably off-page: get your page mentioned or linked by those sources."
+)
+
+
+def mock_enabled() -> bool:
+    import os
+    return (os.environ.get("GEO_EVAL_MOCK") or "").strip().lower() in {"1", "true", "yes"}
+
+
+def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_domain, max_sources):
+    import difflib
+    from . import fidelity, judge
+    from llm_client import LLMError
+    from .jev import JevConfigError, JevProviderError
+    from .pipeline import _derive_title_and_body, _extract_frontmatter
+    from .sections import join_sections, replace_section, split_sections
+
+    content = page.source.read_text(encoding="utf-8")
+    raw_fm, body, _ = _extract_frontmatter(content)
+    title = _derive_title_and_body(content)[0]
+    secs = split_sections(body)
+    own = judge.own_candidates(secs)
+    docs = fetch_fn(page.sources, exclude_domain=exclude_domain, limit=max_sources)
+    srcs = judge.source_candidates(docs)
+    res = {"page_id": page.page_id, "source": str(page.source), "query": page.query, "other_gaps": list(page.other_gaps),
+           "status": "", "sources": [{"url": d.url, "ok": d.ok, "error": d.error} for d in docs],
+           "diagnosis": None, "fidelity": None, "verification": None, "output_file": None, "diff_file": None,
+           "offpage": None, "reasons": []}
+    try:
+        diag = judge.diagnose(page.query, own, srcs, jev_client)
+        if diag.selection is None or diag.status == "already_best":
+            sel = diag.selection
+            res["diagnosis"] = None if sel is None else {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind,
+                                                        "confidence": sel.confidence, "probabilities": dict(sel.probabilities),
+                                                        "target_section": None, "experimental": True}
+            res["status"] = diag.status
+            if diag.status == "already_best":
+                res["offpage"] = {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE,
+                                  "sources": [d.url for d in docs if d.ok]}
+            return res
+        sid = diag.target_id[len("own_"):]
+        sec = next(s for s in secs if s.id == sid)
+        sel = diag.selection
+        res["diagnosis"] = {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind, "confidence": sel.confidence,
+                            "probabilities": dict(sel.probabilities), "target_section": {"id": sid, "heading": sec.heading},
+                            "experimental": True}
+        try:
+            new_text = rewrite_fn(page.query, sec.text, title)
+        except LLMError as exc:
+            res["status"] = "rewriter_error"; res["reasons"] = [str(exc)]; return res
+        if new_text == sec.text:
+            res["status"] = "no_change_proposed"; return res
+        rules = fidelity.check_fidelity(sec.text, new_text)
+        res["fidelity"] = {"rules": {"passed": rules.passed, "violations": list(rules.violations)}, "judge": None}
+        if not rules.passed:
+            res["status"] = "rejected_fidelity_rules"; return res
+        v = judge.judge_fidelity(sec.text, new_text, jev_client)
+        res["fidelity"]["judge"] = {"verdict": v.verdict, "confidence": v.confidence, "accepted": v.accepted}
+        if not v.accepted:
+            res["status"] = "rejected_fidelity_judge"; return res
+        own_after = [judge.Candidate(c.id, c.kind, c.label, new_text if c.id == diag.target_id else c.text) for c in own]
+        ver = judge.verify(page.query, own_after, srcs, diag.target_id, sel, jev_client)
+        res["verification"] = {"p_before": ver.p_before, "p_after": ver.p_after, "winner_after": ver.winner_after,
+                               "winner_after_kind": ver.winner_after_kind, "outcome": ver.outcome, "experimental": True}
+        if ver.outcome == "worse":
+            res["status"] = "rejected_worse"; return res
+    except (JevProviderError, JevConfigError) as exc:
+        res["status"] = "jev_error"; res["reasons"] = [str(exc)]; return res
+    new_content = raw_fm + join_sections(replace_section(secs, sid, new_text))
+    pdir = Path(out_dir) / page.page_id; pdir.mkdir(parents=True, exist_ok=True)
+    outf = pdir / page.source.name; outf.write_text(new_content, encoding="utf-8")
+    name = page.source.name
+    diff = "".join(difflib.unified_diff(content.splitlines(keepends=True), new_content.splitlines(keepends=True),
+                                        fromfile=f"a/{name}", tofile=f"b/{name}"))
+    difff = pdir / "section.diff"; difff.write_text(diff, encoding="utf-8")
+    res["status"] = "rewritten"; res["output_file"] = str(outf); res["diff_file"] = str(difff)
+    return res
+
+
+def run_section_fixes(plan, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_domain="", max_sources=6):
+    from . import judge
+    out_dir = Path(out_dir)
+    pages = []
+    for page in plan.pages:
+        r = _section_page(page, out_dir=out_dir, jev_client=jev_client, rewrite_fn=rewrite_fn, fetch_fn=fetch_fn,
+                          exclude_domain=exclude_domain, max_sources=max_sources)
+        pdir = out_dir / page.page_id; pdir.mkdir(parents=True, exist_ok=True)
+        (pdir / "diagnosis.json").write_text(json.dumps(r, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        pages.append(r)
+    report = {"format": plan.input.format, "mode": "sections", "pages": pages, "unmatched": plan.unmatched,
+              "skipped": plan.skipped, "remeasure": _remeasure(plan), "note": SECTIONS_NOTE,
+              "jev_validation": dict(JEV_VALIDATION),
+              "jev_model": jev_client.model, "jev_usage": dict(jev_client.totals),
+              "thresholds": {"fidelity_gate": judge.FIDELITY_GATE, "improve_delta": judge.IMPROVE_DELTA,
+                             "min_section_words": judge.MIN_SECTION_WORDS, "max_candidate_chars": judge.MAX_CANDIDATE_CHARS,
+                             "max_sources": max_sources}}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / REPORT_NAME).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return report
+
+
 def describe_plan(plan: FixPlan) -> str:
     lines = [f"Input format: {plan.input.format} — {len(plan.input.gaps)} gap(s)"]
     for page in plan.pages:
@@ -259,6 +416,7 @@ def default_project_path() -> Path:
 
 
 def cli(args: Any) -> int:
+    import os
     import sys
 
     try:
@@ -273,6 +431,38 @@ def cli(args: Any) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     plan = plan_fixes(loaded, project, project_path.parent)
+
+    if args.mode == "sections" and not args.dry_run:
+        from . import jev as _jev, section_rewriter, sources as _sources
+        mock = mock_enabled()
+        if not mock and not _jev.key_configured():
+            print("ERROR: section mode needs TYPESAFE_API_KEY (or GEO_EVAL_MOCK=1 for an offline run); "
+                  "use --mode page (the default) for the whole-page rewrite.", file=sys.stderr)
+            return 2
+        if not mock and not (os.environ.get("OPENAI_API_KEY") or "").strip():
+            print("ERROR: section mode needs OPENAI_API_KEY for the section rewriter (optional OPENAI_BASE_URL), "
+                  "or GEO_EVAL_MOCK=1 for an offline run.", file=sys.stderr)
+            return 2
+        client = _jev.make_client(mock=mock, model=args.jev_model)
+        out = Path(args.out_dir)
+        if mock:
+            fetch_fn = _sources.placeholder_sources
+        else:
+            def fetch_fn(values, *, exclude_domain, limit):
+                return _sources.fetch_sources(values, exclude_domain=exclude_domain, limit=limit, cache_path=out / "sources-cache.json")
+        rewrite_fn = lambda q, t, title: section_rewriter.rewrite_section(q, t, page_title=title, model=args.rewriter_model)
+        report = run_section_fixes(plan, out_dir=out, jev_client=client, rewrite_fn=rewrite_fn, fetch_fn=fetch_fn,
+                                   exclude_domain=str(project["project"].get("canonical_domain") or ""), max_sources=args.max_sources)
+        if args.json:
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+        else:
+            for p in report["pages"]:
+                if p["status"] == "already_best" and p.get("offpage"):
+                    print(f"already_best: {p['page_id']} (off-page: {len(p['offpage']['sources'])} cited sources)")
+                else:
+                    print(f"{p['status']}: {p['page_id']}")
+            print(f"Report: {out / REPORT_NAME}")
+        return 0
 
     if args.dry_run:
         if args.json:
@@ -296,6 +486,14 @@ def cli(args: Any) -> int:
     if not runtime.executes_in_process:
         print(f"ERROR: runtime '{runtime.name}' does not execute in-process. Use --runtime python.", file=sys.stderr)
         return 2
+    import llm_client
+
+    try:  # same client the runtime will build: mock under GEO_EVAL_MOCK, else OpenAI-compatible from env
+        llm_client.get_client()
+    except llm_client.LLMError:
+        print("ERROR: page mode needs OPENAI_API_KEY for the ranker and rewriter (optional OPENAI_BASE_URL), "
+              "or GEO_EVAL_MOCK=1 for an offline run.", file=sys.stderr)
+        return 2
     report = run_fix_gaps(plan, runtime=runtime, out_dir=Path(args.out_dir), export_format=args.format)
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
@@ -318,6 +516,11 @@ def add_parser(sub: Any) -> None:
     p.add_argument("--out-dir", default="fix-gaps-output", help="Output directory (default: fix-gaps-output).")
     p.add_argument("--format", default="markdown", choices=["markdown", "html"], help="Export format for optimized pages.")
     p.add_argument("--dry-run", action="store_true", help="Print the plan; write nothing and call no model.")
+    p.add_argument("--mode", default="page", choices=["page", "sections"],
+                   help="page (default): whole-page rewrite via the optimize pipeline. "
+                        "sections (experimental): rewrite only the losing section, Jev-judged; needs TYPESAFE_API_KEY.")
+    p.add_argument("--max-sources", type=int, default=6)
+    p.add_argument("--jev-model", default="jev-latest")
     p.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     p.add_argument("--runtime", default="python", help="Runtime to use (default: python).")
     p.add_argument("--ranker-model", default=os.environ.get("RANKER_MODEL", "gpt-4o"))

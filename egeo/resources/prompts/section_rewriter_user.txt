@@ -1,0 +1,6 @@
+Query: {query}
+Page title: {page_title}
+
+Rewrite this section following every rule:
+
+{section}
