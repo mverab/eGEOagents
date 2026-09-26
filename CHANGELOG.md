@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-26
+
+### Known limitations
+- Jev validation is **provisional**: the candidate ids Jev sees (`own_sXX` / `src_N`) reveal which candidates are the user's own sections, so the reported AUC (0.62) and own-page accuracy (0.17) may be biased. Neutral ids and a re-run of the validation are planned (openspec `update-fix-gaps-section-rewrite`, task 4.1). Page mode, the default, does not use Jev.
+
 ### Changed
 - `egeo fix-gaps` page mode now pre-checks `OPENAI_API_KEY` (outside `GEO_EVAL_MOCK`) and exits 2 before any work instead of failing mid-run.
 
