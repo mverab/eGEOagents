@@ -7,21 +7,26 @@ Turn an AI-visibility tracker's citation report into page rewrites: `egeo fix-ga
 
 ### Requirement: Fix-Gaps Command Rewrites Pages For Uncited Queries
 
-The CLI SHALL expose `egeo fix-gaps <gaps-file> [--dry-run] [--json] [--out-dir DIR] [--format markdown|html] [--project PATH]`. The command SHALL read citation results from a tracker export, select the queries where the project domain is not cited, map them to local pages through `project.yaml`, and optimize each affected page once with the existing `egeo optimize` pipeline.
+The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode page|sections] [--dry-run] [--json] [--out-dir DIR] [--format markdown|html] [--project PATH] [--max-sources N] [--jev-model MODEL]`. The command SHALL read citation results from a tracker export, select the queries where the project domain is not cited, and map them to local pages through `project.yaml`. In `page` mode (the default) it SHALL optimize each affected page once with the existing `egeo optimize` pipeline. In `sections` mode (experimental, opt-in) it SHALL rewrite at most one section per page as specified by the section-mode requirements. Outside mock mode, `page` mode SHALL exit non-zero before any work, naming `OPENAI_API_KEY`, when no OpenAI-compatible key is configured.
 
 #### Scenario: Uncited query maps to a page with a source file
 
 - **WHEN** the gaps file reports query "open source aeo tools" as not cited
 - **AND** `project.yaml` has an active query with that text whose `target_pages` includes page `compare` with `source: site/compare.md`
-- **THEN** `site/compare.md` is optimized against "open source aeo tools"
+- **THEN** page `compare` is processed against "open source aeo tools"
 - **AND** the outputs are written under `<out-dir>/compare/`
 - **AND** `site/compare.md` is not modified
 
 #### Scenario: Cited query is not a gap
 
 - **WHEN** the gaps file reports a query as cited
-- **THEN** no page is optimized for that query
+- **THEN** no page is processed for that query
 - **AND** the report does not list it as a gap
+
+#### Scenario: Page mode is the default
+
+- **WHEN** `egeo fix-gaps gaps.json` runs without `--mode`, or with `--mode page`
+- **THEN** each affected page is optimized with the `egeo optimize` pipeline as in version 2.1.0
 
 ### Requirement: Supported Input Formats Are Auto-Detected
 
@@ -74,12 +79,18 @@ A page targeted by several gap queries SHALL be optimized once, against the firs
 
 ### Requirement: Report And Re-Measure List
 
-Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, matched gaps, unmatched and skipped entries with reasons, per-page results (query used, output paths, proxy rank before/after), and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. The report SHALL state that rank before/after is an LLM-ranker proxy, not a live engine result.
+Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation. Until the validation gate passes, the Jev comparison SHALL be labeled experimental: the report SHALL carry a `jev_validation` object with the pre-registered result for the scorer section mode actually runs (the single Choice question; scorer, mean AUC, 95% interval, own-page accuracy, number of queries, unit judged, gate, pass/fail, date) and every Jev diagnosis and verification SHALL carry `"experimental": true`.
+
+#### Scenario: Experimental labeling while the gate has not passed
+
+- **WHEN** the latest validation result is below the gate
+- **THEN** `fix-gaps.json` contains `jev_validation` with `"status": "experimental"` and `"gate_passed": false`
+- **AND** each non-null diagnosis and verification carries `"experimental": true`
 
 #### Scenario: Report after a mock run
 
 - **WHEN** `GEO_EVAL_MOCK=1 egeo fix-gaps gaps.json --out-dir out` completes
-- **THEN** `out/fix-gaps.json` exists with keys `format`, `pages`, `unmatched`, `skipped`, `remeasure`, `note`
+- **THEN** `out/fix-gaps.json` exists with keys `format`, `mode`, `pages`, `unmatched`, `skipped`, `remeasure`, `note`
 
 ### Requirement: Dry Run Writes Nothing
 
@@ -99,3 +110,92 @@ Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, m
 
 - **WHEN** a `project.yaml` without any `pages[].source` is validated
 - **THEN** validation passes as before
+
+### Requirement: Diagnosis Against Real Cited Sources
+
+In `sections` mode, for each processed page the command SHALL fetch the text of the sources the tracker reports for the page's gap query (excluding the project's own domain, at most `--max-sources`, default 6) and ask Jev one Choice question over the page's own sections of at least 30 words and the successfully fetched sources. If an own section wins, the page status SHALL be `already_best` and nothing SHALL be rewritten. If a source wins, the rewrite target SHALL be the own section with the highest probability.
+
+#### Scenario: A cited source beats every own section
+
+- **WHEN** Jev selects a fetched source for the query
+- **THEN** the own section with the highest probability becomes the rewrite target
+- **AND** the report records the winner, its kind, the probabilities and the confidence
+
+#### Scenario: An own section already wins
+
+- **WHEN** Jev selects one of the page's own sections
+- **THEN** the page status is `already_best`
+- **AND** no rewrite is attempted
+- **AND** the page result carries an `offpage` recommendation listing the fetched cited sources, stating that the gap is likely off-page (mentions and links), not the page text
+
+#### Scenario: No source text could be fetched
+
+- **WHEN** none of the query's sources can be fetched
+- **THEN** the page status is `no_competitor_sources`
+- **AND** no rewrite is attempted
+
+### Requirement: Only The Target Section Is Rewritten
+
+The rewrite SHALL replace only the target section's text. Every other byte of the source file, including frontmatter and other sections, SHALL be preserved. The rewriter SHALL receive only the query, the page title and the target section, never competitor text.
+
+#### Scenario: Other sections untouched
+
+- **WHEN** a rewrite is accepted
+- **THEN** the written file equals the original file with only the target section's text replaced
+
+### Requirement: Rewrites Must Pass Fidelity Rules And Judge
+
+A rewritten section SHALL be rejected, keeping the original, when deterministic rules fail (heading line changed, a link removed or added, a number removed or added, fewer table rows, a code block changed, or a word-count ratio outside 0.8–1.6 for sections of 20 words or more), or when the Jev fidelity judge does not answer `faithful` with confidence of at least 0.6.
+
+#### Scenario: Rewrite drops a link
+
+- **WHEN** the rewritten section no longer contains a link present in the original
+- **THEN** the page status is `rejected_fidelity_rules`
+- **AND** the violation `link_removed:<url>` is reported
+
+#### Scenario: Judge flags added claims
+
+- **WHEN** the Jev fidelity judge answers `adds_claims`
+- **THEN** the page status is `rejected_fidelity_judge`
+
+### Requirement: Verification Re-Judges And Rejects Worse Rewrites
+
+After a rewrite passes fidelity, the command SHALL ask the same Jev Choice question with the rewritten section in place and the same candidates. The outcome SHALL be `won` when an own section wins, `improved` when the target's probability rises by at least 0.05, `worse` when it falls by at least 0.05, and `no_change` otherwise. A `worse` rewrite SHALL be rejected with status `rejected_worse`.
+
+#### Scenario: Rewrite makes the page lose more
+
+- **WHEN** the target section's probability falls by 0.05 or more after the rewrite
+- **THEN** the page status is `rejected_worse`
+- **AND** no rewritten file is written
+
+### Requirement: Section Mode Fails Closed Without Jev
+
+`sections` mode SHALL exit non-zero with a message naming `TYPESAFE_API_KEY`, `GEO_EVAL_MOCK=1` and `--mode page` when no TypeSafe key is configured and mock mode is off. It SHALL never substitute heuristic scores for Jev answers. TypeSafe errors SHALL mark the page `jev_error` and never produce a rewrite. Outside mock mode, `sections` mode SHALL also exit non-zero before any work, naming `OPENAI_API_KEY`, when no rewriter key is configured; a rewriter failure (`LLMError`) SHALL mark that page `rewriter_error`, write no rewrite, and let the run continue.
+
+#### Scenario: No key
+
+- **WHEN** `TYPESAFE_API_KEY` is unset and `GEO_EVAL_MOCK` is off
+- **THEN** `egeo fix-gaps gaps.json` exits non-zero before fetching or rewriting anything
+
+### Requirement: Offline Mock Mode
+
+With `GEO_EVAL_MOCK=1`, `sections` mode SHALL run without network access: sources are not fetched (placeholder text derived from the source URL), Jev answers come from a deterministic word-overlap mock, and the rewriter returns the section unchanged. The report SHALL record `"jev_model": "mock"`.
+
+#### Scenario: CI run without keys
+
+- **WHEN** `GEO_EVAL_MOCK=1 egeo fix-gaps gaps.json --out-dir out` runs with no API keys
+- **THEN** it completes and writes `out/fix-gaps.json` without network calls
+
+### Requirement: Jev Selection Is Validated Against A Live Engine
+
+The repository SHALL include `eval/jev_selection/`, which scores each candidate with an independent Jev Noul question (default; Choice probabilities remain available for comparison) against Perplexity's cited sources (positives) and uncited SERP results (negatives) per query, and reports the mean ROC AUC with a bootstrap 95% interval. The gate SHALL be pre-registered (Noul scorer, mean AUC >= 0.65, at least 25 scored queries, one collection and one evaluation) and SHALL NOT be re-tuned after seeing results. Documentation SHALL cite the latest result, its interval and its date.
+
+#### Scenario: Eval run
+
+- **WHEN** the eval runs on a dataset of queries with cited and uncited URLs
+- **THEN** it writes per-query AUC, the mean AUC, its bootstrap interval, the scorer and the number of scored queries
+
+#### Scenario: Own-page prediction
+
+- **WHEN** a query has an own candidate and k cited sources among the candidates
+- **THEN** the own page is predicted cited only if its score ranks within the top k
