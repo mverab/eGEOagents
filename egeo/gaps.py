@@ -437,7 +437,7 @@ def cli(args: Any) -> int:
         mock = mock_enabled()
         if not mock and not _jev.key_configured():
             print("ERROR: section mode needs TYPESAFE_API_KEY (or GEO_EVAL_MOCK=1 for an offline run); "
-                  "use --mode page for the legacy whole-page rewrite.", file=sys.stderr)
+                  "use --mode page (the default) for the whole-page rewrite.", file=sys.stderr)
             return 2
         if not mock and not (os.environ.get("OPENAI_API_KEY") or "").strip():
             print("ERROR: section mode needs OPENAI_API_KEY for the section rewriter (optional OPENAI_BASE_URL), "
@@ -486,6 +486,14 @@ def cli(args: Any) -> int:
     if not runtime.executes_in_process:
         print(f"ERROR: runtime '{runtime.name}' does not execute in-process. Use --runtime python.", file=sys.stderr)
         return 2
+    import llm_client
+
+    try:  # same client the runtime will build: mock under GEO_EVAL_MOCK, else OpenAI-compatible from env
+        llm_client.get_client()
+    except llm_client.LLMError:
+        print("ERROR: page mode needs OPENAI_API_KEY for the ranker and rewriter (optional OPENAI_BASE_URL), "
+              "or GEO_EVAL_MOCK=1 for an offline run.", file=sys.stderr)
+        return 2
     report = run_fix_gaps(plan, runtime=runtime, out_dir=Path(args.out_dir), export_format=args.format)
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
@@ -508,7 +516,9 @@ def add_parser(sub: Any) -> None:
     p.add_argument("--out-dir", default="fix-gaps-output", help="Output directory (default: fix-gaps-output).")
     p.add_argument("--format", default="markdown", choices=["markdown", "html"], help="Export format for optimized pages.")
     p.add_argument("--dry-run", action="store_true", help="Print the plan; write nothing and call no model.")
-    p.add_argument("--mode", default="sections", choices=["sections", "page"])
+    p.add_argument("--mode", default="page", choices=["page", "sections"],
+                   help="page (default): whole-page rewrite via the optimize pipeline. "
+                        "sections (experimental): rewrite only the losing section, Jev-judged; needs TYPESAFE_API_KEY.")
     p.add_argument("--max-sources", type=int, default=6)
     p.add_argument("--jev-model", default="jev-latest")
     p.add_argument("--json", action="store_true", help="Print machine-readable JSON.")

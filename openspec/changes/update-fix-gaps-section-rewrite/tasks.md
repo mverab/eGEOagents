@@ -22,4 +22,4 @@ v3 (ship with Jev labeled experimental, owner decision A): `docs/plans/2026-09-2
 
 ## 4. Follow-ups (not in this change)
 - [ ] 4.1 Plan v4: neutral, non-revealing candidate ids for Jev (today `own_sXX` / `src_N` tell Jev which candidates are ours); invalidates the current validation for the new configuration
-- [ ] 4.2 Owner decision pending: keep `--mode sections` as the `fix-gaps` default, or keep `page` as default until `remeasure` evidence exists
+- [x] 4.2 Owner decision 2026-09-26: `--mode page` stays the `fix-gaps` default; `sections` is opt-in and labeled experimental. Flipping the default to `sections` is pending `remeasure` evidence.

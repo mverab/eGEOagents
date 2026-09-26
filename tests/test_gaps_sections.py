@@ -278,7 +278,7 @@ def test_cli_section_mode_fails_closed_without_rewriter_key(project: Path, monke
     monkeypatch.delenv("GEO_EVAL_MOCK", raising=False)
     monkeypatch.setattr(sources, "fetch_sources", lambda *a, **k: pytest.fail("must not fetch without rewriter key"))
     code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
-                 "--out-dir", str(project / "out")])
+                 "--out-dir", str(project / "out"), "--mode", "sections"])
     assert code == 2
     err = capsys.readouterr().err
     assert "OPENAI_API_KEY" in err and "GEO_EVAL_MOCK=1" in err
@@ -289,7 +289,7 @@ def test_cli_section_mode_fails_closed_without_key(project: Path, monkeypatch, c
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     monkeypatch.delenv("GEO_EVAL_MOCK", raising=False)
     code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
-                 "--out-dir", str(project / "out")])
+                 "--out-dir", str(project / "out"), "--mode", "sections"])
     assert code == 2
     err = capsys.readouterr().err
     assert "TYPESAFE_API_KEY" in err and "GEO_EVAL_MOCK=1" in err and "--mode page" in err
@@ -301,7 +301,7 @@ def test_cli_section_dry_run_needs_no_key_and_fetches_nothing(project: Path, mon
     monkeypatch.delenv("GEO_EVAL_MOCK", raising=False)
     monkeypatch.setattr(sources, "fetch_sources", lambda *a, **k: pytest.fail("dry run must not fetch"))
     code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
-                 "--out-dir", str(project / "out"), "--dry-run"])
+                 "--out-dir", str(project / "out"), "--mode", "sections", "--dry-run"])
     assert code == 0 and not (project / "out").exists()
     assert "compare" in capsys.readouterr().out
 
@@ -311,7 +311,7 @@ def test_cli_mock_end_to_end_offline(project: Path, monkeypatch, capsys) -> None
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     monkeypatch.setattr(sources, "fetch_sources", lambda *a, **k: pytest.fail("mock mode must not fetch"))
     code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
-                 "--out-dir", str(project / "out")])
+                 "--out-dir", str(project / "out"), "--mode", "sections"])
     assert code == 0
     report = json.loads((project / "out" / "fix-gaps.json").read_text(encoding="utf-8"))
     assert report["mode"] == "sections" and report["jev_model"] == "mock"
@@ -329,3 +329,28 @@ def test_cli_page_mode_still_works(project: Path, monkeypatch) -> None:
     assert code == 0
     report = json.loads((project / "out" / "fix-gaps.json").read_text(encoding="utf-8"))
     assert report["pages"][0]["page_id"] == "compare"
+
+
+def test_cli_default_mode_is_page(project: Path, monkeypatch) -> None:
+    # owner decision 2026-09-26: page stays the default until remeasure evidence; sections is opt-in
+    monkeypatch.setenv("GEO_EVAL_MOCK", "1")
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.setattr(sources, "fetch_sources", lambda *a, **k: pytest.fail("page mode must not fetch sources"))
+    code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
+                 "--out-dir", str(project / "out")])
+    assert code == 0
+    report = json.loads((project / "out" / "fix-gaps.json").read_text(encoding="utf-8"))
+    assert report.get("mode") != "sections" and "jev_validation" not in report
+    assert report["pages"][0]["page_id"] == "compare"
+
+
+def test_cli_page_mode_fails_closed_without_openai_key(project: Path, monkeypatch, capsys) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GEO_EVAL_MOCK", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
+                 "--out-dir", str(project / "out")])
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "OPENAI_API_KEY" in err and "GEO_EVAL_MOCK=1" in err and "TYPESAFE_API_KEY" not in err
+    assert not (project / "out").exists()

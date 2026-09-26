@@ -2,7 +2,7 @@
 
 ### Requirement: Fix-Gaps Command Rewrites Pages For Uncited Queries
 
-The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode sections|page] [--dry-run] [--json] [--out-dir DIR] [--format markdown|html] [--project PATH] [--max-sources N] [--jev-model MODEL]`. The command SHALL read citation results from a tracker export, select the queries where the project domain is not cited, and map them to local pages through `project.yaml`. In `sections` mode (the default) it SHALL rewrite at most one section per page as specified by the section-mode requirements. In `page` mode it SHALL optimize each affected page once with the existing `egeo optimize` pipeline.
+The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode page|sections] [--dry-run] [--json] [--out-dir DIR] [--format markdown|html] [--project PATH] [--max-sources N] [--jev-model MODEL]`. The command SHALL read citation results from a tracker export, select the queries where the project domain is not cited, and map them to local pages through `project.yaml`. In `page` mode (the default) it SHALL optimize each affected page once with the existing `egeo optimize` pipeline. In `sections` mode (experimental, opt-in) it SHALL rewrite at most one section per page as specified by the section-mode requirements. Outside mock mode, `page` mode SHALL exit non-zero before any work, naming `OPENAI_API_KEY`, when no OpenAI-compatible key is configured.
 
 #### Scenario: Uncited query maps to a page with a source file
 
@@ -18,9 +18,9 @@ The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode sections|page] [--dry-ru
 - **THEN** no page is processed for that query
 - **AND** the report does not list it as a gap
 
-#### Scenario: Legacy page mode
+#### Scenario: Page mode is the default
 
-- **WHEN** `egeo fix-gaps gaps.json --mode page` runs
+- **WHEN** `egeo fix-gaps gaps.json` runs without `--mode`, or with `--mode page`
 - **THEN** each affected page is optimized with the `egeo optimize` pipeline as in version 2.1.0
 
 ### Requirement: Report And Re-Measure List

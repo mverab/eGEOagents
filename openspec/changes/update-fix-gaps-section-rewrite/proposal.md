@@ -11,7 +11,7 @@ Trackers already hand us the missing ingredient: the sources the answer engine c
 
 ## What Changes
 
-- `fix-gaps` gains a **section mode** (new default, `--mode sections`); the current whole-page behavior stays as `--mode page`.
+- `fix-gaps` gains an experimental, opt-in **section mode** (`--mode sections`); the current whole-page behavior (`--mode page`) stays the default until `remeasure` evidence shows section mode helps (owner decision 2026-09-26).
 - **Diagnose (Jev Choice):** for the gap query, Jev chooses among the page's own sections and the fetched text of the sources the tracker says were cited. If an own section wins, the page is reported `already_best` and nothing is rewritten. If a source wins, the own section with the highest probability is the rewrite target.
 - **Rewrite only that section (LLM)** with a structure-preserving prompt; heading, links, numbers, table rows and code blocks must survive.
 - **Fidelity gates:** deterministic rules in code (links, numbers, table rows, code blocks, heading, length ratio) and a Jev Choice judge (`faithful` / `drops_facts` / `adds_claims`, confidence gate 0.6). Failing either keeps the original section.

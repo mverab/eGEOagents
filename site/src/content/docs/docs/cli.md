@@ -117,15 +117,17 @@ Additional hosts can be added by implementing the `RuntimeAdapter` interface in 
 
 ## `egeo fix-gaps`
 
-Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and — in the default **section mode** — rewrites only the one section that loses the query. Your source files are never modified.
+Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and rewrites it. The default **page mode** optimizes each affected page with the `optimize` pipeline; the opt-in, **experimental section mode** (`--mode sections`) rewrites only the one section that loses the query. Page mode stays the default until `remeasure` evidence shows section mode helps. Your source files are never modified.
 
 ```bash
 # 1. Measure with any tracker, e.g. geo-optimizer-skill:
 geo citations --brand "Acme" --domain acme.com --format json --output gaps.json
 # 2. Plan (writes nothing, calls no model, needs no key):
 egeo fix-gaps gaps.json --project project.yaml --dry-run
-# 3. Rewrite the losing sections:
+# 3a. Rewrite the affected pages (default page mode):
 egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
+# 3b. Or rewrite only the losing sections (experimental section mode):
+egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output --mode sections
 ```
 
 **Inputs (auto-detected):**
@@ -134,7 +136,7 @@ egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
 
 **Mapping:** the gap query must match an active `queries[].text` in `project.yaml` (case, spacing and trailing punctuation ignored). Its `target_pages` point to `pages[]`, and each page needs a `source` path to its local file (relative to `project.yaml`). Unmapped gaps are reported with a reason (`query_not_in_project`, `no_target_page`, `page_has_no_source`, `source_not_found`), never guessed. A page that loses several queries is rewritten once, against the first.
 
-**Section mode (default) flow:** split the page into sections → pick the own section that loses the query against the cited sources → rewrite **only that section** → **fidelity rules** (heading, links, numbers, table rows, code blocks, length ratio must be preserved) → Jev fidelity judge → Jev re-check. Any rejection keeps your original text untouched. Per-page statuses in `fix-gaps.json`:
+**Section mode (experimental, opt-in with `--mode sections`) flow:** split the page into sections → pick the own section that loses the query against the cited sources → rewrite **only that section** → **fidelity rules** (heading, links, numbers, table rows, code blocks, length ratio must be preserved) → Jev fidelity judge → Jev re-check. Any rejection keeps your original text untouched. Per-page statuses in `fix-gaps.json`:
 
 | Status | Meaning |
 |---|---|
@@ -157,9 +159,9 @@ The two Jev steps (which section loses, and the before/after re-check) measure *
 
 **Output:** `<out-dir>/<page-id>/` with the rewritten file, `section.diff` and `diagnosis.json`, plus `<out-dir>/fix-gaps.json` listing pages, statuses, unmatched/skipped gaps, `jev_validation`, and a `remeasure` list (with the exact `geo citations` command for geo-optimizer-skill input).
 
-**Requirements:** section mode needs `TYPESAFE_API_KEY` and an OpenAI-compatible key for the rewriter (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, model via `--rewriter-model`); both are checked before the run starts and it fails closed with a clear error otherwise. `GEO_EVAL_MOCK=1` runs fully offline, deterministically.
+**Requirements:** page mode needs an OpenAI-compatible key for the ranker and rewriter (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`). Section mode needs `TYPESAFE_API_KEY` and an OpenAI-compatible key for the rewriter (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, model via `--rewriter-model`); keys are checked before the run starts and it fails closed with a clear error otherwise. `GEO_EVAL_MOCK=1` runs fully offline, deterministically.
 
-Flags: `--mode sections|page` (default `sections`; `page` is the legacy whole-page rewrite from v2.1), `--max-sources` (default 6), `--jev-model`, `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize` (page mode).
+Flags: `--mode page|sections` (default `page`, the whole-page rewrite from v2.1; `sections` is experimental and opt-in), `--max-sources` (default 6), `--jev-model`, `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize` (page mode).
 
 ## `egeo loop`
 

@@ -47,28 +47,30 @@ directory is left untouched.
 
 ## Fix gaps (`egeo fix-gaps`)
 
-Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and — in the default **section mode** — rewrites only the one section that loses the query. Your source files are never modified.
+Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and rewrites it. The default **page mode** optimizes each affected page with the `optimize` pipeline; the opt-in, **experimental section mode** (`--mode sections`) rewrites only the one section that loses the query. Page mode stays the default until `remeasure` evidence shows section mode helps. Your source files are never modified.
 
 ```bash
 # 1. Measure with any tracker, e.g. geo-optimizer-skill:
 geo citations --brand "Acme" --domain acme.com --format json --output gaps.json
 # 2. Plan (writes nothing, calls no model, needs no key):
 egeo fix-gaps gaps.json --project project.yaml --dry-run
-# 3. Rewrite the losing sections:
+# 3a. Rewrite the affected pages (default page mode):
 egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
+# 3b. Or rewrite only the losing sections (experimental section mode):
+egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output --mode sections
 ```
 
 Inputs: geo-optimizer-skill `geo citations --format json`, or a generic JSON/CSV with `query`, `cited` and optional `sources` (URLs the engine cited instead of you). Mapping and unmatched reasons work exactly as documented in the CLI reference.
 
-Section mode flow: pick the own section that loses → rewrite only it → deterministic **fidelity rules** (heading, links, numbers, tables, code, length) → Jev fidelity judge → Jev re-check. Statuses: `rewritten`, `already_best`, `no_competitor_sources`, `no_own_candidates`, `no_change_proposed`, `rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`, `jev_error`, `rewriter_error`.
+Section mode (experimental, `--mode sections`) flow: pick the own section that loses → rewrite only it → deterministic **fidelity rules** (heading, links, numbers, tables, code, length) → Jev fidelity judge → Jev re-check. Statuses: `rewritten`, `already_best`, `no_competitor_sources`, `no_own_candidates`, `no_change_proposed`, `rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`, `jev_error`, `rewriter_error`.
 
 > **Experimental: the Jev comparison.** The Jev steps measure *text competitiveness* only — not authority, links or citation. Pre-registered validation of the same single-choice comparison (30 queries, 2026-09-25): mean AUC 0.62, 95% CI 0.56–0.67, below the 0.65 bar; it matched the engine's cited/not-cited outcome for the own page in only 17% of queries. It was run on full-page excerpts, not sections (`eval/jev_selection/README.md`). The Jev fidelity judge was not validated directly (the eval measured selection); it can only reject, after the deterministic rules. A re-check outcome of `won` means any own section now wins, not necessarily the rewritten one. Every report carries the figures in `jev_validation` and marks Jev judgments `"experimental": true`. Prove impact by re-running your tracker on `remeasure`, never from Jev.
 
 `already_best` means your text already competes — the gap is probably off-page; the report lists the cited sources to get mentioned or linked by. Output: `<out-dir>/<page-id>/` (rewritten file, `section.diff`, `diagnosis.json`) plus `<out-dir>/fix-gaps.json`.
 
-Requirements: `TYPESAFE_API_KEY` and `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`, for the rewriter) for section mode — both checked before the run starts (fails closed); a rewriter failure on one page marks it `rewriter_error` and the run continues; `GEO_EVAL_MOCK=1` for offline runs.
+Requirements: page mode needs `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`) for the ranker and rewriter; section mode needs `TYPESAFE_API_KEY` and `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`, for the rewriter). Keys are checked before the run starts (fails closed); a rewriter failure on one page marks it `rewriter_error` and the run continues; `GEO_EVAL_MOCK=1` for offline runs.
 
-Flags: `--mode sections|page` (default `sections`; `page` = legacy whole-page rewrite), `--max-sources`, `--jev-model`, `--project`, `--out-dir`, `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the `optimize` runtime/model flags (page mode).
+Flags: `--mode page|sections` (default `page`, the whole-page rewrite; `sections` is experimental and opt-in), `--max-sources`, `--jev-model`, `--project`, `--out-dir`, `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the `optimize` runtime/model flags (page mode).
 
 ## Loop mode
 
