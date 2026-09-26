@@ -1,7 +1,5 @@
 """Deterministic fidelity rules for a rewritten section (section-mode ``fix-gaps``).
 
-SCAFFOLD — implement until ``tests/test_fidelity.py`` passes.
-
 A rewrite may change wording, order and emphasis. It may NOT change facts. The rules:
 
 - ``heading_changed``        : the first line is a heading in the original and differs in the rewrite

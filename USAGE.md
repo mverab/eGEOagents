@@ -60,13 +60,13 @@ egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
 
 Inputs: geo-optimizer-skill `geo citations --format json`, or a generic JSON/CSV with `query`, `cited` and optional `sources` (URLs the engine cited instead of you). Mapping and unmatched reasons work exactly as documented in the CLI reference.
 
-Section mode flow: pick the own section that loses → rewrite only it → deterministic **fidelity rules** (heading, links, numbers, tables, code, length) → Jev fidelity judge → Jev re-check. Statuses: `rewritten`, `already_best`, `no_competitor_sources`, `no_own_candidates`, `no_change_proposed`, `rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`, `jev_error`.
+Section mode flow: pick the own section that loses → rewrite only it → deterministic **fidelity rules** (heading, links, numbers, tables, code, length) → Jev fidelity judge → Jev re-check. Statuses: `rewritten`, `already_best`, `no_competitor_sources`, `no_own_candidates`, `no_change_proposed`, `rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`, `jev_error`, `rewriter_error`.
 
-> **Experimental: the Jev comparison.** The Jev steps measure *text competitiveness* only — not authority, links or citation. Pre-registered validation (30 queries, 2026-09-25): mean AUC 0.64, 95% CI 0.57–0.71, below the 0.65 bar (`eval/jev_selection/README.md`). Every report carries the figures in `jev_validation` and marks Jev judgments `"experimental": true`. Prove impact by re-running your tracker on `remeasure`, never from Jev.
+> **Experimental: the Jev comparison.** The Jev steps measure *text competitiveness* only — not authority, links or citation. Pre-registered validation of the same single-choice comparison (30 queries, 2026-09-25): mean AUC 0.62, 95% CI 0.56–0.67, below the 0.65 bar; it matched the engine's cited/not-cited outcome for the own page in only 17% of queries. It was run on full-page excerpts, not sections (`eval/jev_selection/README.md`). The Jev fidelity judge was not validated directly (the eval measured selection); it can only reject, after the deterministic rules. A re-check outcome of `won` means any own section now wins, not necessarily the rewritten one. Every report carries the figures in `jev_validation` and marks Jev judgments `"experimental": true`. Prove impact by re-running your tracker on `remeasure`, never from Jev.
 
 `already_best` means your text already competes — the gap is probably off-page; the report lists the cited sources to get mentioned or linked by. Output: `<out-dir>/<page-id>/` (rewritten file, `section.diff`, `diagnosis.json`) plus `<out-dir>/fix-gaps.json`.
 
-Requirements: `TYPESAFE_API_KEY` for section mode (fails closed), `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`) for the rewriter, `GEO_EVAL_MOCK=1` for offline runs.
+Requirements: `TYPESAFE_API_KEY` and `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`, for the rewriter) for section mode — both checked before the run starts (fails closed); a rewriter failure on one page marks it `rewriter_error` and the run continues; `GEO_EVAL_MOCK=1` for offline runs.
 
 Flags: `--mode sections|page` (default `sections`; `page` = legacy whole-page rewrite), `--max-sources`, `--jev-model`, `--project`, `--out-dir`, `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the `optimize` runtime/model flags (page mode).
 

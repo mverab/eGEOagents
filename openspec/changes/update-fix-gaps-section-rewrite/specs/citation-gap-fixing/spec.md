@@ -25,7 +25,7 @@ The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode sections|page] [--dry-ru
 
 ### Requirement: Report And Re-Measure List
 
-Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation. Until the validation gate passes, the Jev comparison SHALL be labeled experimental: the report SHALL carry a `jev_validation` object with the latest pre-registered result (scorer, mean AUC, 95% interval, number of queries, gate, pass/fail, date) and every Jev diagnosis and verification SHALL carry `"experimental": true`.
+Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification and output paths, and the report SHALL include Jev usage and the thresholds used. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation. Until the validation gate passes, the Jev comparison SHALL be labeled experimental: the report SHALL carry a `jev_validation` object with the pre-registered result for the scorer section mode actually runs (the single Choice question; scorer, mean AUC, 95% interval, own-page accuracy, number of queries, unit judged, gate, pass/fail, date) and every Jev diagnosis and verification SHALL carry `"experimental": true`.
 
 #### Scenario: Experimental labeling while the gate has not passed
 
@@ -99,7 +99,7 @@ After a rewrite passes fidelity, the command SHALL ask the same Jev Choice quest
 
 ### Requirement: Section Mode Fails Closed Without Jev
 
-`sections` mode SHALL exit non-zero with a message naming `TYPESAFE_API_KEY`, `GEO_EVAL_MOCK=1` and `--mode page` when no TypeSafe key is configured and mock mode is off. It SHALL never substitute heuristic scores for Jev answers. TypeSafe errors SHALL mark the page `jev_error` and never produce a rewrite.
+`sections` mode SHALL exit non-zero with a message naming `TYPESAFE_API_KEY`, `GEO_EVAL_MOCK=1` and `--mode page` when no TypeSafe key is configured and mock mode is off. It SHALL never substitute heuristic scores for Jev answers. TypeSafe errors SHALL mark the page `jev_error` and never produce a rewrite. Outside mock mode, `sections` mode SHALL also exit non-zero before any work, naming `OPENAI_API_KEY`, when no rewriter key is configured; a rewriter failure (`LLMError`) SHALL mark that page `rewriter_error`, write no rewrite, and let the run continue.
 
 #### Scenario: No key
 

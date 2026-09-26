@@ -27,7 +27,17 @@ measurement: {engines: [perplexity], cadence: weekly}
 guardrails: {no_duplicate_query_owners: true, no_auto_publish_visible_copy: true, no_fabricated_proof: true, require_fresh_crawl_before_verdict: true}
 """
 
-INTRO = "Short intro.\n\n"
+PROJECT_YAML_TWO_PAGES = PROJECT_YAML.replace(
+    "target_pages: [compare], active: true}\n",
+    "target_pages: [compare], active: true}\n"
+    "  - {id: q-two, text: second query, class: generic, intent: aeo, target_pages: [other], active: true}\n",
+).replace(
+    "source: content/compare.md, active: true}\n",
+    "source: content/compare.md, active: true}\n"
+    "  - {id: other, url: https://demo.dev/other/, source: content/other.md, active: true}\n",
+)
+
+INTRO ="Short intro.\n\n"
 TOOLS = ("## Tools\n\n" + " ".join(["tools"] * 35)
          + " See [LibHunt](https://www.libhunt.com/) for 42 more.\n\n")
 FAQ = "## FAQ\n\n" + " ".join(["faq"] * 35) + "\n"
@@ -125,7 +135,7 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     assert saved["mode"] == "sections" and saved["jev_model"] == "fake"
     assert saved["note"] == gaps.SECTIONS_NOTE
     assert "not a prediction of citation" in saved["note"]
-    assert "EXPERIMENTAL" in saved["note"] and "0.64" in saved["note"]
+    assert "EXPERIMENTAL" in saved["note"] and "0.62" in saved["note"]
     assert saved["jev_validation"] == gaps.JEV_VALIDATION
     assert saved["jev_validation"]["status"] == "experimental" and saved["jev_validation"]["gate_passed"] is False
     assert page["diagnosis"]["experimental"] is True
@@ -224,6 +234,55 @@ def test_jev_error_marks_page(project: Path) -> None:
     assert page["status"] == "jev_error" and page["reasons"] == ["TypeSafe HTTP 500"]
     assert page["diagnosis"] is None and page["verification"] is None
     _no_output(project)
+
+
+def test_jev_validation_reports_choice_scorer_on_page_excerpts() -> None:
+    v = gaps.JEV_VALIDATION
+    assert v["scorer"] == "choice" and v["mean_auc"] == 0.619 and v["ci95"] == [0.561, 0.674]
+    assert v["own_accuracy"] == 0.167 and v["n_queries"] == 30 and v["gate_passed"] is False
+    assert "not sections" in v["unit"]
+    assert "0.637" not in gaps.SECTIONS_NOTE and "full-page excerpts, not sections" in gaps.SECTIONS_NOTE
+
+
+def test_rewriter_error_marks_page_and_run_continues(tmp_path: Path) -> None:
+    from llm_client import LLMError
+
+    project = tmp_path
+    (project / "content").mkdir()
+    (project / "content" / "compare.md").write_text(PAGE, encoding="utf-8")
+    (project / "content" / "other.md").write_text(PAGE, encoding="utf-8")
+    (project / "project.yaml").write_text(PROJECT_YAML_TWO_PAGES, encoding="utf-8")
+    (project / "gaps.json").write_text(json.dumps(GAPS + [{"query": "second query", "cited": False,
+                                                           "sources": ["https://toolradar.com/x"]}]), encoding="utf-8")
+    plan = _plan(project)
+    assert [p.page_id for p in plan.pages] == ["compare", "other"]
+
+    def rewrite(*a):
+        raise LLMError("Missing OPENAI_API_KEY")
+
+    report = _run(project, ScriptedJev(LOSES, LOSES), rewrite)
+    assert [p["status"] for p in report["pages"]] == ["rewriter_error", "rewriter_error"]
+    assert all(p["reasons"] == ["Missing OPENAI_API_KEY"] for p in report["pages"])
+    assert all(p["fidelity"] is None and p["verification"] is None for p in report["pages"])
+    assert "rewriter_error" in gaps.SECTION_STATUSES
+    assert json.loads((project / "out" / "fix-gaps.json").read_text(encoding="utf-8")) == report
+    for pid in ("compare", "other"):
+        assert not (project / "out" / pid / f"{pid}.md").exists()
+        assert not (project / "out" / pid / "section.diff").exists()
+        assert (project / "out" / pid / "diagnosis.json").exists()
+
+
+def test_cli_section_mode_fails_closed_without_rewriter_key(project: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("TYPESAFE_API_KEY", "ts-test")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GEO_EVAL_MOCK", raising=False)
+    monkeypatch.setattr(sources, "fetch_sources", lambda *a, **k: pytest.fail("must not fetch without rewriter key"))
+    code = main(["fix-gaps", str(project / "gaps.json"), "--project", str(project / "project.yaml"),
+                 "--out-dir", str(project / "out")])
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "OPENAI_API_KEY" in err and "GEO_EVAL_MOCK=1" in err
+    assert not (project / "out").exists()
 
 
 def test_cli_section_mode_fails_closed_without_key(project: Path, monkeypatch, capsys) -> None:

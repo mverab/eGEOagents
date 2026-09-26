@@ -1,7 +1,5 @@
 """LLM rewrite of ONE section for section-mode ``fix-gaps``.
 
-SCAFFOLD — implement until ``tests/test_section_rewriter.py`` passes.
-
 - Prompts live in ``prompts/section_rewriter_system.txt`` and ``prompts/section_rewriter_user.txt``
   (repo root, canonical) with byte-identical packaged copies under ``egeo/resources/prompts/``.
   Load them through ``egeo.resource_root() / "prompts" / <name>``.

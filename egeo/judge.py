@@ -1,7 +1,5 @@
 """Jev decisions for section-mode ``fix-gaps``: diagnose, fidelity judge, verify.
 
-SCAFFOLD — implement until ``tests/test_judge.py`` passes (fake Jev client, no network).
-
 Jev judges; it never writes. All thresholds are the constants below and must not be tuned per run.
 
 ``select_best(query, candidates, client)``:
@@ -25,6 +23,8 @@ Jev judges; it never writes. All thresholds are the constants below and must not
 - One Choice question ``FIDELITY_QID`` with ``FIDELITY_INSTRUCTIONS`` and ``FIDELITY_CRITERIA``;
   state = ``{"original": original, "rewrite": rewrite}``.
 - ``accepted = verdict == "faithful" and confidence >= FIDELITY_GATE``.
+- Not validated directly: ``eval/jev_selection`` measured source *selection*, not fidelity. The judge
+  can only reject, and it runs after the deterministic rules in ``egeo.fidelity``.
 
 ``verify(query, own_after, sources, target_id, before, client)``:
 - ``after = select_best(query, [*own_after, *sources], client)`` (same ids as before).
@@ -32,6 +32,7 @@ Jev judges; it never writes. All thresholds are the constants below and must not
 - outcome: winner_kind of ``after`` == "own" -> ``"won"``; elif p_after - p_before >= IMPROVE_DELTA
   -> ``"improved"``; elif p_before - p_after >= IMPROVE_DELTA -> ``"worse"``; else ``"no_change"``.
   Compare with a 1e-9 tolerance so that exactly 0.05 counts.
+  ``"won"`` means ANY own section wins after the rewrite, not necessarily ``target_id``.
 
 ``own_candidates(sections)``: sections with ``word_count >= MIN_SECTION_WORDS`` become
 ``Candidate(id=f"own_{s.id}", kind="own", label=s.heading or "(intro)", text=s.text)``.

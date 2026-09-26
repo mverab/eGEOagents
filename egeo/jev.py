@@ -1,8 +1,5 @@
 """Minimal TypeSafe (Jev) client for section-mode ``fix-gaps``.
 
-SCAFFOLD — implement until ``tests/test_jev.py`` passes. Tests inject a fake transport; never
-call the network in tests.
-
 API contract (verified live 2026-09-25, model ``jev-1.13.0``):
     POST https://api.typesafe.ai/v1/systemone
     headers: Authorization: Bearer $TYPESAFE_API_KEY, Content-Type: application/json

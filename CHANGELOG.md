@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `egeo fix-gaps` now defaults to **section mode**: it rewrites only the one section that loses each query, instead of the whole page. The legacy whole-page rewrite stays available via `--mode page`.
 
 ### Added
-- `fix-gaps` section mode: per-section rewrite with deterministic **fidelity gates** (heading, links, numbers, table rows, code blocks, length), a Jev fidelity judge and a Jev before/after re-check. Rejections (`rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`) keep the original text untouched.
-- Jev diagnosis/verification marked **experimental** (`"experimental": true`) with the validation numbers in every report's `jev_validation` block: text-competitiveness only, mean AUC 0.64 (95% CI 0.57–0.71, 30 queries, 2026-09-25), below the 0.65 bar. Not a prediction of citation.
+- `fix-gaps` section mode: per-section rewrite with deterministic **fidelity gates** (heading, links, numbers, table rows, code blocks, length), a Jev fidelity judge and a Jev before/after re-check. Rejections (`rejected_fidelity_rules`, `rejected_fidelity_judge`, `rejected_worse`) keep the original text untouched; a rewriter LLM failure marks the page `rewriter_error` and the run continues. Section mode pre-checks `TYPESAFE_API_KEY` and `OPENAI_API_KEY`.
+- Jev diagnosis/verification marked **experimental** (`"experimental": true`) with the validation numbers in every report's `jev_validation` block: text-competitiveness only; the same single-choice comparison scored mean AUC 0.62 (95% CI 0.56–0.67, 30 queries, 2026-09-25, full-page excerpts), below the 0.65 bar, with own-page accuracy 0.17. Not a prediction of citation. The Jev fidelity judge is not validated directly.
 - `already_best` off-page recommendation: the sources the engine cited, so you can get mentioned or linked by them.
 - `eval/jev_selection`: the validation harness (noul + choice scorers, bootstrap CI) and README with the pre-registered method and results.
 

@@ -147,16 +147,17 @@ egeo fix-gaps gaps.json --project project.yaml --out-dir fix-gaps-output
 | `rejected_fidelity_judge` | Jev fidelity judge did not accept the rewrite |
 | `rejected_worse` | the re-check scored the rewrite worse than the original |
 | `jev_error` | TypeSafe failed for this page (other pages continue) |
+| `rewriter_error` | the rewriter LLM failed for this page (other pages continue) |
 
 :::caution[Experimental: the Jev comparison]
-The two Jev steps (which section loses, and the before/after re-check) measure **text competitiveness** — whether a candidate's *text* directly answers the query. They do **not** model authority, links or brand, and they are **not a prediction of citation**. In a pre-registered validation (30 queries, 2026-09-25) Jev separated Perplexity-cited from uncited sources with mean AUC **0.64 (95% CI 0.57–0.71)** — real but weak, and below the 0.65 bar we set. Numbers and method: `eval/jev_selection/README.md`. Every `fix-gaps.json` carries the same figures in `jev_validation`, and every diagnosis/verification is marked `"experimental": true`. **Proof of impact never comes from Jev:** re-run your tracker on the `remeasure` queries.
+The two Jev steps (which section loses, and the before/after re-check) measure **text competitiveness** — whether a candidate's *text* directly answers the query. They do **not** model authority, links or brand, and they are **not a prediction of citation**. In a pre-registered validation (30 queries, 2026-09-25) the same single-choice comparison separated Perplexity-cited from uncited sources with mean AUC **0.62 (95% CI 0.56–0.67)** — weak, and below the 0.65 bar we set — and matched the engine's cited/not-cited outcome for the own page in only **17%** of queries. That validation used full-page excerpts, not sections. The Jev fidelity judge was not validated directly (the eval measured selection); it can only reject, after the deterministic rules. A re-check outcome of `won` means any own section now wins, not necessarily the rewritten one. Numbers and method: `eval/jev_selection/README.md`. Every `fix-gaps.json` carries the same figures in `jev_validation`, and every diagnosis/verification is marked `"experimental": true`. **Proof of impact never comes from Jev:** re-run your tracker on the `remeasure` queries.
 :::
 
 **`already_best` → off-page recommendation:** when your text already wins the comparison, rewriting it is unlikely to help — the gap is probably off-page. The report lists the sources the engine cited so you can get your page mentioned or linked by them.
 
 **Output:** `<out-dir>/<page-id>/` with the rewritten file, `section.diff` and `diagnosis.json`, plus `<out-dir>/fix-gaps.json` listing pages, statuses, unmatched/skipped gaps, `jev_validation`, and a `remeasure` list (with the exact `geo citations` command for geo-optimizer-skill input).
 
-**Requirements:** section mode needs `TYPESAFE_API_KEY` (it fails closed with a clear error otherwise) and an OpenAI-compatible key for the rewriter (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, model via `--rewriter-model`). `GEO_EVAL_MOCK=1` runs fully offline, deterministically.
+**Requirements:** section mode needs `TYPESAFE_API_KEY` and an OpenAI-compatible key for the rewriter (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, model via `--rewriter-model`); both are checked before the run starts and it fails closed with a clear error otherwise. `GEO_EVAL_MOCK=1` runs fully offline, deterministically.
 
 Flags: `--mode sections|page` (default `sections`; `page` is the legacy whole-page rewrite from v2.1), `--max-sources` (default 6), `--jev-model`, `--project`, `--out-dir` (default `fix-gaps-output`), `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the same `--runtime` and model flags as `optimize` (page mode).
 

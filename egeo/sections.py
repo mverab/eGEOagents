@@ -1,6 +1,5 @@
 """Byte-exact Markdown section splitting for section-mode ``fix-gaps``.
 
-SCAFFOLD — implement the functions below until ``tests/test_sections.py`` passes.
 Spec: openspec/changes/update-fix-gaps-section-rewrite. Plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md.
 
 Rules (all enforced by tests):

@@ -1,8 +1,5 @@
 """Fetch and excerpt the pages a tracker says were cited instead of the site.
 
-SCAFFOLD — implement until ``tests/test_sources.py`` passes. Tests never touch the network:
-they inject ``fetcher``.
-
 - ``normalize_source``: strip whitespace; ``http(s)://...`` URLs are kept as-is; a bare domain
   (``libhunt.com`` or ``www.libhunt.com/path``) becomes ``https://`` + value, and a bare domain
   without a path gets a trailing ``/``; anything else (empty, contains spaces, no dot in the

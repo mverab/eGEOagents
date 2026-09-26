@@ -59,8 +59,7 @@ class PagePlan:
     source: Path
     query: str
     other_gaps: List[str] = field(default_factory=list)
-    # SCAFFOLD (section mode): sources the tracker reported for `query` (the primary gap).
-    # plan_fixes must set this from Gap.sources when it creates the PagePlan.
+    # Section mode: sources the tracker reported for `query` (the primary gap), from Gap.sources.
     sources: List[str] = field(default_factory=list)
 
 
@@ -245,9 +244,8 @@ def run_fix_gaps(
 
 
 # --------------------------------------------------------------------------- #
-# Section mode (SCAFFOLD) — openspec/changes/update-fix-gaps-section-rewrite
-# Implement until tests/test_gaps_sections.py passes. Plan:
-# docs/plans/2026-09-25-fix-gaps-sections-plan.md (Lane F).
+# Section mode — openspec/changes/update-fix-gaps-section-rewrite
+# Plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md (+ v2, v3).
 # --------------------------------------------------------------------------- #
 
 SECTION_STATUSES = (
@@ -260,33 +258,39 @@ SECTION_STATUSES = (
     "rejected_fidelity_judge", # Jev fidelity judge did not accept
     "rejected_worse",          # verification outcome "worse"
     "jev_error",               # TypeSafe failed for this page (JevProviderError / JevConfigError)
+    "rewriter_error",          # the rewriter LLM failed for this page (LLMError); nothing written
 )
 
+# The figures below are the pre-registered v2 run of the *choice* scorer: the same single Choice question
+# (judge.select_best) that section mode uses to diagnose and verify. The gate-deciding noul scorer
+# (AUC 0.637) is not what section mode runs, so its numbers are not quoted here.
 SECTIONS_NOTE = (
     "Section mode: the Jev comparison between your sections and the sources the tracker says were cited is "
     "EXPERIMENTAL. It scores text competitiveness (which candidate's text best answers the query) and does not "
     "model authority or links, so it is not a prediction of citation. In a pre-registered test (30 queries, "
-    "2026-09-25) it separated cited from uncited sources with mean AUC 0.64 (95% CI 0.57-0.71), below the 0.65 "
-    "bar (eval/jev_selection/README.md). Confirm any change by re-checking the queries in `remeasure` with your tracker."
+    "2026-09-25) the same single-choice comparison separated cited from uncited sources with mean AUC 0.62 "
+    "(95% CI 0.56-0.67), below the 0.65 bar, and matched the engine's cited/not-cited outcome for the own page "
+    "in only 17% of the queries that had one. That test compared full-page excerpts, not sections "
+    "(eval/jev_selection/README.md). Confirm any change by re-checking the queries in `remeasure` with your tracker."
 )
 
-# v3 (owner decision 2026-09-25, option A) — CONTRACT for Lane F3, see docs/plans/2026-09-25-fix-gaps-sections-plan-v3.md.
-# - The section-mode report carries "jev_validation": dict(JEV_VALIDATION) (an exact copy).
-# - Every non-null page "diagnosis" dict and every non-null "verification" dict carries "experimental": True.
+# Copied verbatim into every section-mode report as "jev_validation"; every non-null page "diagnosis" and
+# "verification" also carries "experimental": True (owner decision 2026-09-25, plan v3).
 JEV_VALIDATION = {
     "status": "experimental",
-    "scorer": "noul",
-    "mean_auc": 0.637,
-    "ci95": [0.568, 0.706],
+    "scorer": "choice",
+    "mean_auc": 0.619,
+    "ci95": [0.561, 0.674],
+    "own_accuracy": 0.167,
     "n_queries": 30,
+    "unit": "full-page excerpts (<= 1500 chars), not sections",
     "gate_auc": 0.65,
     "gate_passed": False,
     "date": "2026-09-25",
     "details": "eval/jev_selection/README.md",
 }
 
-# v2 (2026-09-25 review) — CONTRACT for Lane F2, see docs/plans/2026-09-25-fix-gaps-sections-plan-v2.md.
-# Every page dict gets an "offpage" key. For status "already_best" it is
+# Every page dict gets an "offpage" key (plan v2). For status "already_best" it is
 #   {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE, "sources": [url of every ok fetched doc, in fetch order]}
 # and for every other status it is None. The CLI line for an already_best page is
 #   f"already_best: {page_id} (off-page: {len(sources)} cited sources)".
@@ -305,6 +309,7 @@ def mock_enabled() -> bool:
 def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_domain, max_sources):
     import difflib
     from . import fidelity, judge
+    from llm_client import LLMError
     from .jev import JevConfigError, JevProviderError
     from .pipeline import _derive_title_and_body, _extract_frontmatter
     from .sections import join_sections, replace_section, split_sections
@@ -338,7 +343,10 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
         res["diagnosis"] = {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind, "confidence": sel.confidence,
                             "probabilities": dict(sel.probabilities), "target_section": {"id": sid, "heading": sec.heading},
                             "experimental": True}
-        new_text = rewrite_fn(page.query, sec.text, title)
+        try:
+            new_text = rewrite_fn(page.query, sec.text, title)
+        except LLMError as exc:
+            res["status"] = "rewriter_error"; res["reasons"] = [str(exc)]; return res
         if new_text == sec.text:
             res["status"] = "no_change_proposed"; return res
         rules = fidelity.check_fidelity(sec.text, new_text)
@@ -408,6 +416,7 @@ def default_project_path() -> Path:
 
 
 def cli(args: Any) -> int:
+    import os
     import sys
 
     try:
@@ -429,6 +438,10 @@ def cli(args: Any) -> int:
         if not mock and not _jev.key_configured():
             print("ERROR: section mode needs TYPESAFE_API_KEY (or GEO_EVAL_MOCK=1 for an offline run); "
                   "use --mode page for the legacy whole-page rewrite.", file=sys.stderr)
+            return 2
+        if not mock and not (os.environ.get("OPENAI_API_KEY") or "").strip():
+            print("ERROR: section mode needs OPENAI_API_KEY for the section rewriter (optional OPENAI_BASE_URL), "
+                  "or GEO_EVAL_MOCK=1 for an offline run.", file=sys.stderr)
             return 2
         client = _jev.make_client(mock=mock, model=args.jev_model)
         out = Path(args.out_dir)
