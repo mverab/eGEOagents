@@ -1,0 +1,17 @@
+{
+  "_fixture": "Recorded shape of a Serply GET /v1/search response body, trimmed to the fields collectors/serp.py reads. Synthetic content, real schema: used by offline contract tests (python collectors/serp.py --engine serply --fixture ...).",
+  "query": "q=best+geo+optimization+tool&num=10&gl=us",
+  "results": [
+    {"title": "The 12 Best GEO Tools (2026 Review)", "link": "https://searchmonitor.example/blog/best-geo-tools", "description": "Ranked roundup of generative engine optimization tools.", "position": "1", "realPosition": "1", "result_type": "organic"},
+    {"title": "GEO Optimization Platform", "link": "https://www.rivalgeo.example/platform", "description": "Enterprise GEO suite.", "position": "2", "realPosition": "2", "result_type": "organic"},
+    {"title": "E-GEO: open-source generative engine optimization", "link": "https://example.com/egeo", "description": "Zero-effort GEO for AI search engines.", "position": "3", "realPosition": "3", "result_type": "organic"},
+    {"title": "How AI search engines pick sources", "link": "https://airesearch.example/papers/geo", "description": "Study of citation behavior.", "position": "4", "realPosition": "4", "result_type": "organic"},
+    {"title": "GEO vs SEO explained", "link": "https://contentlab.example/geo-vs-seo", "description": "Primer on the differences.", "position": "5", "realPosition": "5", "result_type": "organic"},
+    {"title": "Best AI visibility trackers", "link": "https://toolsdigest.example/ai-visibility", "description": "Comparison table.", "position": "6", "realPosition": "6", "result_type": "organic"},
+    {"title": "Optimizing content for ChatGPT answers", "link": "https://promptcraft.example/chatgpt-visibility", "description": "Tactics and pitfalls.", "position": "7", "realPosition": "7", "result_type": "organic"},
+    {"title": "Schema markup for AI answers", "link": "https://schemaguide.example/ai", "description": "JSON-LD patterns.", "position": "8", "realPosition": "8", "result_type": "organic"},
+    {"title": "Perplexity ranking factors", "link": "https://serpnotes.example/perplexity", "description": "Observed factors.", "position": "9", "realPosition": "9", "result_type": "organic"},
+    {"title": "GEO checklist", "link": "https://growthwiki.example/geo-checklist", "description": "Implementation checklist.", "position": "10", "realPosition": "10", "result_type": "organic"},
+    {"title": "Overflow result (must be dropped at 10)", "link": "https://ignored.example/eleventh", "description": "Beyond top-10.", "position": "11", "realPosition": "11", "result_type": "organic"}
+  ]
+}

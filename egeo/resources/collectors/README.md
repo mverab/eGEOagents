@@ -45,7 +45,7 @@ A collector in this directory MUST:
 | `serp.py` | `data/serp/<query-slug>.jsonl` | `{v, ts, query, engine, results[≤10], target_domain, target_position}` |
 | `page.py` | `data/page/<page-slug>.jsonl` | `{v, ts, url, status, content_hash, title, meta_description, jsonld_types, word_count}` |
 
-### `serp.py` — position history from the Brave Search API or the SerpBase Google Search API
+### `serp.py` — position history from the Brave Search API, the SerpBase Google Search API, or the Serply Google Search API
 
 ```bash
 export BRAVE_API_KEY=...                  # never printed, never written to disk
@@ -58,9 +58,14 @@ python -m egeo loop collect serp          # equivalent, in-process
 export SERPBASE_API_KEY=...
 python collectors/serp.py --engine serpbase
 python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json
+
+# Google SERP via Serply (GET API, key in the X-Api-Key header)
+export SERPLY_API_KEY=...
+python collectors/serp.py --engine serply
+python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json
 ```
 
-Brave and SerpBase are called over their **HTTP APIs directly**, not through an
+Brave, SerpBase and Serply are called over their **HTTP APIs directly**, not through an
 MCP: collectors run under cron with no agent attached, so an MCP server is not
 available to them. The MCP stays the path for interactive agent sessions. Live
 passes are paced at ≤1 query/second and refuse to exceed
@@ -71,7 +76,7 @@ Config:
 ```yaml
 collectors:
   serp:
-    engine: brave          # optional: brave (default) or serpbase (Google via SerpBase)
+    engine: brave          # optional: brave (default), serpbase or serply (Google via SerpBase / Serply)
     target_domain: example.com     # position is reported for this domain
     queries:
       - best geo optimization tool
@@ -109,7 +114,8 @@ collectors:
 
 `fixtures/serp_brave_response.json` is a recorded Brave `/res/v1/web/search`
 response body; `fixtures/serp_serpbase_response.json` is a recorded SerpBase
-`POST /google/search` response body; `fixtures/pages/*.html` are recorded page
+`POST /google/search` response body; `fixtures/serp_serply_response.json` is a
+recorded Serply `GET /v1/search` response body; `fixtures/pages/*.html` are recorded page
 bodies whose file names encode the URL slug. Fixture mode is what CI runs: no
 network, no key, same code path, same schema.
 

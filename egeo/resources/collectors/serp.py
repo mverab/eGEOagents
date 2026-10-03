@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""SERP collector: position history for your queries, from the Brave Search API
-or the SerpBase Google Search API.
+"""SERP collector: position history for your queries, from the Brave Search API,
+the SerpBase Google Search API, or the Serply Google Search API.
 
 Deterministic, zero LLM calls. One record per query per pass, appended to
 ``$EGEO_HOME/data/serp/<query-slug>.jsonl``::
@@ -9,15 +9,17 @@ Deterministic, zero LLM calls. One record per query per pass, appended to
      "results": [{"position": 1, "url": "...", "domain": "...", "title": "..."}, ...],
      "target_domain": "example.com", "target_position": 3 | null}
 
-The engine is selected with ``--engine brave|serpbase`` (or
+The engine is selected with ``--engine brave|serpbase|serply`` (or
 ``collectors.serp.engine`` in config.yaml; default ``brave``):
 
 - ``brave`` — Brave Search API over HTTP directly (``BRAVE_API_KEY``).
 - ``serpbase`` — SerpBase Google Search API (``SERPBASE_API_KEY``): Google
   organic results (plus AI Overviews on the SERP) as JSON, no browser.
+- ``serply`` — Serply Google Search API (``SERPLY_API_KEY``): Google organic
+  results as JSON over a GET request, no browser.
 
-Both are called over their HTTP API directly (``BRAVE_API_KEY`` /
-``SERPBASE_API_KEY``) rather than through an MCP: a cron-launched collector
+All are called over their HTTP API directly (``BRAVE_API_KEY`` /
+``SERPBASE_API_KEY`` / ``SERPLY_API_KEY``) rather than through an MCP: a cron-launched collector
 has no agent, hence no MCP. Live passes are paced at ≤1 query/second and
 refuse to exceed ``budgets.queries_per_day``.
 
@@ -28,6 +30,7 @@ Usage::
     python collectors/serp.py --engine serpbase     # Google SERP via SerpBase
     python collectors/serp.py --fixture collectors/fixtures/serp_brave_response.json
     python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json
+    python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json
 """
 from __future__ import annotations
 
@@ -55,6 +58,11 @@ API_KEY_ENV = "BRAVE_API_KEY"
 SERPBASE_ENGINE = "serpbase"
 SERPBASE_API_URL = "https://api.serpbase.dev/google/search"
 SERPBASE_API_KEY_ENV = "SERPBASE_API_KEY"
+SERPLY_ENGINE = "serply"
+SERPLY_API_URL = "https://api.serply.io/v1/search"
+SERPLY_API_KEY_ENV = "SERPLY_API_KEY"
+ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE)
+API_KEY_ENVS = {ENGINE: API_KEY_ENV, SERPBASE_ENGINE: SERPBASE_API_KEY_ENV, SERPLY_ENGINE: SERPLY_API_KEY_ENV}
 MAX_RESULTS = 10
 MIN_SECONDS_BETWEEN_QUERIES = 1.0
 
@@ -164,6 +172,52 @@ def parse_serpbase_response(payload: Dict[str, Any], query: str, target_domain: 
     }
 
 
+def parse_serply_response(payload: Dict[str, Any], query: str, target_domain: str) -> Dict[str, Any]:
+    """Turn a Serply ``/v1/search`` body into one versioned observation record.
+
+    Same contract as :func:`parse_brave_response`: positions are the rank
+    Google returned (``realPosition``), the target position is the first
+    result whose domain matches, or ``None``.
+    """
+    if payload.get("detail"):
+        raise common.CollectorError(f"Serply API reported {payload.get('detail')!r} for {query!r}")
+    raw_results = payload.get("results") or []
+    if not isinstance(raw_results, list):
+        raise common.CollectorError(f"unexpected Serply payload for {query!r}: results is not a list")
+
+    results: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw_results[:MAX_RESULTS], start=1):
+        if not isinstance(item, dict):
+            raise common.CollectorError(f"unexpected Serply payload for {query!r}: result is not an object")
+        url = str(item.get("link", ""))
+        results.append(
+            {
+                "position": int(item.get("realPosition") or item.get("position") or index),
+                "url": url,
+                "domain": _domain_of(url),
+                "title": str(item.get("title", "")),
+            }
+        )
+
+    target = _normalize_domain(target_domain)
+    target_position = None
+    if target:
+        for result in results:
+            if result["domain"] == target or result["domain"].endswith("." + target):
+                target_position = result["position"]
+                break
+
+    return {
+        "v": SCHEMA_VERSION,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "query": query,
+        "engine": SERPLY_ENGINE,
+        "results": results,
+        "target_domain": target or None,
+        "target_position": target_position,
+    }
+
+
 def fetch_brave(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str, Any]:
     """Call the Brave Search API and return the parsed JSON body."""
     url = f"{API_URL}?{urlencode({'q': query, 'count': count})}"
@@ -217,6 +271,35 @@ def fetch_serpbase(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[s
     return payload
 
 
+def fetch_serply(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str, Any]:
+    """Call the Serply Google Search API and return the parsed JSON body.
+
+    Serply is a GET API (``X-Api-Key`` header, so the key never appears in a
+    URL); the response envelope is ``{"results": [...], ...}`` and errors
+    carry a ``detail`` string. One call returns one Google page (``num`` <= 10).
+    """
+    url = f"{SERPLY_API_URL}?{urlencode({'q': query, 'num': min(count, MAX_RESULTS), 'gl': 'us'})}"
+    status, body = common.http_get(
+        url,
+        headers={"Accept": "application/json", "X-Api-Key": api_key},
+    )
+    if status == 401 or status == 403:
+        raise common.CollectorError(
+            f"Serply API rejected the request (HTTP {status}). Check ${SERPLY_API_KEY_ENV}."
+        )
+    if status == 429:
+        raise common.CollectorError("Serply API rate limit hit (HTTP 429); retry later or lower the cadence.")
+    if status != 200:
+        raise common.CollectorError(f"Serply API returned HTTP {status} for {query!r}")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise common.CollectorError(f"Serply API returned invalid JSON for {query!r}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise common.CollectorError(f"Serply API returned a non-object body for {query!r}")
+    return payload
+
+
 def load_fixture(path: Path) -> Dict[str, Any]:
     """Read a recorded Brave response body from disk (fixture mode)."""
     try:
@@ -245,10 +328,12 @@ def collect(
             "no queries configured: add collectors.serp.queries to "
             f"{home / workspace.CONFIG_NAME} or pass --query"
         )
-    if engine not in (ENGINE, SERPBASE_ENGINE):
-        raise common.CollectorError(f"unknown SERP engine {engine!r}: choose from '{ENGINE}', '{SERPBASE_ENGINE}'")
+    if engine not in ENGINES:
+        raise common.CollectorError(
+            f"unknown SERP engine {engine!r}: choose from " + ", ".join(f"'{name}'" for name in ENGINES)
+        )
 
-    key_env = API_KEY_ENV if engine == ENGINE else SERPBASE_API_KEY_ENV
+    key_env = API_KEY_ENVS[engine]
     api_key = os.environ.get(key_env, "").strip()
     if fixture is None and not api_key:
         raise common.CollectorError(
@@ -277,10 +362,14 @@ def collect(
                 time.sleep(MIN_SECONDS_BETWEEN_QUERIES)
             if engine == SERPBASE_ENGINE:
                 payload = fetch_serpbase(query, api_key)
+            elif engine == SERPLY_ENGINE:
+                payload = fetch_serply(query, api_key)
             else:
                 payload = fetch_brave(query, api_key)
         if engine == SERPBASE_ENGINE:
             record = parse_serpbase_response(payload, query, target_domain)
+        elif engine == SERPLY_ENGINE:
+            record = parse_serply_response(payload, query, target_domain)
         else:
             record = parse_brave_response(payload, query, target_domain)
         common.append_record(paths[query], record)
@@ -311,16 +400,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--engine",
-        choices=[ENGINE, SERPBASE_ENGINE],
+        choices=list(ENGINES),
         default=None,
-        help=f"SERP source engine: '{ENGINE}' (Brave Search API) or '{SERPBASE_ENGINE}' "
-        f"(SerpBase Google Search API). Default: collectors.serp.engine from config.yaml, else '{ENGINE}'.",
+        help=f"SERP source engine: '{ENGINE}' (Brave Search API), '{SERPBASE_ENGINE}' "
+        f"(SerpBase Google Search API) or '{SERPLY_ENGINE}' (Serply Google Search API). "
+        f"Default: collectors.serp.engine from config.yaml, else '{ENGINE}'.",
     )
     parser.add_argument(
         "--fixture",
         default=None,
         help="Replay a recorded response JSON file instead of calling the API (offline). "
-        "Use --engine serpbase with collectors/fixtures/serp_serpbase_response.json for a Google SERP pass.",
+        "Use --engine serpbase with collectors/fixtures/serp_serpbase_response.json, or --engine serply "
+        "with collectors/fixtures/serp_serply_response.json, for a Google SERP pass.",
     )
     parser.add_argument("--json", action="store_true", help="Print the machine-readable summary.")
     return parser
