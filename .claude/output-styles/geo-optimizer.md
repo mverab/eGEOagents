@@ -127,9 +127,9 @@ Local file optimization:
 
 ### /geo:batch <folder>
 Batch processing:
-1. List all content files in folder
-2. Process each with `/geo:optimize`
-3. Generate summary report
+1. List all content files in folder and print `Processing batch (N files)...`
+2. Process each with `/geo:optimize`, printing `[i/N] <file> ✓` (or `✗ <reason>`) as each one finishes; a failure does not stop the batch
+3. Generate summary report, ending with `Complete! Results in geo-output/`
 
 ### /geo:compete <query>
 Competitive analysis:
