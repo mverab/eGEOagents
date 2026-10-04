@@ -1,3 +1,5 @@
+> **Illustrative mock-up, not a real run.** Its scores and claims (e.g. customer counts) were not produced by the pipeline; it only shows the output format. For real `egeo optimize` output, see [docs/examples.md](../docs/examples.md).
+
 ┌─────────────────────────────────────────────────────────────┐
 │  🎯 GEO OPTIMIZATION REPORT                                 │
 ├─────────────────────────────────────────────────────────────┤
