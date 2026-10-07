@@ -244,7 +244,7 @@ def run_fix_gaps(
 
 
 # --------------------------------------------------------------------------- #
-# Section mode — openspec/changes/update-fix-gaps-section-rewrite
+# Section mode — openspec/specs/citation-gap-fixing
 # Plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md (+ v2, v3).
 # --------------------------------------------------------------------------- #
 

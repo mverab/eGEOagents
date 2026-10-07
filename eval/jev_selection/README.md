@@ -1,7 +1,7 @@
 # Jev source-selection validation
 
 **Question:** does Jev score candidate sources the way Perplexity actually cites them? This is the
-validation gate for section-mode `fix-gaps` (`openspec/changes/update-fix-gaps-section-rewrite`).
+validation gate for section-mode `fix-gaps` (`openspec/specs/citation-gap-fixing`; change archived under `openspec/changes/archive/2026-09-26-update-fix-gaps-section-rewrite`).
 Section mode uses Jev to judge **text competitiveness** — whose text best answers the query — *not*
 to predict citations (Jev sees text only; engines also weigh authority and links).
 

@@ -21,5 +21,5 @@ v3 (ship with Jev labeled experimental, owner decision A): `docs/plans/2026-09-2
 - [x] 3.4 Review fixes: report the choice scorer's numbers (the one section mode runs, on full-page excerpts), `rewriter_error` status + `OPENAI_API_KEY` pre-check
 
 ## 4. Follow-ups (not in this change)
-- [ ] 4.1 Plan v4: neutral, non-revealing candidate ids for Jev (today `own_sXX` / `src_N` tell Jev which candidates are ours); invalidates the current validation for the new configuration
+- [x] 4.1 Moved to change `update-jev-blind-validation` (neutral candidate ids, product-path eval, fresh pre-registered run). Shipped in 2.2.0 with the leak disclosed under CHANGELOG "Known limitations".
 - [x] 4.2 Owner decision 2026-09-26: `--mode page` stays the `fix-gaps` default; `sections` is opt-in and labeled experimental. Flipping the default to `sections` is pending `remeasure` evidence.

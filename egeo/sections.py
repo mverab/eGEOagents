@@ -1,6 +1,6 @@
 """Byte-exact Markdown section splitting for section-mode ``fix-gaps``.
 
-Spec: openspec/changes/update-fix-gaps-section-rewrite. Plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md.
+Spec: openspec/specs/citation-gap-fixing. Plan: docs/plans/2026-09-25-fix-gaps-sections-plan.md.
 
 Rules (all enforced by tests):
 - Input is a Markdown *body* (frontmatter already removed with
