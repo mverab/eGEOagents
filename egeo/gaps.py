@@ -261,34 +261,58 @@ SECTION_STATUSES = (
     "rewriter_error",          # the rewriter LLM failed for this page (LLMError); nothing written
 )
 
-# The figures below are the pre-registered v2 run of the *choice* scorer: the same single Choice question
-# (judge.select_best) that section mode uses to diagnose and verify. The gate-deciding noul scorer
-# (AUC 0.637) is not what section mode runs, so its numbers are not quoted here.
+# v4 (openspec update-jev-blind-validation): section mode scores every candidate with an independent Noul
+# question under blind ids (c01, c02, ...). That configuration has NOT been validated yet; the 2.2.0 number
+# measured a different one (single Choice question, ids that revealed ownership, full-page excerpts), so it
+# is quoted only as an earlier configuration, never as this version's result.
 SECTIONS_NOTE = (
     "Section mode: the Jev comparison between your sections and the sources the tracker says were cited is "
-    "EXPERIMENTAL. It scores text competitiveness (which candidate's text best answers the query) and does not "
-    "model authority or links, so it is not a prediction of citation. In a pre-registered test (30 queries, "
-    "2026-09-25) the same single-choice comparison separated cited from uncited sources with mean AUC 0.62 "
-    "(95% CI 0.56-0.67), below the 0.65 bar, and matched the engine's cited/not-cited outcome for the own page "
-    "in only 17% of the queries that had one. That test compared full-page excerpts, not sections "
-    "(eval/jev_selection/README.md). Confirm any change by re-checking the queries in `remeasure` with your tracker."
+    "EXPERIMENTAL. It scores text competitiveness (how well each candidate's text answers the query) and does "
+    "not model authority or links, so it is not a prediction of citation. The configuration this version runs "
+    "(an independent score per candidate, neutral ids that hide which text is yours, sections) has not been "
+    "validated yet; a pre-registered test is planned (eval/jev_selection/README.md). An earlier configuration "
+    "(single-choice comparison, ids that revealed ownership, full-page excerpts) scored mean AUC 0.62 "
+    "(95% CI 0.56-0.67, 30 queries, 2026-09-25), below the 0.65 bar. Confirm any change by re-checking the "
+    "queries in `remeasure` with your tracker."
 )
 
-# Copied verbatim into every section-mode report as "jev_validation"; every non-null page "diagnosis" and
-# "verification" also carries "experimental": True (owner decision 2026-09-25, plan v3).
+# Copied verbatim into every section-mode report as "jev_validation". While "status" != "validated", every
+# non-null page "diagnosis" and "verification" carries "experimental": True (one switch, flipped only by the
+# pre-registered outcome, plan v4 §4). Until then this describes the v4 configuration with NO result.
 JEV_VALIDATION = {
     "status": "experimental",
-    "scorer": "choice",
-    "mean_auc": 0.619,
-    "ci95": [0.561, 0.674],
-    "own_accuracy": 0.167,
-    "n_queries": 30,
-    "unit": "full-page excerpts (<= 1500 chars), not sections",
+    "protocol": "v4",
+    "scorer": "noul",
+    "ids": "blind",
+    "unit": "sections",
+    "mean_auc": None,
+    "ci95": None,
+    "own_accuracy": None,
+    "n_queries": None,
     "gate_auc": 0.65,
+    "gate_min_queries": 25,
     "gate_passed": False,
-    "date": "2026-09-25",
+    "prereg_sha": None,
+    "date": None,
     "details": "eval/jev_selection/README.md",
+    "previous": {
+        "config": "choice, leaky ids, page excerpts",
+        "mean_auc": 0.619,
+        "ci95": [0.561, 0.674],
+        "own_accuracy": 0.167,
+        "n_queries": 30,
+        "gate_passed": False,
+        "date": "2026-09-25",
+    },
 }
+
+
+def _flag(d):
+    """Add "experimental": True to a diagnosis/verification dict while Jev is not validated."""
+    if JEV_VALIDATION["status"] != "validated":
+        d["experimental"] = True
+    return d
+
 
 # Every page dict gets an "offpage" key (plan v2). For status "already_best" it is
 #   {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE, "sources": [url of every ok fetched doc, in fetch order]}
@@ -327,11 +351,11 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
            "offpage": None, "reasons": []}
     try:
         diag = judge.diagnose(page.query, own, srcs, jev_client)
-        if diag.selection is None or diag.status == "already_best":
-            sel = diag.selection
-            res["diagnosis"] = None if sel is None else {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind,
-                                                        "confidence": sel.confidence, "probabilities": dict(sel.probabilities),
-                                                        "target_section": None, "experimental": True}
+        if diag.scored is not None:
+            lead = judge.leader(diag.scored, own, srcs)
+            res["diagnosis"] = _flag({"status": diag.status, "winner": lead.id, "winner_kind": lead.kind, "scorer": "noul",
+                                      "scores": dict(diag.scored.scores), "target_section": None})
+        if diag.scored is None or diag.status == "already_best":
             res["status"] = diag.status
             if diag.status == "already_best":
                 res["offpage"] = {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE,
@@ -339,10 +363,7 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
             return res
         sid = diag.target_id[len("own_"):]
         sec = next(s for s in secs if s.id == sid)
-        sel = diag.selection
-        res["diagnosis"] = {"status": diag.status, "winner": sel.winner, "winner_kind": sel.winner_kind, "confidence": sel.confidence,
-                            "probabilities": dict(sel.probabilities), "target_section": {"id": sid, "heading": sec.heading},
-                            "experimental": True}
+        res["diagnosis"]["target_section"] = {"id": sid, "heading": sec.heading}
         try:
             new_text = rewrite_fn(page.query, sec.text, title)
         except LLMError as exc:
@@ -358,9 +379,10 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
         if not v.accepted:
             res["status"] = "rejected_fidelity_judge"; return res
         own_after = [judge.Candidate(c.id, c.kind, c.label, new_text if c.id == diag.target_id else c.text) for c in own]
-        ver = judge.verify(page.query, own_after, srcs, diag.target_id, sel, jev_client)
-        res["verification"] = {"p_before": ver.p_before, "p_after": ver.p_after, "winner_after": ver.winner_after,
-                               "winner_after_kind": ver.winner_after_kind, "outcome": ver.outcome, "experimental": True}
+        ver = judge.verify(page.query, own_after, srcs, diag.target_id, diag.scored, jev_client)
+        res["verification"] = _flag({"score_before": ver.score_before, "score_after": ver.score_after,
+                                     "winner_after": ver.winner_after, "winner_after_kind": ver.winner_after_kind,
+                                     "outcome": ver.outcome})
         if ver.outcome == "worse":
             res["status"] = "rejected_worse"; return res
     except (JevProviderError, JevConfigError) as exc:

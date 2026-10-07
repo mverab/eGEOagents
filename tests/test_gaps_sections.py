@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 
 from egeo import gaps, judge, sources
 from egeo.cli import main
-from egeo.jev import ChoiceAnswer, JevProviderError, JevResponse
+from egeo.jev import ChoiceAnswer, JevProviderError, JevResponse, NoulAnswer
 from egeo.sources import SourceDoc
 
 PROJECT_YAML = """schema_version: 1
@@ -50,7 +51,15 @@ BAD_REWRITE = "## Tools\n\nOpen source AEO tools compared: " + " ".join(["tools"
 GAPS = [{"query": "open source AEO tools", "cited": False, "sources": ["https://toolradar.com/x", "https://demo.dev/y"]}]
 
 
+SRC_TEXT = "Best AEO tools list"
+# label of every candidate text Jev can see (the rewritten Tools section keeps the label own_s01)
+LABEL_OF = {TOOLS: "own_s01", GOOD_REWRITE: "own_s01", FAQ: "own_s02", SRC_TEXT: "src_1"}
+
+
 class ScriptedJev:
+    """Queue items: a dict ``{label: noul score}`` answers a Noul (scoring) request, a ChoiceAnswer answers
+    the fidelity judge, an Exception is raised."""
+
     def __init__(self, *answers) -> None:
         self.queue = list(answers)
         self.requests = []
@@ -63,13 +72,18 @@ class ScriptedJev:
         nxt = self.queue.pop(0)
         if isinstance(nxt, Exception):
             raise nxt
-        (qid,) = questions.keys()
-        return JevResponse(answers={qid: nxt}, model="fake", input_tokens=1, output_tokens=0, cost_usd=0.0)
+        if isinstance(nxt, dict):
+            labels = {qid: LABEL_OF[state["candidates"][qid]] for qid in questions}
+            answers = {qid: NoulAnswer(nxt[label]) for qid, label in labels.items()}
+        else:
+            (qid,) = questions.keys()
+            answers = {qid: nxt}
+        return JevResponse(answers=answers, model="fake", input_tokens=1, output_tokens=0, cost_usd=0.0)
 
 
-LOSES = ChoiceAnswer("src_1", 0.3, {"own_s01": 0.30, "own_s02": 0.10, "src_1": 0.60})
+LOSES = {"own_s01": 0.30, "own_s02": 0.10, "src_1": 0.60}
 FAITHFUL = ChoiceAnswer("faithful", 0.8, {"faithful": 0.9, "drops_facts": 0.05, "adds_claims": 0.05})
-WON = ChoiceAnswer("own_s01", 0.5, {"own_s01": 0.70, "own_s02": 0.10, "src_1": 0.20})
+WON = {"own_s01": 0.70, "own_s02": 0.10, "src_1": 0.20}
 
 
 @pytest.fixture()
@@ -87,7 +101,7 @@ def _plan(project: Path):
 
 
 def fetch_ok(values, *, exclude_domain, limit):
-    return [SourceDoc(url="https://toolradar.com/x", ok=True, title="toolradar.com", text="Best AEO tools list")]
+    return [SourceDoc(url="https://toolradar.com/x", ok=True, title="toolradar.com", text=SRC_TEXT)]
 
 
 def _run(project: Path, jev, rewrite, fetch=fetch_ok):
@@ -116,10 +130,15 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     assert page["status"] == "rewritten" and page["reasons"] == []
     assert page["diagnosis"]["winner"] == "src_1" and page["diagnosis"]["winner_kind"] == "source"
     assert page["diagnosis"]["target_section"] == {"id": "s01", "heading": "Tools"}
+    assert page["diagnosis"]["scorer"] == "noul"
+    assert page["diagnosis"]["scores"] == {"own_s01": 0.30, "own_s02": 0.10, "src_1": 0.60}
+    assert "probabilities" not in page["diagnosis"] and "confidence" not in page["diagnosis"]
     assert page["fidelity"]["rules"] == {"passed": True, "violations": []}
     assert page["fidelity"]["judge"] == {"verdict": "faithful", "confidence": 0.8, "accepted": True}
     assert page["verification"]["outcome"] == "won"
-    assert page["verification"]["p_before"] == 0.30 and page["verification"]["p_after"] == 0.70
+    assert page["verification"]["score_before"] == 0.30 and page["verification"]["score_after"] == 0.70
+    assert page["verification"]["winner_after"] == "own_s01" and page["verification"]["winner_after_kind"] == "own"
+    assert "p_before" not in page["verification"]
     assert page["sources"] == [{"url": "https://toolradar.com/x", "ok": True, "error": ""}]
 
     written = project / "out" / "compare" / "compare.md"
@@ -135,7 +154,7 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     assert saved["mode"] == "sections" and saved["jev_model"] == "fake"
     assert saved["note"] == gaps.SECTIONS_NOTE
     assert "not a prediction of citation" in saved["note"]
-    assert "EXPERIMENTAL" in saved["note"] and "0.62" in saved["note"]
+    assert "EXPERIMENTAL" in saved["note"] and "not been validated" in saved["note"]
     assert saved["jev_validation"] == gaps.JEV_VALIDATION
     assert saved["jev_validation"]["status"] == "experimental" and saved["jev_validation"]["gate_passed"] is False
     assert page["diagnosis"]["experimental"] is True
@@ -150,13 +169,17 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     for key in ("format", "unmatched", "skipped", "remeasure"):
         assert key in saved
 
-    # the Jev diagnosis saw own sections (intro is < 30 words so excluded) and the fetched source
-    state, _ = jev.requests[0]
-    assert set(state["candidates"]) == {"own_s01", "own_s02", "src_1"}
-    # verification used the same ids with the rewritten text
+    # the Jev diagnosis saw own sections (intro is < 30 words so excluded) and the fetched source, blind
+    state, questions = jev.requests[0]
+    assert sorted(LABEL_OF[t] for t in state["candidates"].values()) == ["own_s01", "own_s02", "src_1"]
+    assert all(re.match(r"^c\d{2}$", k) for k in [*state["candidates"], *questions])
+    blob = repr((state, questions))
+    assert "own_" not in blob and "src_" not in blob and "toolradar" not in blob.replace(SRC_TEXT, "")
+    # verification used the same ids, with the rewritten text under the target's id
     state_after, _ = jev.requests[2]
-    assert set(state_after["candidates"]) == {"own_s01", "own_s02", "src_1"}
-    assert state_after["candidates"]["own_s01"] == GOOD_REWRITE[: judge.MAX_CANDIDATE_CHARS]
+    assert list(state_after["candidates"]) == list(state["candidates"])
+    target_cid = next(k for k, t in state["candidates"].items() if t == TOOLS)
+    assert state_after["candidates"][target_cid] == GOOD_REWRITE[: judge.MAX_CANDIDATE_CHARS]
 
 
 def _no_output(project: Path) -> None:
@@ -220,7 +243,7 @@ def test_judge_rejection(project: Path) -> None:
 
 
 def test_worse_is_rejected(project: Path) -> None:
-    worse = ChoiceAnswer("src_1", 0.5, {"own_s01": 0.20, "own_s02": 0.10, "src_1": 0.70})
+    worse = {"own_s01": 0.20, "own_s02": 0.10, "src_1": 0.70}
     report = _run(project, ScriptedJev(LOSES, FAITHFUL, worse), lambda *a: GOOD_REWRITE)
     page = report["pages"][0]
     assert page["status"] == "rejected_worse" and page["verification"]["outcome"] == "worse"
@@ -236,12 +259,27 @@ def test_jev_error_marks_page(project: Path) -> None:
     _no_output(project)
 
 
-def test_jev_validation_reports_choice_scorer_on_page_excerpts() -> None:
+def test_jev_validation_describes_v4_configuration_without_a_result() -> None:
+    # Until the pre-registered v4 run (plan v4 §3-§4) the running configuration has NO validation result;
+    # the 2.2.0 figures are kept only under "previous", labeled with the configuration they measured.
     v = gaps.JEV_VALIDATION
-    assert v["scorer"] == "choice" and v["mean_auc"] == 0.619 and v["ci95"] == [0.561, 0.674]
-    assert v["own_accuracy"] == 0.167 and v["n_queries"] == 30 and v["gate_passed"] is False
-    assert "not sections" in v["unit"]
-    assert "0.637" not in gaps.SECTIONS_NOTE and "full-page excerpts, not sections" in gaps.SECTIONS_NOTE
+    assert (v["protocol"], v["scorer"], v["ids"], v["unit"]) == ("v4", "noul", "blind", "sections")
+    assert v["mean_auc"] is None and v["ci95"] is None and v["prereg_sha"] is None
+    assert v["status"] == "experimental" and v["gate_passed"] is False
+    assert v["gate_auc"] == 0.65 and v["gate_min_queries"] == 25
+    prev = v["previous"]
+    assert prev["config"] == "choice, leaky ids, page excerpts"
+    assert prev["mean_auc"] == 0.619 and prev["ci95"] == [0.561, 0.674] and prev["own_accuracy"] == 0.167
+    assert "0.62" not in gaps.SECTIONS_NOTE.split("earlier configuration")[0]
+
+
+def test_experimental_flags_follow_the_validation_status(project: Path, monkeypatch) -> None:
+    monkeypatch.setitem(gaps.JEV_VALIDATION, "status", "validated")
+    report = _run(project, ScriptedJev(LOSES, FAITHFUL, WON), lambda *a: GOOD_REWRITE)
+    page = report["pages"][0]
+    assert page["status"] == "rewritten"
+    assert "experimental" not in page["diagnosis"] and "experimental" not in page["verification"]
+    assert "not a prediction of citation" in report["note"]
 
 
 def test_rewriter_error_marks_page_and_run_continues(tmp_path: Path) -> None:
