@@ -3,7 +3,7 @@
 > E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).
 
 Site: https://egeoagents.com
-Source: https://github.com/mverab/eGEOagents (MIT license; 194 stars, 56 forks as of 2026-09-25)
+Source: https://github.com/mverab/eGEOagents (MIT license; 197 stars, 56 forks as of 2026-10-08)
 PyPI: https://pypi.org/project/egeo/
 Paper: https://arxiv.org/abs/2511.20867
 Skills: https://skills.sh/mverab/egeoagents
@@ -72,7 +72,7 @@ geo_eval.py + llm_client.py measure rank_improvement = rank_before - rank_after 
 
 ## Honest comparison (last verified 2026-09-24)
 
-geo-optimizer-skill (Auriti-Labs, 895 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; checks real answer-engine citations (geo citations) and tracks them over time (geo monitor, geo track); by its own description prioritizes technical infrastructure over content rewriting. It has more stars, broader scoring and built-in citation tracking. E-GEO (194 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, a published research basis, and Claude Code skills distribution. The tools are complementary: audit and track with one, rewrite and verify with the other. Full directory of open-source GEO/AEO projects: https://egeoagents.com/compare/geo-tools-2026/
+geo-optimizer-skill (Auriti-Labs, 895 stars, MIT): CLI + Python library + MCP + Astro integration; scores sites 0-100 across 47 methods; checks real answer-engine citations (geo citations) and tracks them over time (geo monitor, geo track); by its own description prioritizes technical infrastructure over content rewriting. It has more stars, broader scoring and built-in citation tracking. E-GEO (197 stars, MIT) differentiates on: content rewriting (full pipeline), reproducible evaluation harness, a published research basis, and Claude Code skills distribution. The tools are complementary: audit and track with one, rewrite and verify with the other. Full directory of open-source GEO/AEO projects: https://egeoagents.com/compare/geo-tools-2026/
 
 ## Pages
 
