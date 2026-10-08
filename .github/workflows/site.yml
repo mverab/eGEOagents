@@ -57,7 +57,9 @@ jobs:
           expected="$(sha256sum site/dist/index.html | awk '{print $1}')"
           matched=0
           for attempt in $(seq 1 40); do
-            actual="$(curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' --max-time 20 "$SITE_URL/" | sha256sum | awk '{print $1}')"
+            # Cloudflare Pages injects its Web Analytics beacon into served HTML;
+            # strip that block so the hash compares our build output only.
+            actual="$(curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' --max-time 20 "$SITE_URL/" | perl -0pe 's/<!-- Cloudflare Pages Analytics -->.*?<!-- Cloudflare Pages Analytics -->\n?//s' | sha256sum | awk '{print $1}')"
             if [ "$actual" = "$expected" ]; then
               matched=1
               break
