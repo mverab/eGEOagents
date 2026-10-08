@@ -43,6 +43,9 @@ grep_check 'open-source Generative Engine Optimization (GEO) &amp; Answer Engine
 grep_check 'id="answer-block"' "$DIST/index.html" "answer block present on /"
 grep_check 'id="answer-card"' "$DIST/index.html" "hero answer-card element present on /"
 grep_check '<loc>https://egeoagents.com/</loc>' "$DIST/sitemap-0.xml" "sitemap includes /"
+for link in /docs/how-it-works/ /research/ /guides/track-ai-citations/; do
+  grep_check "href=\"$link\"" "$DIST/index.html" "landing links to $link"
+done
 
 # social/SEO tags on every page listed in the sitemap, and sitemap completeness
 check "$DIST/og-image.png" "og-image.png present"
