@@ -44,6 +44,30 @@ grep_check 'id="answer-block"' "$DIST/index.html" "answer block present on /"
 grep_check 'id="answer-card"' "$DIST/index.html" "hero answer-card element present on /"
 grep_check '<loc>https://egeoagents.com/</loc>' "$DIST/sitemap-0.xml" "sitemap includes /"
 
+# social/SEO tags on every page listed in the sitemap, and sitemap completeness
+check "$DIST/og-image.png" "og-image.png present"
+sm_count=0
+for loc in $(grep -o '<loc>[^<]*</loc>' "$DIST/sitemap-0.xml" | sed 's/<[^>]*>//g'); do
+  sm_count=$((sm_count + 1))
+  path="${loc#https://egeoagents.com}"
+  page="$DIST${path}index.html"
+  for tag in 'rel="canonical"' 'name="description"' 'property="og:image" content="https://egeoagents.com/og-image.png"' 'name="twitter:card" content="summary_large_image"' 'name="twitter:image"'; do
+    if grep -q "$tag" "$page" 2>/dev/null; then
+      :
+    else
+      echo "FAIL  $path missing $tag"
+      fail=1
+    fi
+  done
+done
+html_count=$(find "$DIST" -name index.html -not -path "$DIST/pagefind/*" | wc -l)
+if [ "$sm_count" -eq "$html_count" ]; then
+  echo "PASS  sitemap lists all $html_count built pages; each has canonical, description, og:image, twitter:card"
+else
+  echo "FAIL  sitemap has $sm_count URLs but $html_count pages were built"
+  fail=1
+fi
+
 # docs CTA — star/pip on every docs page; audit offer only on marketer-facing pages
 G="$DIST/guides/rank-in-chatgpt-search/index.html"
 D="$DIST/docs/getting-started/index.html"

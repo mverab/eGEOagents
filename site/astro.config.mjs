@@ -3,7 +3,9 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import sitemap from '@astrojs/sitemap';
 
-const globalSchema = JSON.stringify({
+const ogImage = 'https://egeoagents.com/og-image.png';
+
+const globalSchema =JSON.stringify({
 	'@context': 'https://schema.org',
 	'@type': 'Organization',
 	name: 'E-GEO',
@@ -40,6 +42,10 @@ export default defineConfig({
 				baseUrl: 'https://github.com/mverab/eGEOagents/edit/main/site/',
 			},
 			head: [
+				{ tag: 'meta', attrs: { property: 'og:image', content: ogImage } },
+				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: ogImage } },
 				{
 					tag: 'script',
 					attrs: { type: 'application/ld+json' },
