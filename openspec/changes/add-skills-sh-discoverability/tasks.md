@@ -18,10 +18,10 @@
 
 ## 3. GitHub Visibility Improvements
 
-- [ ] 3.1 Set GitHub About description with GEO + agent skills keywords.
-- [ ] 3.2 Set GitHub About website URL to a canonical destination (docs/site/landing).
-- [ ] 3.3 Add 8-12 relevant topics (GEO, AI search, agent skills, Claude Code, Codex, etc.).
-- [ ] 3.4 Create first release and publish a semantic tag.
+- [x] 3.1 Set GitHub About description with GEO + agent skills keywords.
+- [x] 3.2 Set GitHub About website URL to a canonical destination (docs/site/landing).
+- [x] 3.3 Add 8-12 relevant topics (GEO, AI search, agent skills, Claude Code, Codex, etc.). (20 topics set as of 2026-10-08.)
+- [x] 3.4 Create first release and publish a semantic tag.
 - [x] 3.5 Fix README links that still point to `egeo-claude-agents`.
 
 ## 4. Ranking Growth Loop (Install-Driven)
