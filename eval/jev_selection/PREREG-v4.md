@@ -1,9 +1,8 @@
 # Pre-registration — Jev validation v4
 
-**Status: DRAFT — not registered yet.** This file is registered when the owner approves it and it is
-committed with this line changed to `Status: REGISTERED`. That commit's SHA is the `--prereg-sha`
-of every v4 run. No live v4 run (leak diagnostic included) happens before that commit.
-After it, nothing in this file changes.
+**Status: REGISTERED** (owner approval 2026-10-08). The SHA of the commit that set this line is the
+`--prereg-sha` of every v4 run. No live v4 run (leak diagnostic included) happened before this commit.
+Nothing in this file changes after it.
 
 Change: `openspec/changes/update-jev-blind-validation` (design D3–D5).
 Plan: `docs/plans/2026-09-26-jev-blind-validation-plan-v4.md` §3–§4.
