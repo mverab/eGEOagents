@@ -37,7 +37,9 @@ instead of raising, raises ``JevProviderError`` on network errors, non-JSON or n
   to 4 decimals. ``choice`` = highest probability (ties -> first option in criteria order).
   ``confidence = max(0, min(1, (n * peak - 1) / (n - 1)))`` with n options (n == 1 -> 1.0), where
   ``peak`` is the UNROUNDED highest probability; round the confidence to 4 decimals.
-- noul: 0.9.
+- noul: the share of query words found in the candidate the question points at:
+  ``round(|words(query) ∩ words(candidates[qid])| / max(1, |words(query)|), 4)`` when ``state`` is a
+  dict with ``"query"`` and a dict ``"candidates"`` containing the question id ``qid``; else 0.0.
 - model "mock", usage zeros. Returns status 200.
 
 ``make_client(mock=..., model=...)``: mock -> ``JevClient(MockJevTransport(), model="mock")``;
@@ -151,7 +153,12 @@ class MockJevTransport:
                 answers[qid] = {"type": "choice", "choice": best, "confidence": round(conf, 4),
                                 "probabilities": {o: round(p, 4) for o, p in zip(opts, raw)}}
             else:
-                answers[qid] = {"type": "noul", "noul": 0.9}
+                cands = state.get("candidates") if isinstance(state, dict) else None
+                score = 0.0
+                if isinstance(cands, dict) and qid in cands:
+                    qw = _words(state.get("query", ""))
+                    score = round(len(qw & _words(cands[qid])) / max(1, len(qw)), 4)
+                answers[qid] = {"type": "noul", "noul": score}
         return 200, {"model": "mock", "answers": answers, "usage": {"input_tokens": 0, "output_tokens": 0}}
 
 

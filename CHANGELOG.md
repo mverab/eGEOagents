@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Breaking (experimental section-mode JSON only):** section mode now scores each candidate with an independent Jev Noul question instead of one Choice question (owner decision D2, openspec `update-jev-blind-validation`). In `fix-gaps.json` the page `diagnosis` reports `scorer: "noul"` and `scores` in place of `probabilities` / `confidence`; `verification` reports `score_before` / `score_after` in place of `p_before` / `p_after`. `already_best` and `won` require the best own section to score strictly above every source (ties count as losing). Page mode, the default, is unchanged.
+- Jev now sees neutral candidate ids (`c01`, `c02`, …) in an order derived from the query and the texts, so it cannot tell your sections from the cited sources. Diagnosis and verification use the same ids.
+- `jev_validation` describes the configuration section mode runs (`protocol: "v4"`, `scorer: "noul"`, `ids: "blind"`, `unit: "sections"`) with no result until the pre-registered v4 run; the 2.2.0 figures move to `jev_validation.previous`, labeled `choice, leaky ids, page excerpts`. The `experimental` flags follow `jev_validation.status`.
+- `eval/jev_selection` scores with the product function on sections (`own_source`), adds `--ids {blind,leaky}`, `--prereg-sha` (required for live runs) and `--repo-root`, and drops `--scorer`.
+- The offline mock answers Noul questions by query-word overlap instead of a constant 0.9.
+
+### Added
+- `eval/jev_selection/PREREG-v4.md` (draft) and `queries-v3.json`: the v4 validation protocol, the query list and its hash, the gate and the consequences of passing and failing.
+
 ## [2.2.0] - 2026-09-26
 
 ### Known limitations
