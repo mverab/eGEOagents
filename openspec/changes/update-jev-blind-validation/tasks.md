@@ -15,8 +15,8 @@ Implementation plan with lanes, contracts and the run protocol: `docs/plans/2026
 ## 3. Validation (pre-registered; design D4)
 - [x] 3.1 Commit `eval/jev_selection/PREREG-v4.md` (registered 2026-10-08; its registering commit SHA is `--prereg-sha`) (queries sha256, scorer, ids, unit, gate, consequences) before any live run
 - [x] 3.2 Leak diagnostic on dataset v2: `--ids leaky` vs `--ids blind` (non-gating)
-- [ ] 3.3 Collect dataset v3 once (≥ 30 queries, `own_source` mapped)
-- [ ] 3.4 Evaluate v3 once; record the result in the README
+- [x] 3.3 Collect dataset v3 once (≥ 30 queries, `own_source` mapped) — 2026-10-15, 30 queries, 0 empty
+- [x] 3.4 Evaluate v3 once; record the result in the README — GATE FAIL, mean AUC 0.559 [0.489, 0.637]
 
 ## 4. Outcome (design D5)
 - [ ] 4.1 Update `JEV_VALIDATION`, docs and CHANGELOG per the pre-registered consequence; owner decision if FAIL
