@@ -119,10 +119,10 @@ def test_diagnose_tie_prefers_first_own() -> None:
     assert diagnose("q", OWN, SRC[:1], fake).target_id == "own_s01"
 
 
-def test_diagnose_already_best_needs_strictly_higher_score() -> None:
+def test_diagnose_own_leads_needs_strictly_higher_score() -> None:
     fake = ScriptedJev(by_text=scores_by_text({OWN[0].text: 0.7, OWN[1].text: 0.1, SRC[0].text: 0.2}))
     d = diagnose("q", OWN, SRC[:1], fake)
-    assert d.status == "already_best" and d.target_id is None
+    assert d.status == "own_leads" and d.target_id == "own_s01"
     tie = ScriptedJev(by_text=scores_by_text({OWN[0].text: 0.6, OWN[1].text: 0.1, SRC[0].text: 0.6}))
     d = diagnose("q", OWN, SRC[:1], tie)
     assert d.status == "loses" and d.target_id == "own_s01"
