@@ -27,7 +27,7 @@ Dataset (JSON list), one item per query, produced on the VPS by the collector de
     auc            = auc(scores of label-1 sources, scores of label-0 sources)  (None if a class is empty)
     own_best_score = max own score; src_best_score = max source score            (None when absent)
     own_rank       = 1 + number of sources scoring strictly above own_best_score (None without own)
-    own_wins       = own_best_score > src_best_score, strictly: the product's ``already_best`` rule
+    own_wins       = own_best_score > src_best_score, strictly: the product's ``own_leads`` rule
                      (None without own or without sources)
     winner         = id with the highest score (ties -> earliest candidate)
   Return ``{"query", "scorer": "noul", "ids", "unit", "auc", "n_pos", "n_neg", "own_best_score",

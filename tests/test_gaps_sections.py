@@ -188,21 +188,58 @@ def _no_output(project: Path) -> None:
     assert (project / "out" / "compare" / "diagnosis.json").exists()
 
 
-def test_already_best_does_not_rewrite(project: Path) -> None:
-    def rewrite(*a):
-        raise AssertionError("must not rewrite")
+WARNING = "own_text_already_competitive"
+OFFPAGE = {"reason": WARNING, "message": gaps.OFFPAGE_MESSAGE, "sources": ["https://toolradar.com/x"]}
 
-    report = _run(project, ScriptedJev(WON), rewrite)
+
+def test_own_leads_still_rewrites_with_warning(project: Path) -> None:
+    calls = []
+
+    def rewrite(query, text, title):
+        calls.append(text)
+        return GOOD_REWRITE
+
+    report = _run(project, ScriptedJev(WON, FAITHFUL, WON), rewrite)
     page = report["pages"][0]
-    assert page["status"] == "already_best"
-    assert page["diagnosis"]["target_section"] is None
+    assert page["status"] == "rewritten" and calls == [TOOLS]
+    assert page["diagnosis"]["status"] == "own_leads"
+    assert page["diagnosis"]["warning"] == WARNING
+    assert page["diagnosis"]["target_section"]["id"] == "s01"
     assert page["diagnosis"]["experimental"] is True
-    assert report["jev_validation"] == gaps.JEV_VALIDATION
-    assert page["offpage"] == {"reason": gaps.OFFPAGE_REASON, "message": gaps.OFFPAGE_MESSAGE,
-                               "sources": ["https://toolradar.com/x"]}
+    assert gaps.OFFPAGE_REASON == WARNING
+    assert page["offpage"] == OFFPAGE
+    assert (project / "out" / "compare" / "compare.md").exists()
+    assert (project / "out" / "compare" / "section.diff").exists()
     saved = json.loads((project / "out" / "compare" / "diagnosis.json").read_text(encoding="utf-8"))
     assert saved["offpage"] == page["offpage"]
+
+
+def test_own_leads_rejected_keeps_warning(project: Path) -> None:
+    worse = {"own_s01": 0.20, "own_s02": 0.10, "src_1": 0.70}
+    report = _run(project, ScriptedJev(WON, FAITHFUL, worse), lambda *a: GOOD_REWRITE)
+    page = report["pages"][0]
+    assert page["status"] == "rejected_worse"
+    assert page["diagnosis"]["warning"] == WARNING and page["offpage"] == OFFPAGE
     _no_output(project)
+
+
+def test_own_leads_rule_violation_keeps_warning(project: Path) -> None:
+    report = _run(project, ScriptedJev(WON), lambda *a: BAD_REWRITE)
+    page = report["pages"][0]
+    assert page["status"] == "rejected_fidelity_rules"
+    assert page["diagnosis"]["warning"] == WARNING and page["offpage"] == OFFPAGE
+    _no_output(project)
+
+
+def test_loses_has_no_warning(project: Path) -> None:
+    report = _run(project, ScriptedJev(LOSES, FAITHFUL, WON), lambda *a: GOOD_REWRITE)
+    page = report["pages"][0]
+    assert page["diagnosis"]["status"] == "loses"
+    assert page["diagnosis"]["warning"] is None and page["offpage"] is None
+
+
+def test_section_statuses_drop_already_best() -> None:
+    assert "already_best" not in gaps.SECTION_STATUSES
 
 
 def test_no_sources_skips_jev_and_rewrite(project: Path) -> None:
@@ -357,9 +394,14 @@ def test_cli_mock_end_to_end_offline(project: Path, monkeypatch, capsys) -> None
     report = json.loads((project / "out" / "fix-gaps.json").read_text(encoding="utf-8"))
     assert report["mode"] == "sections" and report["jev_model"] == "mock"
     assert report["pages"][0]["status"] in gaps.SECTION_STATUSES
-    # with the deterministic mock, the "Tools" section overlaps the query and wins -> already_best
-    assert report["pages"][0]["status"] == "already_best"
-    assert "already_best: compare (off-page: 1 cited sources)" in capsys.readouterr().out
+    # with the deterministic mock, the "Tools" section overlaps the query and leads -> warning; the mock
+    # rewriter returns the section unchanged -> no_change_proposed
+    page = report["pages"][0]
+    assert page["status"] == "no_change_proposed"
+    assert page["diagnosis"]["warning"] == "own_text_already_competitive"
+    out = capsys.readouterr().out
+    assert "no_change_proposed: compare (warning: own text already competitive; off-page: 1 cited sources)" in out
+    assert "already_best:" not in out
     assert (project / "content" / "compare.md").read_text(encoding="utf-8") == PAGE
 
 

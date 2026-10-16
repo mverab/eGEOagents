@@ -20,13 +20,13 @@ v4 (openspec ``update-jev-blind-validation``; owner decision D2 = Noul, 2026-10-
 
 ``leader(scored, own, sources) -> Candidate``: the best own candidate (ties -> first in ``own``) when
 its score is strictly above every source score; otherwise the best source (ties -> first in
-``sources``). A tie is never an own win: ``already_best`` is an off-page claim, so it must be earned.
+``sources``). A tie is never an own win: ``own_leads`` raises an off-page warning, so it must be earned.
 
 ``diagnose(query, own, sources, client)``:
 - no own candidates -> ``Diagnosis(scored=None, target_id=None, status="no_own_candidates")``.
 - no sources -> ``Diagnosis(None, None, "no_competitor_sources")`` (Jev is not called).
 - otherwise ``scored = score_candidates(query, [*own, *sources], client)``; when the best own score
-  is strictly above the best source score -> ``"already_best"``, target None; else ``"loses"``,
+  is strictly above the best source score -> ``"own_leads"``, else ``"loses"``; in both cases
   target = own candidate with the highest score (ties -> first in ``own``).
 
 ``judge_fidelity(original, rewrite, client)``:
@@ -101,7 +101,7 @@ class Scored:
 class Diagnosis:
     scored: Optional[Scored]
     target_id: Optional[str]
-    status: str  # "loses" | "already_best" | "no_own_candidates" | "no_competitor_sources"
+    status: str  # "loses" | "own_leads" | "no_own_candidates" | "no_competitor_sources"
 
 
 @dataclass(frozen=True)
@@ -178,9 +178,8 @@ def diagnose(query, own, sources, client):
     if not sources:
         return Diagnosis(None, None, "no_competitor_sources")
     scored = score_candidates(query, [*own, *sources], client)
-    if leader(scored, own, sources).kind == "own":
-        return Diagnosis(scored, None, "already_best")
-    return Diagnosis(scored, _best(own, scored.scores).id, "loses")
+    status = "own_leads" if leader(scored, own, sources).kind == "own" else "loses"
+    return Diagnosis(scored, _best(own, scored.scores).id, status)
 
 
 def judge_fidelity(original, rewrite, client):

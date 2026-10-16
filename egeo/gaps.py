@@ -250,7 +250,6 @@ def run_fix_gaps(
 
 SECTION_STATUSES = (
     "rewritten",               # accepted rewrite written to disk
-    "already_best",            # an own section already wins the Jev choice
     "no_competitor_sources",   # no source text could be fetched
     "no_own_candidates",       # no own section with >= MIN_SECTION_WORDS words
     "no_change_proposed",      # the rewriter returned the section unchanged
@@ -271,7 +270,7 @@ SECTIONS_NOTE = (
     "not model authority or links, so it is not a prediction of citation. The configuration this version runs "
     "(an independent score per candidate, neutral ids that hide which text is yours, sections) scored mean AUC "
     "0.56 (95% CI 0.49-0.64, 30 queries, 2026-10-15) in a pre-registered test, below the 0.65 bar "
-    "(eval/jev_selection/README.md). Treat `already_best` and the re-check as weak signals. An earlier "
+    "(eval/jev_selection/README.md). Treat the `own_text_already_competitive` warning and the re-check as weak signals. An earlier "
     "configuration (single-choice comparison, ids that revealed ownership, full-page excerpts) scored mean AUC "
     "0.62 (95% CI 0.56-0.67, 30 queries, 2026-09-25). Confirm any change by re-checking the queries in "
     "`remeasure` with your tracker."
@@ -315,14 +314,17 @@ def _flag(d):
     return d
 
 
-# Every page dict gets an "offpage" key (plan v2). For status "already_best" it is
-#   {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE, "sources": [url of every ok fetched doc, in fetch order]}
-# and for every other status it is None. The CLI line for an already_best page is
-#   f"already_best: {page_id} (off-page: {len(sources)} cited sources)".
-OFFPAGE_REASON = "text_already_competitive"
+# When Jev scores the best own section strictly above every source (diagnosis "own_leads"), the page is still
+# rewritten and gets diagnosis["warning"] = OWN_LEADS_WARNING plus an "offpage" key
+#   {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE, "sources": [url of every ok fetched doc, in fetch order]},
+# whatever its final status. Otherwise both are None. The CLI line for a page with the warning is
+#   f"{status}: {page_id} (warning: own text already competitive; off-page: {len(sources)} cited sources)".
+OWN_LEADS_WARNING = "own_text_already_competitive"
+OFFPAGE_REASON = OWN_LEADS_WARNING
 OFFPAGE_MESSAGE = (
-    "Jev (experimental) rates your text as already competitive with the sources the answer engine cited, so "
-    "rewriting it is unlikely to help. The gap is probably off-page: get your page mentioned or linked by those sources."
+    "Jev (experimental; it failed its validation) scores your best section above the sources the answer engine "
+    "cited. That signal is weak, so the section was still rewritten. If re-measuring shows the query is still not "
+    "cited, the gap may be off-page: get your page mentioned or linked by these sources."
 )
 
 
@@ -355,13 +357,14 @@ def _section_page(page, *, out_dir, jev_client, rewrite_fn, fetch_fn, exclude_do
         if diag.scored is not None:
             lead = judge.leader(diag.scored, own, srcs)
             res["diagnosis"] = _flag({"status": diag.status, "winner": lead.id, "winner_kind": lead.kind, "scorer": "noul",
-                                      "scores": dict(diag.scored.scores), "target_section": None})
-        if diag.scored is None or diag.status == "already_best":
+                                      "scores": dict(diag.scored.scores), "target_section": None, "warning": None})
+        if diag.scored is None:
             res["status"] = diag.status
-            if diag.status == "already_best":
-                res["offpage"] = {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE,
-                                  "sources": [d.url for d in docs if d.ok]}
             return res
+        if diag.status == "own_leads":
+            res["diagnosis"]["warning"] = OWN_LEADS_WARNING
+            res["offpage"] = {"reason": OFFPAGE_REASON, "message": OFFPAGE_MESSAGE,
+                              "sources": [d.url for d in docs if d.ok]}
         sid = diag.target_id[len("own_"):]
         sec = next(s for s in secs if s.id == sid)
         res["diagnosis"]["target_section"] = {"id": sid, "heading": sec.heading}
@@ -480,8 +483,9 @@ def cli(args: Any) -> int:
             print(json.dumps(report, indent=2, ensure_ascii=False))
         else:
             for p in report["pages"]:
-                if p["status"] == "already_best" and p.get("offpage"):
-                    print(f"already_best: {p['page_id']} (off-page: {len(p['offpage']['sources'])} cited sources)")
+                if p.get("offpage"):
+                    print(f"{p['status']}: {p['page_id']} (warning: own text already competitive; "
+                          f"off-page: {len(p['offpage']['sources'])} cited sources)")
                 else:
                     print(f"{p['status']}: {p['page_id']}")
             print(f"Report: {out / REPORT_NAME}")
