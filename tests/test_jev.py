@@ -127,9 +127,22 @@ def test_mock_transport_is_deterministic_word_overlap() -> None:
     assert best["choice"] == "own_s01"
     assert best["probabilities"] == {"own_s01": 0.8333, "src_1": 0.1667}
     assert best["confidence"] == pytest.approx(0.6667, abs=1e-4)
-    assert payload["answers"]["ok"] == {"type": "noul", "noul": 0.9}
+    # noul question "ok" points at no candidate -> 0.0
+    assert payload["answers"]["ok"] == {"type": "noul", "noul": 0.0}
     assert payload["model"] == "mock"
     assert MockJevTransport().post_json(jev.TYPESAFE_URL, {"model": "mock", "state": state, "questions": questions}) == (status, payload)
+
+
+def test_mock_noul_is_query_word_overlap_share() -> None:
+    state = {"query": "open source geo tools",
+             "candidates": {"c01": "Open source GEO tools compared", "c02": "open recipes", "c03": "cooking"}}
+    questions = {cid: noul_question(f"cite candidates.{cid}?") for cid in ("c01", "c02", "c03")}
+    status, payload = MockJevTransport().post_json(jev.TYPESAFE_URL, {"model": "mock", "state": state, "questions": questions})
+    assert status == 200
+    # 4 query words: c01 overlaps 4 -> 1.0, c02 overlaps 1 -> 0.25, c03 none -> 0.0
+    assert {q: a["noul"] for q, a in payload["answers"].items()} == {"c01": 1.0, "c02": 0.25, "c03": 0.0}
+    _, plain = MockJevTransport().post_json(jev.TYPESAFE_URL, {"model": "mock", "state": "s", "questions": {"x": noul_question("?")}})
+    assert plain["answers"]["x"] == {"type": "noul", "noul": 0.0}
 
 
 def test_make_client() -> None:

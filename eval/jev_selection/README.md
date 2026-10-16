@@ -5,6 +5,74 @@ validation gate for section-mode `fix-gaps` (`openspec/specs/citation-gap-fixing
 Section mode uses Jev to judge **text competitiveness** — whose text best answers the query — *not*
 to predict citations (Jev sees text only; engines also weigh authority and links).
 
+## v4 — the path section mode actually runs
+
+v2 (below) measured a configuration the product does not run: its own copy of the Noul question, on
+full-page excerpts, with ids that told Jev which candidate was ours (`own` next to `src_N`). From v4
+the harness calls the product function `egeo.judge.score_candidates`:
+
+- **Blind ids.** Jev sees `c01`, `c02`, … ordered by `sha256(query + "\n" + text)`; the mapping back
+  to own section or source stays in code. `--ids leaky` reproduces the 2.2.0 ids for the leak
+  diagnostic only and never gates.
+- **Sections.** Items with `own_source` (repo-relative Markdown) are scored as section mode builds
+  them: frontmatter removed, sections of ≥ 30 words. Other items keep one `page_excerpt` candidate.
+- **Own metrics (not gating):** `own_wins` (best own section strictly above every source, the
+  product's `already_best` rule), an `own_wins` × `egeo_cited` confusion table and `own_accuracy`
+  with a Wilson 95% interval, on `sections` items only.
+- **Pre-registration:** `PREREG-v4.md` and `queries-v3.json`. A live run needs `--prereg-sha`; a run
+  without one never passes the gate.
+
+The pre-registered v4 run is done (2026-10-15, GATE FAIL, below). Section mode reports it in
+`jev_validation` (`"status": "experimental"`, `"gate_passed": false`) and quotes the v2 Choice
+figures only as an earlier configuration, under `previous`.
+
+### v4 step 1 — leak diagnostic (non-gating), 2026-10-08
+
+Dataset v2 as collected (page excerpts, 18 queries with an own page), product scorer, `--prereg-sha 56ef2db`,
+one run per mode, same day. Model returned: `jev-1.13.0`. Cost: 30 requests and $0.0071 per run.
+
+| | leaky ids (2.2.0) | blind ids | Δ (blind − leaky) |
+|---|---|---|---|
+| mean AUC (sources) | 0.639 [0.564, 0.709] | 0.626 [0.538, 0.712] | −0.013 |
+| own wins (best own > every source) | 4/18 (0.222) | 3/18 (0.167) | −0.056 |
+| mean own rank | 5.72 | 5.28 | −0.44 |
+
+Reading: hiding ownership barely moves source AUC, and the intervals overlap almost fully. Own wins
+drop by one query. The mean own rank also improves a little, so the leak does not show a consistent
+bias in either direction at this sample size. As pre-registered, this changes nothing: the blind run
+here is on dataset v2, so its `gate_passed` field is not the v4 gate. Files:
+`results-v4-leak-{leaky,blind}-2026-10-08.json`.
+
+### v4 steps 2–3 — dataset v3, pre-registered run, 2026-10-15 — GATE FAIL
+
+Collected once with `queries-v3.json` (sha256 `094e056c…1718`, as registered), collection start
+2026-10-15T23:39:02Z: 30 queries, 0 empty Perplexity answers, 10 cited and 10 SERP URLs per query,
+E-GEO named in 5/30 answers. `own_source` read from `main` at
+`ffd5b49802c800ac1c82ea3df3a95a2c50323c62` (`git rev-list -1 --before=<start> main`). Evaluated
+once: `--ids blind --prereg-sha 56ef2db55125c691bd72c7f350ce8dc3dae31d27`. Model returned:
+`jev-1.13.0`. Cost: 30 requests, 196,800 in-tokens, $0.0083.
+
+| Metric | v4 (blind, sections) | gate |
+|---|---|---|
+| mean AUC (sources) | **0.559** [0.489, 0.637] | ≥ 0.65 |
+| n_scored | 30/30 | ≥ 25 |
+| units | 16 `sections`, 2 `page_excerpt` | |
+| own wins × egeo_cited (sections, n=16) | tp 1, fp 5, fn 2, tn 8 | not gating |
+| own_accuracy (sections) | 0.5625 [0.332, 0.769] | not gating |
+
+Worst AUCs: `AI search visibility tracking tools` 0.20, `how to self-host an AI agent on a VPS`
+0.22, `best open source AI coding agents 2026` 0.23. Best: `eGEOagents` 1.00, `open source tool to
+rank in ChatGPT and Perplexity` 1.00, `what is generative engine optimization` 0.90.
+
+Reading: the whole 95% interval sits below the 0.65 gate, and the point estimate is lower than v2's
+0.637 on page excerpts. When Jev picks our section as best, Perplexity cites us in 1 of 6 queries.
+As pre-registered (design D5, FAIL), the result is final: no re-run, prompt or threshold change.
+`JEV_VALIDATION` gets these numbers with `"status": "experimental"` and the labels stay; the owner
+then chooses, without another run, to keep section mode experimental or remove the Jev diagnosis and
+verification. Owner decision (2026-10-16): keep section mode experimental; demoting `already_best`
+from a verdict to a warning goes to a separate change. Files: `~/Sync/mkt/egeo-expansion/jev-selection/dataset-v3-2026-10-15.json`,
+`results-v3-2026-10-15.json`.
+
 ## v1 → v2 (2026-09-25 review)
 
 v1 (one Choice question over all candidates, n=10) reported mean AUC 0.6493 against a 0.65 gate and
@@ -46,9 +114,11 @@ set -a; . <(grep -E '^TYPESAFE_API_KEY=' ~/.hermes/.env); set +a
 python -m eval.jev_selection.run \
   --dataset ~/Sync/mkt/egeo-expansion/jev-selection/dataset-v2-2026-09-25.json \
   --out ~/Sync/mkt/egeo-expansion/jev-selection/results-v2-2026-09-25.json
-# comparison only (does not decide the gate):
-python -m eval.jev_selection.run --dataset … --out … --scorer choice
 ```
+
+The v2 commands above predate v4: since v4 the harness has no `--scorer` flag (Noul only, via
+`egeo.judge.score_candidates`), and a live run needs `--prereg-sha`. The v4 commands are in
+`PREREG-v4.md`.
 
 ## Result — 2026-09-25 — GATE FAIL
 

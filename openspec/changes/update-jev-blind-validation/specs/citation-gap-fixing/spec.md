@@ -8,7 +8,7 @@ Every Jev request that compares candidates (diagnosis, verification and the vali
 
 - **WHEN** section mode sends the diagnosis request for a page with own sections and fetched sources
 - **THEN** every candidate key in the request state matches `^c\d{2}$`
-- **AND** no question text contains `own` or `src`
+- **AND** no request contains an original candidate id (`own_…`, `src_…`), host or section heading
 
 #### Scenario: Stable ids across diagnosis and verification
 
