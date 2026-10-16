@@ -262,38 +262,39 @@ SECTION_STATUSES = (
 )
 
 # v4 (openspec update-jev-blind-validation): section mode scores every candidate with an independent Noul
-# question under blind ids (c01, c02, ...). That configuration has NOT been validated yet; the 2.2.0 number
-# measured a different one (single Choice question, ids that revealed ownership, full-page excerpts), so it
-# is quoted only as an earlier configuration, never as this version's result.
+# question under blind ids (c01, c02, ...). Its pre-registered validation (2026-10-15) failed the gate. The
+# 2.2.0 number measured a different configuration (single Choice question, ids that revealed ownership,
+# full-page excerpts), so it is quoted only as an earlier configuration, never as this version's result.
 SECTIONS_NOTE = (
     "Section mode: the Jev comparison between your sections and the sources the tracker says were cited is "
     "EXPERIMENTAL. It scores text competitiveness (how well each candidate's text answers the query) and does "
     "not model authority or links, so it is not a prediction of citation. The configuration this version runs "
-    "(an independent score per candidate, neutral ids that hide which text is yours, sections) has not been "
-    "validated yet; a pre-registered test is planned (eval/jev_selection/README.md). An earlier configuration "
-    "(single-choice comparison, ids that revealed ownership, full-page excerpts) scored mean AUC 0.62 "
-    "(95% CI 0.56-0.67, 30 queries, 2026-09-25), below the 0.65 bar. Confirm any change by re-checking the "
-    "queries in `remeasure` with your tracker."
+    "(an independent score per candidate, neutral ids that hide which text is yours, sections) scored mean AUC "
+    "0.56 (95% CI 0.49-0.64, 30 queries, 2026-10-15) in a pre-registered test, below the 0.65 bar "
+    "(eval/jev_selection/README.md). Treat `already_best` and the re-check as weak signals. An earlier "
+    "configuration (single-choice comparison, ids that revealed ownership, full-page excerpts) scored mean AUC "
+    "0.62 (95% CI 0.56-0.67, 30 queries, 2026-09-25). Confirm any change by re-checking the queries in "
+    "`remeasure` with your tracker."
 )
 
 # Copied verbatim into every section-mode report as "jev_validation". While "status" != "validated", every
 # non-null page "diagnosis" and "verification" carries "experimental": True (one switch, flipped only by the
-# pre-registered outcome, plan v4 §4). Until then this describes the v4 configuration with NO result.
+# pre-registered outcome, plan v4 §4). The v4 run failed the gate, so the status stays "experimental".
 JEV_VALIDATION = {
     "status": "experimental",
     "protocol": "v4",
     "scorer": "noul",
     "ids": "blind",
     "unit": "sections",
-    "mean_auc": None,
-    "ci95": None,
-    "own_accuracy": None,
-    "n_queries": None,
+    "mean_auc": 0.559,
+    "ci95": [0.489, 0.637],
+    "own_accuracy": 0.5625,
+    "n_queries": 30,
     "gate_auc": 0.65,
     "gate_min_queries": 25,
     "gate_passed": False,
-    "prereg_sha": None,
-    "date": None,
+    "prereg_sha": "56ef2db55125c691bd72c7f350ce8dc3dae31d27",
+    "date": "2026-10-15",
     "details": "eval/jev_selection/README.md",
     "previous": {
         "config": "choice, leaky ids, page excerpts",

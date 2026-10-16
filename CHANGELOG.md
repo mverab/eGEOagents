@@ -10,12 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Breaking (experimental section-mode JSON only):** section mode now scores each candidate with an independent Jev Noul question instead of one Choice question (owner decision D2, openspec `update-jev-blind-validation`). In `fix-gaps.json` the page `diagnosis` reports `scorer: "noul"` and `scores` in place of `probabilities` / `confidence`; `verification` reports `score_before` / `score_after` in place of `p_before` / `p_after`. `already_best` and `won` require the best own section to score strictly above every source (ties count as losing). Page mode, the default, is unchanged.
 - Jev now sees neutral candidate ids (`c01`, `c02`, …) in an order derived from the query and the texts, so it cannot tell your sections from the cited sources. Diagnosis and verification use the same ids.
-- `jev_validation` describes the configuration section mode runs (`protocol: "v4"`, `scorer: "noul"`, `ids: "blind"`, `unit: "sections"`) with no result until the pre-registered v4 run; the 2.2.0 figures move to `jev_validation.previous`, labeled `choice, leaky ids, page excerpts`. The `experimental` flags follow `jev_validation.status`.
+- `jev_validation` reports the pre-registered v4 validation of the configuration section mode runs (`protocol: "v4"`, `scorer: "noul"`, `ids: "blind"`, `unit: "sections"`): mean AUC 0.559 (95% CI 0.489–0.637, 30 queries, 2026-10-15), below the 0.65 gate, so `status` stays `"experimental"` and every Jev diagnosis and verification keeps `"experimental": true`. The 2.2.0 figures move to `jev_validation.previous`, labeled `choice, leaky ids, page excerpts`.
 - `eval/jev_selection` scores with the product function on sections (`own_source`), adds `--ids {blind,leaky}`, `--prereg-sha` (required for live runs) and `--repo-root`, and drops `--scorer`.
 - The offline mock answers Noul questions by query-word overlap instead of a constant 0.9.
 
 ### Added
-- `eval/jev_selection/PREREG-v4.md` (draft) and `queries-v3.json`: the v4 validation protocol, the query list and its hash, the gate and the consequences of passing and failing.
+- `eval/jev_selection/PREREG-v4.md` (registered 2026-10-08, commit `56ef2db`) and `queries-v3.json`: the v4 validation protocol, the query list and its hash, the gate and the consequences of passing and failing. The leak diagnostic and the v4 result are in `eval/jev_selection/README.md`.
+
+### Known limitations
+- Jev diagnosis and verification in section mode **failed** their pre-registered validation (mean AUC 0.56 against a 0.65 gate). When Jev judged the own section best, Perplexity cited the page in 1 of 6 queries. Treat `already_best` as a weak signal and confirm with `remeasure`. Section mode stays experimental and opt-in; page mode, the default, does not use Jev.
 
 ## [2.2.0] - 2026-09-26
 

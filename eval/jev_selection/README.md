@@ -5,7 +5,7 @@ validation gate for section-mode `fix-gaps` (`openspec/specs/citation-gap-fixing
 Section mode uses Jev to judge **text competitiveness** — whose text best answers the query — *not*
 to predict citations (Jev sees text only; engines also weigh authority and links).
 
-## v4 (in progress) — the path section mode actually runs
+## v4 — the path section mode actually runs
 
 v2 (below) measured a configuration the product does not run: its own copy of the Noul question, on
 full-page excerpts, with ids that told Jev which candidate was ours (`own` next to `src_N`). From v4
@@ -22,9 +22,9 @@ the harness calls the product function `egeo.judge.score_candidates`:
 - **Pre-registration:** `PREREG-v4.md` and `queries-v3.json`. A live run needs `--prereg-sha`; a run
   without one never passes the gate.
 
-The pre-registered v4 run is done (2026-10-15, GATE FAIL, below). Until `JEV_VALIDATION` is updated
-(task 4.1), section mode reports `jev_validation` with `"protocol": "v4"` and no result, and quotes
-the v2 Choice figures only as an earlier configuration.
+The pre-registered v4 run is done (2026-10-15, GATE FAIL, below). Section mode reports it in
+`jev_validation` (`"status": "experimental"`, `"gate_passed": false`) and quotes the v2 Choice
+figures only as an earlier configuration, under `previous`.
 
 ### v4 step 1 — leak diagnostic (non-gating), 2026-10-08
 
@@ -69,7 +69,8 @@ Reading: the whole 95% interval sits below the 0.65 gate, and the point estimate
 As pre-registered (design D5, FAIL), the result is final: no re-run, prompt or threshold change.
 `JEV_VALIDATION` gets these numbers with `"status": "experimental"` and the labels stay; the owner
 then chooses, without another run, to keep section mode experimental or remove the Jev diagnosis and
-verification. Files: `~/Sync/mkt/egeo-expansion/jev-selection/dataset-v3-2026-10-15.json`,
+verification. Owner decision (2026-10-16): keep section mode experimental; demoting `already_best`
+from a verdict to a warning goes to a separate change. Files: `~/Sync/mkt/egeo-expansion/jev-selection/dataset-v3-2026-10-15.json`,
 `results-v3-2026-10-15.json`.
 
 ## v1 → v2 (2026-09-25 review)

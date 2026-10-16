@@ -154,7 +154,7 @@ def test_happy_path_rewrites_only_target_section(project: Path) -> None:
     assert saved["mode"] == "sections" and saved["jev_model"] == "fake"
     assert saved["note"] == gaps.SECTIONS_NOTE
     assert "not a prediction of citation" in saved["note"]
-    assert "EXPERIMENTAL" in saved["note"] and "not been validated" in saved["note"]
+    assert "EXPERIMENTAL" in saved["note"] and "below the 0.65 bar" in saved["note"]
     assert saved["jev_validation"] == gaps.JEV_VALIDATION
     assert saved["jev_validation"]["status"] == "experimental" and saved["jev_validation"]["gate_passed"] is False
     assert page["diagnosis"]["experimental"] is True
@@ -259,18 +259,21 @@ def test_jev_error_marks_page(project: Path) -> None:
     _no_output(project)
 
 
-def test_jev_validation_describes_v4_configuration_without_a_result() -> None:
-    # Until the pre-registered v4 run (plan v4 §3-§4) the running configuration has NO validation result;
-    # the 2.2.0 figures are kept only under "previous", labeled with the configuration they measured.
+def test_jev_validation_records_the_failed_v4_run() -> None:
+    # The pre-registered v4 run (PREREG-v4.md, 2026-10-15) failed the gate. Per design D5 the numbers are
+    # recorded, the status stays "experimental" and the 2.2.0 figures stay under "previous".
     v = gaps.JEV_VALIDATION
     assert (v["protocol"], v["scorer"], v["ids"], v["unit"]) == ("v4", "noul", "blind", "sections")
-    assert v["mean_auc"] is None and v["ci95"] is None and v["prereg_sha"] is None
+    assert v["mean_auc"] == 0.559 and v["ci95"] == [0.489, 0.637] and v["n_queries"] == 30
+    assert v["own_accuracy"] == 0.5625 and v["date"] == "2026-10-15"
+    assert v["prereg_sha"] == "56ef2db55125c691bd72c7f350ce8dc3dae31d27"
     assert v["status"] == "experimental" and v["gate_passed"] is False
     assert v["gate_auc"] == 0.65 and v["gate_min_queries"] == 25
     prev = v["previous"]
     assert prev["config"] == "choice, leaky ids, page excerpts"
     assert prev["mean_auc"] == 0.619 and prev["ci95"] == [0.561, 0.674] and prev["own_accuracy"] == 0.167
-    assert "0.62" not in gaps.SECTIONS_NOTE.split("earlier configuration")[0]
+    current = gaps.SECTIONS_NOTE.split("earlier configuration")[0]
+    assert "0.56" in current and "2026-10-15" in current and "0.62" not in current
 
 
 def test_experimental_flags_follow_the_validation_status(project: Path, monkeypatch) -> None:

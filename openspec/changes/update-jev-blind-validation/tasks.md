@@ -19,4 +19,4 @@ Implementation plan with lanes, contracts and the run protocol: `docs/plans/2026
 - [x] 3.4 Evaluate v3 once; record the result in the README — GATE FAIL, mean AUC 0.559 [0.489, 0.637]
 
 ## 4. Outcome (design D5)
-- [ ] 4.1 Update `JEV_VALIDATION`, docs and CHANGELOG per the pre-registered consequence; owner decision if FAIL
+- [x] 4.1 Update `JEV_VALIDATION`, docs and CHANGELOG per the pre-registered consequence; owner decision if FAIL — FAIL; owner decision 2026-10-16: keep section mode experimental (demote `already_best` in a separate change)
