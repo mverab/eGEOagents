@@ -1,6 +1,6 @@
 ## 0. Approval and sequencing
-- [ ] 0.1 Owner approves this proposal and decides D1 (remove the `already_best` page status, recommended, vs keep it as a non-skipping flag) and D2 (`diagnosis.status` value `own_leads`, recommended, vs keeping `already_best`)
-- [ ] 0.2 Archive `update-jev-blind-validation` so `openspec/specs/citation-gap-fixing/spec.md` matches the code before this change is applied (design D6)
+- [x] 0.1 Owner approves this proposal and decides D1 (remove the `already_best` page status, recommended, vs keep it as a non-skipping flag) and D2 (`diagnosis.status` value `own_leads`, recommended, vs keeping `already_best`) — approved 2026-10-16: D1 remove, D2 `own_leads`, D3–D6 as recommended
+- [x] 0.2 Archive `update-jev-blind-validation` so `openspec/specs/citation-gap-fixing/spec.md` matches the code before this change is applied (design D6)
 
 ## 1. Contracts (RED first; no `egeo/` change in this step)
 - [ ] 1.1 `tests/test_gaps_sections.py`: replace `test_already_best_does_not_rewrite` with `test_own_leads_still_rewrites_with_warning`. Script `ScriptedJev(WON, FAITHFUL, WON)` with `GOOD_REWRITE`. Expect status `rewritten`, rewrite called once with the `Tools` section, `diagnosis.status == "own_leads"`, `diagnosis.warning == "own_text_already_competitive"`, `diagnosis.target_section.id == "s01"`, `diagnosis.experimental is True`, `offpage == {"reason": "own_text_already_competitive", "message": gaps.OFFPAGE_MESSAGE, "sources": ["https://toolradar.com/x"]}`, the rewritten file and `section.diff` written, and `diagnosis.json` saved with the same `offpage`
