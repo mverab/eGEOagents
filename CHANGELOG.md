@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-16
+
 ### Changed
 - **Breaking (experimental section-mode JSON only):** `already_best` is now a warning, not a verdict (owner decision 2026-10-16, openspec `update-fix-gaps-already-best-warning`). When Jev scores your best section above every cited source, section mode still rewrites that section through the same fidelity rules, fidelity judge and re-check, and the page gets its real outcome status. `diagnosis.warning` is `"own_text_already_competitive"`, `diagnosis.status` is `"own_leads"` (was `"already_best"`), and `offpage` still lists the cited sources (reason `own_text_already_competitive`). The page status `already_best` and its CLI line are gone. Page mode, the default, is unchanged.
 - **Breaking (experimental section-mode JSON only):** section mode now scores each candidate with an independent Jev Noul question instead of one Choice question (owner decision D2, openspec `update-jev-blind-validation`). In `fix-gaps.json` the page `diagnosis` reports `scorer: "noul"` and `scores` in place of `probabilities` / `confidence`; `verification` reports `score_before` / `score_after` in place of `p_before` / `p_after`. `own_leads` (formerly `already_best`) and `won` require the best own section to score strictly above every source (ties count as losing). Page mode, the default, is unchanged.
@@ -17,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `eval/jev_selection/PREREG-v4.md` (registered 2026-10-08, commit `56ef2db`) and `queries-v3.json`: the v4 validation protocol, the query list and its hash, the gate and the consequences of passing and failing. The leak diagnostic and the v4 result are in `eval/jev_selection/README.md`.
+- Loop-mode SERP collector: `--engine serply` (Google results via the Serply API, `SERPLY_API_KEY`), next to `brave` and `serpbase`, with an offline fixture for contract tests (`collectors/fixtures/serp_serply_response.json`).
+- `/geo:batch` reports progress as it goes: `Processing batch (N files)...`, then one `[i/N] <file> ✓` (or `✗ <reason>`) line per file.
+- `docs/examples.md`: three real before/after runs of `egeo optimize`, including where the rewriter removed dates, source links and data points that matter for citation.
 
 ### Known limitations
 - Jev diagnosis and verification in section mode **failed** their pre-registered validation (mean AUC 0.56 against a 0.65 gate). When Jev judged the own section best, Perplexity cited the page in 1 of 6 queries. The `own_text_already_competitive` warning is a weak signal; confirm with `remeasure`. Section mode stays experimental and opt-in; page mode, the default, does not use Jev.
