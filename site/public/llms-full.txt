@@ -47,7 +47,7 @@ Subcommands: optimize, fix-gaps, evaluate, optimize-prompts, runtimes, loop.
 - egeo loop {run,collect,doctor}
   Loop mode; zero LLM calls. run <domain> [--dry-run] prints the run plan; collect {serp,page} runs a deterministic collector pass; doctor bootstraps and health-checks the workspace.
 
-Environment: GEO_EVAL_MOCK=1 (offline deterministic mock, no API key), OPENAI_API_KEY, OPENAI_BASE_URL, RANKER_MODEL / REWRITER_MODEL / META_MODEL (default gpt-4o), EGEO_HOME (default ~/.egeo), BRAVE_API_KEY (serp collector only).
+Environment: GEO_EVAL_MOCK=1 (offline deterministic mock, no API key), OPENAI_API_KEY, OPENAI_BASE_URL, RANKER_MODEL / REWRITER_MODEL / META_MODEL (default gpt-4o), EGEO_HOME (default ~/.egeo), and the selected SERP provider key (BRAVE_API_KEY, SERPBASE_API_KEY, SERPLY_API_KEY, or GOANYAPI_API_KEY).
 
 ## Pipeline (4 agents)
 
@@ -64,7 +64,7 @@ When run through Claude Code, E-GEO validates with MCP servers: brave-search (co
 
 ## Loop mode
 
-Opt-in continuous GEO. State lives in $EGEO_HOME (LOG.md, config.yaml, SUBSTRATE.md, signals/, docs/, data/<collector>/*.jsonl, domains/<loop>/README.md, prompts/). Collectors (serp: needs BRAVE_API_KEY; page: no deps) are deterministic, budget-aware, append-only, and accept --fixture for offline runs. Run contract: one unit of work per wake-up, one Timeline entry ending in Outcome: success|partial|failure|no-op, one LOG.md line, verified before exit. Interpretive runs execute via /geo:loop <domain> in Claude Code; egeo loop run|collect|doctor are LLM-free.
+Opt-in continuous GEO. State lives in $EGEO_HOME (LOG.md, config.yaml, SUBSTRATE.md, signals/, docs/, data/<collector>/*.jsonl, domains/<loop>/README.md, prompts/). Collectors (serp: needs the selected provider key; page: no deps) are deterministic, budget-aware, append-only, and accept --fixture for offline runs. SERP providers include Brave, SerpBase, Serply, and GoAnyAPI (https://goanyapi.com). Run contract: one unit of work per wake-up, one Timeline entry ending in Outcome: success|partial|failure|no-op, one LOG.md line, verified before exit. Interpretive runs execute via /geo:loop <domain> in Claude Code; egeo loop run|collect|doctor are LLM-free.
 
 ## Evaluation harness (honest limitations)
 

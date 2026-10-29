@@ -96,7 +96,9 @@ Collectors are the loop's senses: deterministic, LLM-free, budget-aware, and app
 
 | Collector | Needs | Output |
 |-----------|-------|--------|
-| `serp` | `BRAVE_API_KEY` | Top-10 results per query + your target's position |
+| `serp` | Selected provider key (`BRAVE_API_KEY`, `SERPBASE_API_KEY`, `SERPLY_API_KEY`, or `GOANYAPI_API_KEY`) | Top-10 results per query + your target's position |
+
+Use `egeo loop collect serp --engine goanyapi` with `GOANYAPI_API_KEY` for Google organic results from [GoAnyAPI](https://goanyapi.com). See the [SERP API documentation](https://goanyapi.com/docs/serp-api) for the current credit rule.
 | `page` | nothing | `content_hash`, title, meta description, JSON-LD types, word count |
 
 Both accept `--fixture` for offline, deterministic runs — that is how they are tested without touching the network.
