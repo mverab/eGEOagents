@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Optional `goanyapi` engine for the loop-mode SERP collector, using the documented [GoAnyAPI](https://goanyapi.com) Google SERP API and `GOANYAPI_API_KEY`. Includes an offline fixture, provider-aware doctor check, and packaged-resource mirror.
+
 ## [2.3.0] - 2026-10-16
 
 ### Changed

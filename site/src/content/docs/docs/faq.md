@@ -23,7 +23,7 @@ head:
           {
             "@type": "Question",
             "name": "Do I need API keys to use E-GEO?",
-            "acceptedAnswer": {"@type": "Answer", "text": "Not to try it. Every egeo command honors GEO_EVAL_MOCK=1, which uses a deterministic offline mock client with no API key. Real model runs need OPENAI_API_KEY (any OpenAI-compatible endpoint via OPENAI_BASE_URL), and the serp collector needs BRAVE_API_KEY."}
+            "acceptedAnswer": {"@type": "Answer", "text": "Not to try it. Every egeo command honors GEO_EVAL_MOCK=1, which uses a deterministic offline mock client with no API key. Real model runs need OPENAI_API_KEY (any OpenAI-compatible endpoint via OPENAI_BASE_URL), and the serp collector needs the API key for its selected provider."}
           },
           {
             "@type": "Question",
@@ -77,7 +77,7 @@ Claude Code adds the agent workflow (`/geo` slash commands), auto-triggered skil
 | Key | Needed for |
 |---|---|
 | `OPENAI_API_KEY` | Real model runs (any OpenAI-compatible endpoint via `OPENAI_BASE_URL`) |
-| `BRAVE_API_KEY` | The `serp` collector in loop mode only |
+| `BRAVE_API_KEY`, `SERPBASE_API_KEY`, `SERPLY_API_KEY`, or `GOANYAPI_API_KEY` | The `serp` collector in loop mode, according to the selected engine |
 
 ### Is GEO the same as SEO?
 

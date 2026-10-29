@@ -202,4 +202,4 @@ Full loop-mode guide: [GEO Loop](/docs/geo-loop/).
 | `OPENAI_BASE_URL` | Optional OpenAI-compatible endpoint override. |
 | `RANKER_MODEL` / `REWRITER_MODEL` / `META_MODEL` | Default model names (default `gpt-4o`). |
 | `EGEO_HOME` | Loop workspace location (default `~/.egeo`). |
-| `BRAVE_API_KEY` | Required by the `serp` collector only. |
+| `BRAVE_API_KEY` / `SERPBASE_API_KEY` / `SERPLY_API_KEY` / `GOANYAPI_API_KEY` | The `serp` collector uses the key for its selected engine. See [collector setup](https://github.com/mverab/eGEOagents/blob/main/collectors/README.md). |

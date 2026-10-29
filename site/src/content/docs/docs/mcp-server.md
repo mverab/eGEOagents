@@ -37,7 +37,7 @@ E-GEO still runs if these servers are missing. It falls back to available tools 
 ## Setup
 
 1. Add Brave Search and Chrome DevTools MCP servers to your Claude Code MCP configuration.
-2. The `serp` collector (used by [loop mode](/docs/geo-loop/)) also talks to the Brave API directly and needs `BRAVE_API_KEY` in the environment.
+2. The `serp` collector (used by [loop mode](/docs/geo-loop/)) calls its selected HTTP provider directly. It supports Brave, SerpBase, Serply, and [GoAnyAPI](https://goanyapi.com); set the corresponding API key in the environment.
 3. Run the `validation-doctor` skill — it checks your MCP dependencies and prints exact setup commands for anything missing:
 
 ```bash

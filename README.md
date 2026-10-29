@@ -370,7 +370,7 @@ See [`examples/project.yaml`](examples/project.yaml) for the portable contract.
 |---------|--------------|
 | `egeo loop doctor` | Bootstrap the workspace if missing, then health-check it (layout, config, budgets, substrate lint) |
 | `egeo loop decide` | Rank exactly one next action from collector JSONL + the outcome ledger (LLM-free; never publishes) |
-| `egeo loop collect serp` | Record a search-result snapshot (Brave API) into `data/serp/*.jsonl` |
+| `egeo loop collect serp` | Record a search-result snapshot (Brave, SerpBase, Serply, or GoAnyAPI) into `data/serp/*.jsonl` |
 | `egeo loop collect page` | Record a page snapshot (hash, title, meta, JSON-LD types, word count) into `data/page/*.jsonl` |
 | `egeo loop run <domain>` | Resolve and print the run plan — current focus, fresh collector deltas, candidate signals |
 | `/geo:loop <domain>` | Execute one bounded loop iteration in Claude Code (the agent does the interpretive work) |
@@ -412,11 +412,18 @@ pass, and **fail loudly** instead of writing a partial or fabricated record.
 
 | Collector | Needs | Output |
 |-----------|-------|--------|
-| `serp` | `BRAVE_API_KEY` | Top-10 results per query + your target's position |
+| `serp` | Selected provider key (`BRAVE_API_KEY`, `SERPBASE_API_KEY`, `SERPLY_API_KEY`, or `GOANYAPI_API_KEY`) | Top-10 results per query + your target's position |
 | `page` | nothing | `content_hash`, title, meta description, JSON-LD types, word count |
 
 Both accept `--fixture` for offline, deterministic runs — that is how they are
 tested without touching the network.
+
+For Google organic results through [GoAnyAPI](https://goanyapi.com), set
+`GOANYAPI_API_KEY` and run `egeo loop collect serp --engine goanyapi`. The
+collector uses the documented [SERP API](https://goanyapi.com/docs/serp-api)
+and preserves the existing observation format. The selected account is charged
+for successful billable requests; check the live documentation before scheduling
+many queries.
 
 ### Scheduling (Hermes cron reference)
 
