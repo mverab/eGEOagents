@@ -16,10 +16,20 @@ dependencies = [
   "jsonschema>=4.0", # JSON-LD envelope validation (scripts/validate_jsonld.py)
 ]
 
+[project.optional-dependencies]
+# Public URL audit HTTP service (egeo/audit_service.py). The core audit
+# (egeo/url_audit.py) is stdlib-only and works without this extra.
+audit-service = [
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+]
+
 [project.scripts]
 # Exposes the standalone `egeo` command after `pip install -e .`.
 # `python -m egeo ...` also works without installation.
 egeo = "egeo.cli:main"
+# Needs the optional extra: pip install "egeo[audit-service]"
+egeo-audit-service = "egeo.audit_service:main"
 
 [project.urls]
 Homepage = "https://egeoagents.com"

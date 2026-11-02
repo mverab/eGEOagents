@@ -4,3 +4,5 @@
 pyyaml>=6.0        # SKILL.md frontmatter parsing (scripts/validate_skills.py)
 jsonschema>=4.0    # JSON-LD envelope validation (scripts/validate_jsonld.py)
 pytest>=7.0        # Test runner for tests/ (unittest discover does not collect pytest-style tests)
+fastapi>=0.110     # Audit service tests (tests/test_audit_service.py); runtime extra egeo[audit-service]
+httpx>=0.27        # fastapi.testclient transport for the audit service tests

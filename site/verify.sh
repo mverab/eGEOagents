@@ -43,6 +43,12 @@ grep_check 'open-source Generative Engine Optimization (GEO) &amp; Answer Engine
 grep_check 'id="answer-block"' "$DIST/index.html" "answer block present on /"
 grep_check 'id="answer-card"' "$DIST/index.html" "hero answer-card element present on /"
 grep_check '<loc>https://egeoagents.com/</loc>' "$DIST/sitemap-0.xml" "sitemap includes /"
+# public URL audit form (openspec/changes/add-public-url-audit, landing-url-audit)
+grep_check 'id="audit-form"' "$DIST/index.html" "audit form present on /"
+grep_check 'name="url"' "$DIST/index.html" "audit form has a URL input"
+grep_check 'name="query"' "$DIST/index.html" "audit form has an optional query input"
+grep_check 'No account, no email' "$DIST/index.html" "audit form states no account or email is required"
+grep_check 'id="audit-report"' "$DIST/index.html" "audit report container present on /"
 for link in /docs/how-it-works/ /research/ /guides/track-ai-citations/; do
   grep_check "href=\"$link\"" "$DIST/index.html" "landing links to $link"
 done

@@ -1,0 +1,67 @@
+# A/B notes — OpenSpec arm (`add-public-url-audit`)
+
+## Timing (UTC, from `date -Iseconds` in the session)
+
+- **Start:** 2026-11-02T08:13:40+00:00, the first command of the session.
+- **End:** 2026-11-02T18:16:58+00:00, just before this file was written.
+- The wall-clock span includes the time the owner took to answer the two question rounds. No separate timestamp was taken for each answer.
+
+## Questions asked to the owner
+
+There were **8 questions in 2 rounds** (`AskUserQuestion`). In every case the owner chose the recommended option.
+
+| # | Topic | Decision |
+|---|---|---|
+| 1 | v1 scope | Deterministic checks + 1 rewritten section |
+| 2 | Backend | Separate Python service that reuses the `egeo` package |
+| 3 | Gate / report persistence | No gate, ephemeral link (24 h), no leaderboard |
+| 4 | Abuse / cost limits | Per-IP limit + 1 h cache + global daily LLM cap + SSRF block |
+| 5 | Score presentation | Visible breakdown, no single 0–100 score |
+| 6 | Rewrite query / section | Optional visitor query (derived from title otherwise), lowest-scoring section, fidelity rules only |
+| 7 | Hosting | Own VPS + `api.egeoagents.com` behind Cloudflare |
+| 8 | Response mode | Synchronous with timeout (30 s) |
+
+## Inputs used
+
+- `docs/research/2026-10-27-url-audit-competitors.md`, the only research input.
+- Repo code and docs:
+  - `openspec/AGENTS.md`, `openspec/project.md`, `openspec/specs/citation-gap-fixing/spec.md`;
+  - the headers and proposals of the pending changes, checked for overlap;
+  - `site/` (`index.astro`, `astro.config.mjs`, `verify.sh`, `.github/workflows/site.yml`);
+  - `egeo/{agents,sources,sections,section_rewriter,fidelity,pipeline,gaps,cli}.py`, `collectors/page.py`, `llm_client.py` and `pyproject.toml`.
+- Nothing was read outside this worktree. `docs/designs/` and `../eGEOagents*` checkouts were not opened. `git worktree list` was run once and printed only paths and branches.
+- No subagents were used, Kimi or otherwise.
+
+## Deviations from the OpenSpec workflow
+
+1. **CLI not on `PATH`.** `openspec` was not on the default `PATH`, so it was run as `$HOME/.local/bin/openspec` (v1.14.1).
+2. **More clarifying questions than the guideline.** `AGENTS.md` says to ask "1–2 clarifying questions before scaffolding". 8 were asked, because the owner reserved every product and architecture decision.
+3. **Deprecated command.** `openspec spec list --long` was used. It still works but prints a deprecation warning. `openspec list --specs` was also run.
+4. **Spec rework after the first validation.** The first `openspec validate --strict` run failed: in strict mode, warnings count, and 7 requirements had more than 500 characters of text. Those requirements were split into smaller ones, each stating one behavior, and validation then passed (`Change 'add-public-url-audit' is valid`). This is the normal fix loop, not a skipped step.
+5. **Approval gate.** The proposal is complete and validated but not yet approved. No implementation was started, as `AGENTS.md` Stage 1 requires.
+6. **Extra file.** `ab_notes.md` is not part of the standard change layout. It was added at the owner's request. `openspec validate` ignores it.
+7. **No commit or push**, as the owner instructed.
+
+## Implementation phase (owner: "Hazlo")
+
+- **Start:** after the owner's "Hazlo", read as approval to implement. **End:** 2026-11-02T23:29:21+00:00.
+- **Questions asked in this phase:** 0. The defaults in design D6 and `REWRITER_MODEL` were applied as written; they are still listed in Open Questions.
+- **Workflow:** `openspec-apply-change` (`openspec instructions apply`). Each checkbox was marked after its section was implemented and tested.
+- **Progress:** 24/26 tasks. Two tasks remain open on purpose, because they act outside this repo on the owner's accounts:
+  - 3.2: create the Cloudflare Tunnel and the `api.egeoagents.com` DNS record;
+  - 5.2: smoke test against the deployed API.
+- **Subagents:** none.
+
+### Deviations from the plan and the workflow
+
+1. **Artifact edit during apply.** The spec and design said `features` was a list that "carries" `method: "heuristic"`, which a list cannot do. The spec (requirement "GEO Feature Breakdown") and design D9 now describe `features` as `{method, note, items[10]}`. `openspec validate --strict` passed again after the edit.
+2. **Task 1.4, partial reuse of `collectors/page.py`.** `parse_page` is used only for the title and the JSON-LD types. The meta description comes from the new HTML→Markdown parser, because `parse_page` falls back to `og:description` and the spec requires `<meta name="description">`.
+3. **Task 3.1, Docker image not built.** The Dockerfile and compose file were written, but `docker build` could not run: permission denied on `/var/run/docker.sock`. As a substitute, `egeo[audit-service]` was installed from a clean copy into a fresh venv and run outside the repo tree. That run used the packaged resources and the `egeo-audit-service` command.
+4. **Additions not named in tasks.md:**
+   - `fastapi` and `httpx` added to `requirements.txt`, so CI runs the service tests;
+   - `.gitignore` entries for `deploy/audit-service/.env` and `*.sqlite3`;
+   - a `/healthz` route, used by the Docker healthcheck;
+   - the `PUBLIC_AUDIT_API` build variable, for local development;
+   - the new docs page added to `site/public/llms.txt` and to the sidebar.
+5. **Cache key.** It is the URL plus the *requested* query, where an empty value means "derive the query from the page". The spec says the *effective* query. The derived query is a pure function of the page, but the derivation needs a fetch, so it can't be part of a key computed before fetching.
+6. **Extra verification:** the full flow was run end to end in headless Chromium against the local API (mock LLM). It covered the form, the report, the shared link, the expired link, the rate limit, an invalid URL, the API-down fallback and mobile overflow, and all 19 assertions passed. These are temporary scripts in the session scratchpad; they are not in the repo.

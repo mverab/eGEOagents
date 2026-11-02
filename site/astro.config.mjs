@@ -57,6 +57,7 @@ export default defineConfig({
 					label: 'Documentation',
 					items: [
 						{ label: 'Getting Started', slug: 'docs/getting-started' },
+						{ label: 'Free URL Audit', slug: 'docs/url-audit' },
 						{ label: 'How It Works', slug: 'docs/how-it-works' },
 						{ label: 'CLI Reference', slug: 'docs/cli' },
 						{ label: 'MCP-Based Validation', slug: 'docs/mcp-server' },
