@@ -65,3 +65,11 @@ There were **8 questions in 2 rounds** (`AskUserQuestion`). In every case the ow
    - the new docs page added to `site/public/llms.txt` and to the sidebar.
 5. **Cache key.** It is the URL plus the *requested* query, where an empty value means "derive the query from the page". The spec says the *effective* query. The derived query is a pure function of the page, but the derivation needs a fetch, so it can't be part of a key computed before fetching.
 6. **Extra verification:** the full flow was run end to end in headless Chromium against the local API (mock LLM). It covered the form, the report, the shared link, the expired link, the rate limit, an invalid URL, the API-down fallback and mobile overflow, and all 19 assertions passed. These are temporary scripts in the session scratchpad; they are not in the repo.
+
+## Post-merge phase (after #80; owner: "Hazlo" to hiding the form)
+
+- **Why:** #80 deployed the form, but `api.egeoagents.com` has no DNS yet (task 3.2), so every visitor who submitted got "service unavailable".
+- **Questions asked in this phase:** 0. The owner approved the offer to hide the form until the API is live. The mechanism was chosen without asking: a build flag set in the workflow. It was preferred over a runtime `/healthz` probe for two reasons. The form only appears after the smoke test (5.2), not as soon as the API answers. And landing visitors send no request to the API.
+- **Artifact edits:** a new requirement, "Audit Form Hidden Until The API Is Live", in `specs/landing-url-audit/spec.md`; task 4.7 (done) and task 5.4 (enable the form after 5.2, open). `openspec validate --strict` passes.
+- **Deviation:** the delta spec of a change whose code is already merged was edited before archive. `AGENTS.md` allows this while the change is still active, and the requirement is added, not modified.
+- **Verification:** the site built with the flag off and on, and `verify.sh` passed in both cases. When the build and the check disagree, `verify.sh` fails as intended. In headless Chromium at 1440 px and 390 px: with the flag off, the form is hidden, the CTAs show, nothing overflows, and no request goes to the API even with `#audit=` in the URL. With the flag on, the form shows and the shared-link fetch runs.

@@ -28,8 +28,10 @@
 - [x] 4.4 Add the `#audit=<id>` fragment: set it after render, load from it on page load, handle the expired state, and a copy-link control.
 - [x] 4.5 Add the post-report CTAs: `pip install egeo`, `/geo <url>`, and the service link with `utm_campaign=url_audit`.
 - [x] 4.6 Extend `site/verify.sh` to assert the form is present. Confirm the sitemap-completeness check still passes, since no new route is added.
+- [x] 4.7 Gate the form behind the build flag `PUBLIC_AUDIT_ENABLED` (set to `'false'` in `.github/workflows/site.yml`): hidden form and no client script when off, plus a `verify.sh` check that visibility matches the flag.
 
 ## 5. Verification and docs
 - [x] 5.1 Run `python -m pytest` (new and existing tests) and `npm run build && ./verify.sh` in `site/`.
 - [ ] 5.2 Do a manual smoke test against the deployed API with three public URLs: a static page, a JS-rendered page and a page that blocks GPTBot. Record the results in the PR.
 - [x] 5.3 Update `CHANGELOG.md`, `USAGE.md` (service section) and `site/src/content/docs/docs/` with a short page on how the public audit works and what it does not measure.
+- [ ] 5.4 After 5.2 passes, set `PUBLIC_AUDIT_ENABLED: 'true'` in `.github/workflows/site.yml` and confirm the form is live on egeoagents.com.

@@ -49,6 +49,19 @@ grep_check 'name="url"' "$DIST/index.html" "audit form has a URL input"
 grep_check 'name="query"' "$DIST/index.html" "audit form has an optional query input"
 grep_check 'No account, no email' "$DIST/index.html" "audit form states no account or email is required"
 grep_check 'id="audit-report"' "$DIST/index.html" "audit report container present on /"
+# the form is visible only when built with PUBLIC_AUDIT_ENABLED=true (API live)
+FORM_TAG="$(grep -o '<form[^>]*id="audit-form"[^>]*>' "$DIST/index.html" | head -1)"
+if [ "${PUBLIC_AUDIT_ENABLED:-}" = "true" ]; then
+  case "$FORM_TAG" in
+    *' hidden'*) echo "FAIL  audit form hidden although PUBLIC_AUDIT_ENABLED=true"; fail=1 ;;
+    *) echo "PASS  audit form visible (PUBLIC_AUDIT_ENABLED=true)" ;;
+  esac
+else
+  case "$FORM_TAG" in
+    *' hidden'*) echo "PASS  audit form hidden (PUBLIC_AUDIT_ENABLED not true)" ;;
+    *) echo "FAIL  audit form visible although PUBLIC_AUDIT_ENABLED is not true"; fail=1 ;;
+  esac
+fi
 for link in /docs/how-it-works/ /research/ /guides/track-ai-citations/; do
   grep_check "href=\"$link\"" "$DIST/index.html" "landing links to $link"
 done

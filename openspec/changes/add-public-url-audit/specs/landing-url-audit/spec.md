@@ -21,6 +21,21 @@ The form SHALL state that no account or email is required. On submit it SHALL `P
 - **THEN** the page sends `POST /api/audit` with `{"url": "example.com", "query": null}`
 - **AND** it shows static progress steps (fetching page, running checks, rewriting one section) until the response arrives
 
+### Requirement: Audit Form Hidden Until The API Is Live
+
+The form SHALL be visible only when the site is built with `PUBLIC_AUDIT_ENABLED=true`. In any other build, the form SHALL stay in the HTML with the `hidden` attribute and the client script SHALL not run, so the landing page never offers an audit that cannot run. The site workflow SHALL set the flag, and `site/verify.sh` SHALL check that the form's visibility matches it.
+
+#### Scenario: Built before the API is live
+
+- **WHEN** the site is built with `PUBLIC_AUDIT_ENABLED` unset or `false`
+- **THEN** `dist/index.html` contains the audit form with the `hidden` attribute
+- **AND** no request is sent to the audit API on page load
+
+#### Scenario: Built after the API is live
+
+- **WHEN** the site is built with `PUBLIC_AUDIT_ENABLED=true`
+- **THEN** the audit form is visible and `site/verify.sh` passes
+
 ### Requirement: Report Checks And Features View
 
 The landing page SHALL render the returned report in place, without navigating away.
