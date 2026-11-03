@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Free URL audit on egeoagents.com** (openspec `add-public-url-audit`). A visitor pastes a URL and gets a report:
+  - seven deterministic checks (AI-crawler access in `robots.txt`, `/llms.txt`, JSON-LD, title, meta description, one `h1`, text visible without JavaScript), each `pass` / `fail` / `unverifiable` with evidence and a fix;
+  - the 10 GEO features from the offline Analyzer, labeled as a heuristic, with no aggregate score;
+  - one section rewritten by the LLM, shown only if it passes the deterministic fidelity rules.
+
+  No account or email is needed, and the report link (`/#audit=<id>`) expires after 24 h.
+- `egeo/url_audit.py` (stdlib only): the audit core, with an SSRF-guarded fetcher. Every hop is re-validated, only public addresses are allowed, and the connection is pinned to the vetted address. The module also adds an HTML→Markdown converter.
+- `egeo/audit_service.py` and the optional extra `egeo[audit-service]` (FastAPI, uvicorn). It provides `POST /api/audit` and `GET /api/audit/{id}`, plus:
+  - a per-IP daily limit (stores a salted hash, never the raw IP) and a 1 h cache;
+  - a global daily cap on LLM rewrites (degrades to `skipped_budget`) and a 30 s deadline;
+  - a 24 h SQLite report store.
+
+  The `egeo-audit-service` command starts the service.
+- `deploy/audit-service/` (Dockerfile; compose with a Cloudflare Tunnel and no published ports) and the `docs/audit-service.md` runbook.
+- Site: the audit form in the hero, an in-page report view, and the `/docs/url-audit/` page explaining what the audit measures and what it does not.
+
 ## [2.3.0] - 2026-10-16
 
 ### Changed

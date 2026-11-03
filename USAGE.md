@@ -72,6 +72,23 @@ Requirements: page mode needs `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`) fo
 
 Flags: `--mode page|sections` (default `page`, the whole-page rewrite; `sections` is experimental and opt-in), `--max-sources`, `--jev-model`, `--project`, `--out-dir`, `--format markdown|html` (page mode), `--dry-run`, `--json`, plus the `optimize` runtime/model flags (page mode).
 
+## Public URL audit service (`egeo[audit-service]`)
+
+The free audit on egeoagents.com runs this service.
+- `egeo/url_audit.py` holds the audit logic. It is stdlib only and is importable without the extra.
+- `egeo/audit_service.py` adds the HTTP layer, the limits and the 24 h store.
+
+```bash
+pip install -e ".[audit-service]"
+GEO_EVAL_MOCK=1 AUDIT_ALLOWED_ORIGINS=http://localhost:4321 egeo-audit-service   # http://127.0.0.1:8787
+curl -s -X POST http://127.0.0.1:8787/api/audit -H 'Content-Type: application/json' \
+  -d '{"url": "https://example.com/", "query": null}'
+```
+
+Report: `checks` (7, each `pass`/`fail`/`unverifiable` with `evidence`, plus `fix` on fail), `features` (`method: "heuristic"`, 10 items 0–10, no aggregate score), `rewrite` (`shown`, `withheld_fidelity`, `skipped_no_candidate`, `skipped_budget`, `skipped_timeout`, `error`). Errors: `invalid_url`/`invalid_query` 400, `blocked_target` 422, `rate_limited` 429 (`Retry-After`), `fetch_failed` 502, `audit_timeout` 504, `not_found` 404.
+
+Environment: `OPENAI_API_KEY`, `REWRITER_MODEL`, `AUDIT_IP_DAILY_LIMIT` (5), `AUDIT_LLM_DAILY_CAP` (200), `AUDIT_CACHE_TTL_S` (3600), `AUDIT_REPORT_TTL_S` (86400), `AUDIT_ALLOWED_ORIGINS`, `AUDIT_DB_PATH`, `AUDIT_HOST`, `AUDIT_PORT`. To deploy behind a Cloudflare Tunnel, follow `docs/audit-service.md`.
+
 ## Loop mode
 
 Loop mode is opt-in and keeps all state in the workspace resolved from

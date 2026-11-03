@@ -32,3 +32,9 @@ site/.abacus-runs/
 
 # Local worker run artifacts at the repo root (never commit)
 .abacus-runs/
+
+# Audit service secrets and local state (deploy/audit-service)
+deploy/audit-service/.env
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

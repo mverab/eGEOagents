@@ -1,0 +1,27 @@
+# Public URL audit on the owner VPS: the API container has NO published ports.
+# The only way in is the Cloudflare Tunnel (cloudflared), so every request comes
+# through Cloudflare and CF-Connecting-IP is trustworthy (design D5).
+#
+#   cp .env.example .env   # fill in secrets
+#   docker compose -f deploy/audit-service/compose.yml up -d --build
+services:
+  audit:
+    build:
+      context: ../..
+      dockerfile: deploy/audit-service/Dockerfile
+    env_file: .env
+    volumes:
+      - audit-data:/data
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.12.2
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      - audit
+    restart: unless-stopped
+
+volumes:
+  audit-data:
