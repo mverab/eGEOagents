@@ -1,5 +1,7 @@
 ---
 const title = 'E-GEO — Open-Source GEO & AEO Toolkit';
+// The URL audit form ships hidden until the API is live (openspec add-public-url-audit).
+const auditEnabled = import.meta.env.PUBLIC_AUDIT_ENABLED === 'true';
 const description =
 	'E-GEO — open-source Generative Engine Optimization (GEO) & Answer Engine Optimization (AEO) toolkit (Python CLI + Claude Code skills), based on published GEO research (arXiv:2511.20867).';
 
@@ -113,6 +115,7 @@ const engineMarks = [
 							action="/docs/getting-started/"
 							method="get"
 							aria-describedby="audit-form-note"
+							hidden={!auditEnabled}
 						>
 							<label class="ua-field">
 								<span>Audit your page</span>
@@ -1443,6 +1446,7 @@ const engineMarks = [
 
 <style is:global>
 	/* Public URL audit (src/scripts/url-audit.ts). Global: report nodes are created by script. */
+	.ua-form[hidden],
 	.ua-form [hidden],
 	.ua-section[hidden] {
 		display: none !important;
@@ -1792,7 +1796,7 @@ const engineMarks = [
 
 <script>
 	import { initUrlAudit } from '../scripts/url-audit';
-	initUrlAudit();
+	if (import.meta.env.PUBLIC_AUDIT_ENABLED === 'true') initUrlAudit();
 </script>
 
 <script>

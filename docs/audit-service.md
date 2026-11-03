@@ -26,6 +26,10 @@ browser (egeoagents.com) ──HTTPS──▶ Cloudflare ──Tunnel──▶ c
    ```
 4. Fill in `OPENAI_API_KEY`, `REWRITER_MODEL` and `CLOUDFLARE_TUNNEL_TOKEN` in `.env`. The file is gitignored.
 
+## Enable the landing form
+
+The site builds the form hidden until the API is live: `.github/workflows/site.yml` sets `PUBLIC_AUDIT_ENABLED: 'false'`. Once `https://api.egeoagents.com/healthz` answers and the smoke test passes, change it to `'true'` in a PR. The merge redeploys the site with the form visible, and `site/verify.sh` checks that the form's visibility matches the flag.
+
 ## Deploy, update, stop
 
 ```bash
@@ -68,7 +72,7 @@ The worst-case LLM spend per day is `AUDIT_LLM_DAILY_CAP` × the cost of one sec
 
 ## Rollback
 
-- **Site:** remove the audit form from `site/src/pages/index.astro` and redeploy the site. The rest of the landing page never depends on the API.
+- **Site:** set `PUBLIC_AUDIT_ENABLED: 'false'` in `.github/workflows/site.yml` and merge. The form is hidden again and its script does not run. The rest of the landing page never depends on the API.
 - **Service:** check out the previous commit and run `up -d --build`, or stop the service with `down`.
 - **Data:** the SQLite file holds only short-lived data. Deleting the volume (`docker volume rm <project>_audit-data`) resets reports and counters.
 
@@ -87,7 +91,8 @@ It does not store raw IPs, request headers, emails or cookies, and sets no cooki
 pip install -e ".[audit-service]"
 GEO_EVAL_MOCK=1 AUDIT_ALLOWED_ORIGINS=http://localhost:4321 AUDIT_DB_PATH=/tmp/audit.sqlite3 egeo-audit-service
 # API on http://127.0.0.1:8787. For the site, run `npm run dev` in site/ with
-# PUBLIC_AUDIT_API=http://127.0.0.1:8787 so the form posts to the local API.
+# PUBLIC_AUDIT_ENABLED=true PUBLIC_AUDIT_API=http://127.0.0.1:8787 so the form shows
+# and posts to the local API.
 ```
 
 `GEO_EVAL_MOCK=1` makes the rewrite return the section unchanged, with no LLM call.
