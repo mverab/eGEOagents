@@ -29,6 +29,7 @@
 - [x] 4.5 Add the post-report CTAs: `pip install egeo`, `/geo <url>`, and the service link with `utm_campaign=url_audit`.
 - [x] 4.6 Extend `site/verify.sh` to assert the form is present. Confirm the sitemap-completeness check still passes, since no new route is added.
 - [x] 4.7 Gate the form behind the build flag `PUBLIC_AUDIT_ENABLED` (set to `'false'` in `.github/workflows/site.yml`): hidden form and no client script when off, plus a `verify.sh` check that visibility matches the flag.
+- [x] 4.8 Gate the docs page `/docs/url-audit/`, its sidebar entry and its `llms.txt` line behind the same flag, with `verify.sh` checks for both states.
 
 ## 5. Verification and docs
 - [x] 5.1 Run `python -m pytest` (new and existing tests) and `npm run build && ./verify.sh` in `site/`.

@@ -2,8 +2,29 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import sitemap from '@astrojs/sitemap';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const ogImage = 'https://egeoagents.com/og-image.png';
+
+// Free URL audit (openspec add-public-url-audit): the landing form, the docs page,
+// its sidebar entry and its llms.txt line ship only when the API is live.
+// .github/workflows/site.yml sets the flag; src/content.config.ts drops the page.
+const auditEnabled = process.env.PUBLIC_AUDIT_ENABLED === 'true';
+const AUDIT_DOCS_PATH = '/docs/url-audit/';
+
+/** Removes the audit docs line from the built llms.txt while the audit is off. */
+const auditLlmsTxt = {
+	name: 'egeo-audit-llms-txt',
+	hooks: {
+		'astro:build:done': async ({ dir }) => {
+			if (auditEnabled) return;
+			const file = new URL('llms.txt', dir);
+			const text = await readFile(file, 'utf8');
+			const kept = text.split('\n').filter((line) => !line.includes(AUDIT_DOCS_PATH));
+			await writeFile(file, kept.join('\n'));
+		},
+	},
+};
 
 const globalSchema =JSON.stringify({
 	'@context': 'https://schema.org',
@@ -57,7 +78,7 @@ export default defineConfig({
 					label: 'Documentation',
 					items: [
 						{ label: 'Getting Started', slug: 'docs/getting-started' },
-						{ label: 'Free URL Audit', slug: 'docs/url-audit' },
+						...(auditEnabled ? [{ label: 'Free URL Audit', slug: 'docs/url-audit' }] : []),
 						{ label: 'How It Works', slug: 'docs/how-it-works' },
 						{ label: 'CLI Reference', slug: 'docs/cli' },
 						{ label: 'MCP-Based Validation', slug: 'docs/mcp-server' },
@@ -98,5 +119,6 @@ export default defineConfig({
 			],
 		}),
 		sitemap(),
+		auditLlmsTxt,
 	],
 });

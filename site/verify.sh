@@ -62,6 +62,19 @@ else
     *) echo "FAIL  audit form visible although PUBLIC_AUDIT_ENABLED is not true"; fail=1 ;;
   esac
 fi
+# the audit docs page, its sidebar entry and its llms.txt line follow the same flag
+if [ "${PUBLIC_AUDIT_ENABLED:-}" = "true" ]; then
+  check "$DIST/docs/url-audit/index.html" "audit docs page built (PUBLIC_AUDIT_ENABLED=true)"
+  grep_check '/docs/url-audit/' "$DIST/llms.txt" "llms.txt lists the audit docs page"
+  grep_check 'href="/docs/url-audit/"' "$DIST/docs/getting-started/index.html" "sidebar links the audit docs page"
+else
+  if [ -e "$DIST/docs/url-audit/index.html" ] || grep -q '/docs/url-audit/' "$DIST/llms.txt" "$DIST/sitemap-0.xml" "$DIST/docs/getting-started/index.html"; then
+    echo "FAIL  audit docs page, llms.txt line or sidebar entry built although PUBLIC_AUDIT_ENABLED is not true"
+    fail=1
+  else
+    echo "PASS  audit docs page, llms.txt line and sidebar entry left out (PUBLIC_AUDIT_ENABLED not true)"
+  fi
+fi
 for link in /docs/how-it-works/ /research/ /guides/track-ai-citations/; do
   grep_check "href=\"$link\"" "$DIST/index.html" "landing links to $link"
 done
