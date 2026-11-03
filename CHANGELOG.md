@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   No account or email is needed, and the report link (`/#audit=<id>`) expires after 24 h.
 
-  The form stays hidden until the API is live: the site build flag `PUBLIC_AUDIT_ENABLED` turns it on (see `docs/audit-service.md`).
+  The form, the docs page `/docs/url-audit/`, its sidebar entry and its `llms.txt` line stay out until the API is live. The site build flag `PUBLIC_AUDIT_ENABLED` turns them on (see `docs/audit-service.md`).
 - `egeo/url_audit.py` (stdlib only): the audit core, with an SSRF-guarded fetcher. Every hop is re-validated, only public addresses are allowed, and the connection is pinned to the vetted address. The module also adds an HTML→Markdown converter.
 - `egeo/audit_service.py` and the optional extra `egeo[audit-service]` (FastAPI, uvicorn). It provides `POST /api/audit` and `GET /api/audit/{id}`, plus:
   - a per-IP daily limit (stores a salted hash, never the raw IP) and a 1 h cache;

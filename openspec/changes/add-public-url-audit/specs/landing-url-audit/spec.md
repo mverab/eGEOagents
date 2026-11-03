@@ -36,6 +36,20 @@ The form SHALL be visible only when the site is built with `PUBLIC_AUDIT_ENABLED
 - **WHEN** the site is built with `PUBLIC_AUDIT_ENABLED=true`
 - **THEN** the audit form is visible and `site/verify.sh` passes
 
+### Requirement: Audit Docs Page Gated By The Same Flag
+
+The docs page `/docs/url-audit/`, its sidebar entry and its `llms.txt` line SHALL be built only when `PUBLIC_AUDIT_ENABLED=true`. `site/verify.sh` SHALL check that they match the flag.
+
+#### Scenario: Docs page left out before the API is live
+
+- **WHEN** the site is built with `PUBLIC_AUDIT_ENABLED` unset or `false`
+- **THEN** `/docs/url-audit/` is not built, and neither the sidebar, the sitemap nor `llms.txt` links to it
+
+#### Scenario: Docs page published with the form
+
+- **WHEN** the site is built with `PUBLIC_AUDIT_ENABLED=true`
+- **THEN** `/docs/url-audit/` is built and listed in the sidebar and `llms.txt`
+
 ### Requirement: Report Checks And Features View
 
 The landing page SHALL render the returned report in place, without navigating away.

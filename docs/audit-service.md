@@ -28,7 +28,7 @@ browser (egeoagents.com) ──HTTPS──▶ Cloudflare ──Tunnel──▶ c
 
 ## Enable the landing form
 
-The site builds the form hidden until the API is live: `.github/workflows/site.yml` sets `PUBLIC_AUDIT_ENABLED: 'false'`. Once `https://api.egeoagents.com/healthz` answers and the smoke test passes, change it to `'true'` in a PR. The merge redeploys the site with the form visible, and `site/verify.sh` checks that the form's visibility matches the flag.
+The site builds the form hidden until the API is live: `.github/workflows/site.yml` sets `PUBLIC_AUDIT_ENABLED: 'false'`. Once `https://api.egeoagents.com/healthz` answers and the smoke test passes, change it to `'true'` in a PR. The merge redeploys the site with the form visible. The same flag also publishes the docs page `/docs/url-audit/`, its sidebar entry and its `llms.txt` line. `site/verify.sh` checks that all of them match the flag.
 
 ## Deploy, update, stop
 
@@ -72,7 +72,7 @@ The worst-case LLM spend per day is `AUDIT_LLM_DAILY_CAP` × the cost of one sec
 
 ## Rollback
 
-- **Site:** set `PUBLIC_AUDIT_ENABLED: 'false'` in `.github/workflows/site.yml` and merge. The form is hidden again and its script does not run. The rest of the landing page never depends on the API.
+- **Site:** set `PUBLIC_AUDIT_ENABLED: 'false'` in `.github/workflows/site.yml` and merge. The form is hidden again, its script does not run, and the docs page drops out of the build. The rest of the landing page never depends on the API.
 - **Service:** check out the previous commit and run `up -d --build`, or stop the service with `down`.
 - **Data:** the SQLite file holds only short-lived data. Deleting the volume (`docker volume rm <project>_audit-data`) resets reports and counters.
 
