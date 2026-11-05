@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- URL audit: the rewrite call can now use providers that need specific request settings. `REWRITER_TEMPERATURE` overrides the temperature, and `REWRITER_EXTRA_BODY` adds JSON fields to the request body (for example, Moonshot Kimi with `{"thinking": {"type": "disabled"}}` and temperature 0.6). `llm_client.chat_text` gains an `extra_body` argument that cannot replace `model` or `messages`.
 - URL audit: when `robots.txt` comes back as an HTML page (a bot challenge or a soft 404), the AI-crawler check now reports `unverifiable` instead of `pass`. Seen live on theguardian.com during the smoke test.
 - `egeo-audit-service --help` now prints usage and exits. Before, it started the server.
 

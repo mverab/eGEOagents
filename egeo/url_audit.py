@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import http.client
 import ipaddress
+import json
 import os
 import re
 import socket
@@ -677,11 +678,40 @@ def effective_query(visitor_query: Optional[str], title: str, first_h1: str, url
     return f"best {subject}".strip(), "derived"
 
 
+def rewriter_request_options(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """Provider-specific request settings for the rewrite call, read from the environment.
+
+    - ``REWRITER_TEMPERATURE``: overrides the rewriter's temperature. Some models accept only
+      one value; for example, Moonshot Kimi with thinking disabled accepts only 0.6.
+    - ``REWRITER_EXTRA_BODY``: a JSON object merged into the request body, for example
+      ``{"thinking": {"type": "disabled"}}``.
+
+    Raises ``ValueError`` on a malformed value, so the service can fail at startup.
+    """
+    e = os.environ if env is None else env
+    out: Dict[str, Any] = {}
+    raw_t = (e.get("REWRITER_TEMPERATURE") or "").strip()
+    if raw_t:
+        t = float(raw_t)
+        if not 0.0 <= t <= 2.0:
+            raise ValueError(f"REWRITER_TEMPERATURE must be between 0 and 2, got {raw_t}")
+        out["temperature"] = t
+    raw_b = (e.get("REWRITER_EXTRA_BODY") or "").strip()
+    if raw_b:
+        body = json.loads(raw_b)
+        if not isinstance(body, dict):
+            raise ValueError("REWRITER_EXTRA_BODY must be a JSON object")
+        out["extra_body"] = body
+    return out
+
+
 class _OneShotClient:
     """OpenAI-compatible client bound to the remaining time; exactly one attempt, no retries."""
 
     def __init__(self, timeout_s: float) -> None:
         import llm_client
+
+        self._options = rewriter_request_options()
 
         base = llm_client.OpenAICompatibleClient.from_env()
         cfg = base._config
@@ -693,6 +723,7 @@ class _OneShotClient:
 
     def chat_text(self, **kwargs: Any) -> str:
         kwargs["max_retries"] = 1
+        kwargs.update(self._options)
         return self._inner.chat_text(**kwargs)
 
 
