@@ -87,3 +87,18 @@ There were **8 questions in 2 rounds** (`AskUserQuestion`). In every case the ow
   - it ran `wrangler whoami`, `id`, `sudo -n true` and `docker ps`.
   No secret was read or printed.
 - **Questions asked in this phase:** 0.
+
+## Go-live phase (owner: "Hazlo tú")
+
+- **Deployment deviation (task 3.2):** production runs as two systemd **user** services (API + `cloudflared`) instead of the Docker Compose stack in design D10, because the VPS user has no Docker access and no passwordless sudo. The API binds only to `127.0.0.1:8787`, so the tunnel is still the only way in from outside. The owner did two things: entered the OpenAI key (hidden prompt) and approved one Cloudflare login link. `deploy/audit-service/setup-user-systemd.sh` did the rest: tunnel, DNS, units and health check. The runbook documents this as the live deployment, and Compose stays as the alternative.
+- **Operator errors during go-live, fixed:**
+  - The install check ran `egeo-audit-service --help`. That started a server with no config, which held port 8787 and answered the first smoke test (rewrite `error`, no key). The stray process was killed, its stray `audit-service.sqlite3` in the repo root was deleted, and `--help` was fixed so it no longer starts the server.
+  - `pip install -e .` was run into the production venv while testing. It was reverted to a non-editable install from `main`.
+- **Smoke test (5.2), against https://api.egeoagents.com:**
+  - Static page, `en.wikipedia.org/wiki/Generative_engine_optimization`: 200 in 6.8 s. Rewrite `shown` (section "Tools"). Checks: 5 pass, 2 fail (llms.txt, meta description).
+  - JS-rendered page, `excalidraw.com`: 200 in 0.7 s. `visible_text` fail (0 words); rewrite `skipped_no_candidate`.
+  - Page that blocks GPTBot, `www.bbc.com/news`: 200 in 2.5 s. `ai_crawler_access` fail, naming all six crawlers; rewrite `shown`.
+- **Bug found by the smoke test:** `theguardian.com` serves a bot challenge (HTML) for both the page and `/robots.txt`. The crawler check read the HTML as "no rules" and passed. It now reports `unverifiable`, with a regression test.
+- **Known limitation, not fixed:** when the *page itself* is a bot challenge, it is audited as if it were the page (title "Client Challenge", 36 words).
+- **Rule deviation:** this phase wrote outside the worktree (`~/.local/bin`, `~/.local/share/egeo-audit`, `~/.cloudflared`, `~/.config/systemd/user`), as the owner's "hazlo tú" required.
+- **Questions asked in this phase:** 0.

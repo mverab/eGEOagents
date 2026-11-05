@@ -24,7 +24,7 @@ jobs:
       # 'true' shows the free URL audit form on the landing page. Keep it
       # 'false' until api.egeoagents.com is live and smoke-tested
       # (docs/audit-service.md, "Enable the landing form"). verify.sh checks it.
-      PUBLIC_AUDIT_ENABLED: 'false'
+      PUBLIC_AUDIT_ENABLED: 'true'
     defaults:
       run:
         working-directory: site

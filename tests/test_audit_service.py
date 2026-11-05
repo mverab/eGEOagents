@@ -274,3 +274,11 @@ def test_settings_from_env() -> None:
     assert s.db_path == "/data/a.sqlite3"
     d = svc.Settings.from_env({})
     assert (d.ip_daily_limit, d.llm_daily_cap, d.cache_ttl_s, d.report_ttl_s) == (5, 200, 3600, 86400)
+
+
+def test_main_help_exits_without_starting_the_server(capsys) -> None:
+    # `egeo-audit-service --help` once started a server with no config on the VPS.
+    with pytest.raises(SystemExit) as exc:
+        svc.main(["--help"])
+    assert exc.value.code == 0
+    assert "AUDIT_" in capsys.readouterr().out

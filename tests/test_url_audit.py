@@ -324,6 +324,13 @@ def test_robots_statuses(mock_llm, robots, status) -> None:
     assert checks_by_id(run(FakeNet(site(page_html(), robots=robots))))["ai_crawler_access"]["status"] == status
 
 
+def test_robots_served_as_html_is_unverifiable(mock_llm) -> None:
+    # A bot challenge on /robots.txt must not read as "no rules" (live case: theguardian.com).
+    challenge = (200, HTML, "<html><head><title>Client Challenge</title></head><body>wait</body></html>")
+    c = checks_by_id(run(FakeNet(site(page_html(), robots=challenge))))["ai_crawler_access"]
+    assert c["status"] == "unverifiable" and "HTML" in c["evidence"] and "fix" not in c
+
+
 @pytest.mark.parametrize(
     "llms,status",
     [((200, TEXT, "# x"), "pass"), ((404, HTML, ""), "fail"), ((200, HTML, "<html>"), "fail"),

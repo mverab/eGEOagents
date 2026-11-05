@@ -18,7 +18,7 @@
 
 ## 3. Deployment (owner VPS)
 - [x] 3.1 Add a Dockerfile (or compose file) for the service, with env-configured limits, `REWRITER_MODEL`, the API key and the SQLite volume.
-- [ ] 3.2 Restrict the origin to Cloudflare (Tunnel or a firewall allowlist of Cloudflare ranges). Proxy the `api.egeoagents.com` DNS record through Cloudflare.
+- [x] 3.2 Restrict the origin to Cloudflare (Tunnel or a firewall allowlist of Cloudflare ranges). Proxy the `api.egeoagents.com` DNS record through Cloudflare.
 - [x] 3.3 Write a deploy and rollback runbook in `docs/` (start, stop, change limits, rotate the key).
 
 ## 4. Landing page (`site/`)
@@ -33,6 +33,6 @@
 
 ## 5. Verification and docs
 - [x] 5.1 Run `python -m pytest` (new and existing tests) and `npm run build && ./verify.sh` in `site/`.
-- [ ] 5.2 Do a manual smoke test against the deployed API with three public URLs: a static page, a JS-rendered page and a page that blocks GPTBot. Record the results in the PR.
+- [x] 5.2 Do a manual smoke test against the deployed API with three public URLs: a static page, a JS-rendered page and a page that blocks GPTBot. Record the results in the PR.
 - [x] 5.3 Update `CHANGELOG.md`, `USAGE.md` (service section) and `site/src/content/docs/docs/` with a short page on how the public audit works and what it does not measure.
 - [ ] 5.4 After 5.2 passes, set `PUBLIC_AUDIT_ENABLED: 'true'` in `.github/workflows/site.yml` and confirm the form is live on egeoagents.com.
