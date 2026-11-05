@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `.github/workflows/audit-health.yml`: probes the public audit API every 15 minutes, retries 3 times before failing, and GitHub emails on failure.
 - **Free URL audit on egeoagents.com** (openspec `add-public-url-audit`). A visitor pastes a URL and gets a report:
   - seven deterministic checks (AI-crawler access in `robots.txt`, `/llms.txt`, JSON-LD, title, meta description, one `h1`, text visible without JavaScript), each `pass` / `fail` / `unverifiable` with evidence and a fix;
   - the 10 GEO features from the offline Analyzer, labeled as a heuristic, with no aggregate score;
