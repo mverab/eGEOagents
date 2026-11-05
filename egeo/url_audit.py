@@ -73,6 +73,7 @@ CHECK_IDS: Tuple[str, ...] = (
 )
 REWRITE_STATUSES: Tuple[str, ...] = (
     "shown",
+    "no_change",
     "withheld_fidelity",
     "skipped_no_candidate",
     "skipped_budget",
@@ -735,18 +736,45 @@ def default_llm_factory(timeout_s: float) -> Any:
     return None if _mock_enabled() else _OneShotClient(timeout_s)
 
 
+_MD_LINK = r"\[[^\]]*\]\([^)]*\)"
+_HEADING_IS_LINK = re.compile(rf"^\s*{_MD_LINK}\s*$")
+_LONE_LINK_LINE = re.compile(rf"^\s*(?:[-*+]|\d+[.)])?\s*{_MD_LINK}\s*[.,;:|\u00b7]?\s*$")
+
+
+def is_non_content_section(section: _sections.Section) -> bool:
+    """Site headers, navigation, footers, tables of contents and CTA blocks.
+
+    A section counts as non-content when its heading is a single Markdown link (for
+    example a site-name header), or when at least half of its non-empty body lines,
+    not counting the heading line, are a lone link.
+    """
+    if _HEADING_IS_LINK.match(section.heading or ""):
+        return True
+    body = [line for line in section.text.splitlines()[1:] if line.strip()]
+    if not body:
+        return False
+    lone = sum(1 for line in body if _LONE_LINK_LINE.match(line))
+    return lone * 2 >= len(body)
+
+
 def pick_section(markdown: str) -> Optional[_sections.Section]:
-    """Lowest Analyzer total among non-preamble sections with 40-600 words; ties -> earliest."""
+    """Lowest Analyzer total among non-preamble content sections with 40-600 words; ties -> earliest."""
     candidates = [
         s
         for s in _sections.split_sections(markdown)
-        if s.level > 0 and MIN_SECTION_WORDS <= s.word_count <= MAX_SECTION_WORDS
+        if s.level > 0
+        and MIN_SECTION_WORDS <= s.word_count <= MAX_SECTION_WORDS
+        and not is_non_content_section(s)
     ]
     if not candidates:
         return None
     analyzer = Analyzer()
     scored = [(analyzer.analyze(s.text, title=s.heading or None).total_score, i, s) for i, s in enumerate(candidates)]
     return min(scored, key=lambda t: (t[0], t[1]))[2]
+
+
+def _normalize_ws(text: str) -> str:
+    return " ".join((text or "").split())
 
 
 def rewrite_one_section(
@@ -784,6 +812,9 @@ def rewrite_one_section(
     if not result.passed:
         out["status"] = "withheld_fidelity"
         out["violations"] = list(result.violations)
+        return out
+    if _normalize_ws(after) == _normalize_ws(section.text):
+        out["status"] = "no_change"
         return out
     out["status"] = "shown"
     out["after"] = after

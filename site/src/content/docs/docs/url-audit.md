@@ -36,7 +36,7 @@ Paste a URL into the form on the [home page](/) and you get a report in under 30
 
 **2. The [10 GEO features](/concepts/geo-features/), scored 0–10.** These scores come from E-GEO's offline Analyzer, which is a **keyword heuristic**. They tell you which signals the text expresses. They do not predict how ChatGPT, Perplexity or any other engine will rank the page.
 
-**3. One section, rewritten.** The audit picks the weakest section of 40–600 words and rewrites it for your target query. If you leave the query empty, it uses "best" + the page title.
+**3. One section, rewritten.** The audit picks the weakest content section of 40–600 words and rewrites it for your target query. If you leave the query empty, it uses "best" + the page title. Sections that are not content are skipped: a heading that is only a link (such as the site name), or a body that is mostly lone links (navigation, footers, tables of contents, call-to-action blocks).
 
 The rewrite goes through the same deterministic fidelity rules as `egeo fix-gaps` section mode. A rewrite fails if it:
 - changes the heading;
@@ -47,6 +47,8 @@ The rewrite goes through the same deterministic fidelity rules as `egeo fix-gaps
 - changes the length too much.
 
 A rewrite that breaks a rule is **withheld**, and the report lists the rules it broke. No LLM judge checks the rewrite, and the report says so.
+
+If the model returns the section unchanged, the report says it found **nothing to improve** for that query. It does not show a before/after with two identical sides.
 
 ## What it does not do
 

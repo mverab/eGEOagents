@@ -388,7 +388,8 @@ def test_query_visitor_and_derived(mock_llm) -> None:
 def test_mock_mode_end_to_end_without_network(mock_llm) -> None:
     report = run(FakeNet(site(page_html())))
     rw = report["rewrite"]
-    assert rw["status"] == "shown" and rw["after"] == rw["before"]
+    # the mock rewriter returns the section unchanged, which is reported honestly as no_change
+    assert rw["status"] == "no_change" and "after" not in rw and rw["before"]
     assert rw["note"] == ua.REWRITE_NOTE
     assert set(report) == {"url", "final_url", "query", "query_source", "checks", "features", "rewrite"}
 
@@ -406,6 +407,34 @@ def test_rewrite_shown_one_call_lowest_section(real_llm_path) -> None:
     assert rw["after"].rstrip().endswith("Clearer.")
     expected = ua.pick_section(ua.html_to_markdown(page_html(), "https://acme.example/").markdown)
     assert rw["section_heading"] == expected.heading and rw["before"] == expected.text
+
+
+def test_unchanged_rewrite_is_no_change_and_uses_budget(real_llm_path) -> None:
+    # whitespace-only differences still count as unchanged
+    llm, reserved = FakeLLM(reply=lambda user: "  " + _section_from_prompt(user).rstrip() + "\n\n"), []
+    report = run(FakeNet(site(page_html())), llm_factory=lambda t: llm, reserve_llm=lambda: reserved.append(1) or True)
+    rw = report["rewrite"]
+    assert rw["status"] == "no_change" and "after" not in rw and rw["before"]
+    assert llm.calls == 1 and reserved == [1]
+
+
+def test_non_content_sections_are_never_picked() -> None:
+    header = "## [Example Weblog](https://example.com/)\n\n" + LONG_A + " Sponsored by: Acme.\n"
+    footer = "## Company\n\n" + "\n".join(f"- [{w}](https://example.com/{w.lower()})" for w in
+                                           ["About", "Careers", "Blog", "Press", "Contact"]) + "\n" + LONG_A + "\n"
+    cta = ("## Ready to start?\n\n" + LONG_A + "\n\n[Start your free trial](https://example.com/trial)\n\n"
+           "[Book a demo](https://example.com/demo)\n")
+    content = "## How it works\n\n" + LONG_B + "\n"
+    md = header + "\n" + footer + "\n" + cta + "\n" + content
+    sections = {s.heading: s for s in ua._sections.split_sections(md)}
+    assert ua.is_non_content_section(sections["[Example Weblog](https://example.com/)"])
+    assert ua.is_non_content_section(sections["Company"])
+    assert ua.is_non_content_section(sections["Ready to start?"])
+    assert not ua.is_non_content_section(sections["How it works"])
+    assert ua.pick_section(md).heading == "How it works"
+    # a single inline link inside prose does not make a section non-content
+    assert not ua.is_non_content_section(ua._sections.split_sections(
+        "## Pricing\n\n" + LONG_B + " See [pricing](https://example.com/pricing).\n")[-1])
 
 
 def test_pick_section_lowest_score_ties_earliest() -> None:

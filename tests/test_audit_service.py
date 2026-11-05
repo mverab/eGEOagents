@@ -240,7 +240,7 @@ def test_real_auditor_offline_end_to_end(tmp_path, monkeypatch) -> None:
     client = TestClient(svc.create_app(settings, store=store, clock=Clock(), auditor=auditor))
     body = post(client).json()
     assert [c["id"] for c in body["checks"]] == list(ua.CHECK_IDS)
-    assert body["rewrite"]["status"] == "shown"
+    assert body["rewrite"]["status"] == "no_change"  # mock rewriter returns the section unchanged
     assert store.llm_used(T0) == 1
 
 

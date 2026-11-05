@@ -55,10 +55,12 @@ const FEATURE_LABELS: Record<string, string> = {
 	factual: 'Factual specifics',
 };
 const REWRITE_REASONS: Record<string, string> = {
+	no_change:
+		'The model found nothing to improve in this section for this query, so there is no before/after to show. Try a more specific target query, such as the question your buyers ask.',
 	withheld_fidelity:
 		'We generated a rewrite but withheld it: it changed something the fidelity rules protect (links, numbers, headings, tables, code or length).',
 	skipped_no_candidate:
-		'No section of 40–600 words was readable without JavaScript, so there was nothing to rewrite.',
+		'No content section of 40–600 words was readable without JavaScript (navigation, footers and call-to-action blocks are skipped), so there was nothing to rewrite.',
 	skipped_budget:
 		'The free daily rewrites are used up. The checks and features above are complete — run the rewrite on your own machine with pip install egeo.',
 	skipped_timeout:
