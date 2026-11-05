@@ -1,0 +1,40 @@
+name: Audit API health
+
+# Probes the public URL audit API every 15 minutes. A failed run makes GitHub
+# email the person who last changed this workflow's schedule (GitHub's default
+# notification for scheduled runs). Runbook: docs/audit-service.md.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-health
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe https://api.egeoagents.com
+        run: |
+          set -u
+          base=https://api.egeoagents.com
+          # Three tries, 30 s apart, so a single blip or a service restart does not alert.
+          for attempt in 1 2 3; do
+            health=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$base/healthz" || true)
+            # Unknown report id: proves routing through the tunnel to the app, not just a 200 from somewhere.
+            missing=$(curl -s --max-time 15 "$base/api/audit/healthcheck-probe-000" || true)
+            if [ "$health" = 200 ] && printf '%s' "$missing" | grep -q '"not_found"'; then
+              echo "OK on attempt $attempt"
+              exit 0
+            fi
+            echo "attempt $attempt: /healthz=$health, unknown-id body=${missing:0:200}"
+            [ "$attempt" -lt 3 ] && sleep 30
+          done
+          echo "::error::Audit API is down: https://api.egeoagents.com/healthz did not answer 200 on 3 tries. See docs/audit-service.md (Operate)."
+          exit 1

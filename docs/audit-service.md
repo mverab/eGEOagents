@@ -56,6 +56,12 @@ git fetch && SRC="$(mktemp -d)" && git archive origin/main | tar -x -C "$SRC" \
   && "$D/venv/bin/pip" install --no-deps --force-reinstall "$SRC" && systemctl --user restart egeo-audit
 ```
 
+### Alerts
+
+`.github/workflows/audit-health.yml` probes `https://api.egeoagents.com/healthz` every 15 minutes. It also requests an unknown report id, which must return `not_found`; that proves requests reach the app through the tunnel. It retries 3 times, 30 s apart, before it fails. GitHub emails a failed scheduled run to whoever last changed the workflow's schedule. To test it, run it by hand from the Actions tab (*Run workflow*).
+
+GitHub pauses scheduled workflows after 60 days without repository activity. If the repo goes quiet for that long, re-enable the workflow in the Actions tab.
+
 The sections below describe the Docker Compose alternative. It is still supported for a host where Docker is available.
 
 ## One-time setup
