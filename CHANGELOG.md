@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `deploy/audit-service/` (Dockerfile; compose with a Cloudflare Tunnel and no published ports) and the `docs/audit-service.md` runbook.
 - Site: the audit form in the hero, an in-page report view, and the `/docs/url-audit/` page explaining what the audit measures and what it does not.
 
+
+### Fixed
+- URL audit: when `robots.txt` comes back as an HTML page (a bot challenge or a soft 404), the AI-crawler check now reports `unverifiable` instead of `pass`. Seen live on theguardian.com during the smoke test.
+- `egeo-audit-service --help` now prints usage and exits. Before, it started the server.
+
 ## [2.3.0] - 2026-10-16
 
 ### Changed

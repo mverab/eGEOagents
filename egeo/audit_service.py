@@ -308,7 +308,14 @@ def create_app(settings: Optional[Settings] = None, *, store: Optional[Store] = 
     return app
 
 
-def main() -> None:  # pragma: no cover - thin launcher
+def main(argv: Optional[List[str]] = None) -> None:
+    import argparse
+
+    argparse.ArgumentParser(
+        prog="egeo-audit-service",
+        description="Run the public URL audit API (configured by AUDIT_* and OPENAI_* environment variables; "
+        "see docs/audit-service.md).",
+    ).parse_args(argv)
     import uvicorn
 
     uvicorn.run(

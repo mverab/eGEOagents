@@ -566,6 +566,10 @@ def check_ai_crawler_access(robots: Optional[FetchResult], error: str, page_url:
         return _check(cid, "pass", "No robots.txt (HTTP 404): no crawler is restricted.")
     if robots.status != 200:
         return _check(cid, "unverifiable", f"robots.txt returned HTTP {robots.status}.")
+    if "html" in (robots.content_type or "").lower():
+        # An HTML body is a bot challenge or a soft 404, not robots rules: parsing it
+        # would read as "no rules" and pass every crawler.
+        return _check(cid, "unverifiable", "robots.txt returned an HTML page (likely a bot challenge), not robots rules.")
     rp = robotparser.RobotFileParser()
     rp.parse(robots.text.splitlines())
     blocked = [agent for agent in AI_CRAWLERS if not rp.can_fetch(agent, page_url)]

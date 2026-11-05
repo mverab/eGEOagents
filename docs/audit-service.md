@@ -16,6 +16,48 @@ browser (egeoagents.com) ──HTTPS──▶ Cloudflare ──Tunnel──▶ c
 - **No published ports.** The API container publishes no ports, so the only way in is the Cloudflare Tunnel. That is why the service can trust `CF-Connecting-IP` for the per-IP limit. Never add a `ports:` mapping to `compose.yml`.
 - **State.** All state is in one SQLite file on the `audit-data` volume: reports for 24 h, per-IP counters keyed by a daily-salted hash, today's salt, and today's LLM budget. Rows from earlier days are purged on write.
 
+## Live deployment (since 2026-11-05)
+
+Production runs **without Docker** on the owner VPS (`srv1379360`, user `hermes-2`), because that user has no Docker access. There are two systemd **user** services, kept running by linger:
+
+| Unit | What it runs |
+|---|---|
+| `egeo-audit.service` | `~/.local/share/egeo-audit/venv/bin/egeo-audit-service` on `127.0.0.1:8787` |
+| `egeo-audit-tunnel.service` | `~/.local/bin/cloudflared` (2024.12.2), tunnel `egeo-audit`, config `~/.local/share/egeo-audit/tunnel.yml` |
+
+- **Config:** `~/.local/share/egeo-audit/service.env`, with the limits, origins, DB path and model.
+- **Key:** `~/.local/share/egeo-audit/secrets.env` (mode 600). It holds only `OPENAI_API_KEY`.
+- **Data:** `~/.local/share/egeo-audit/data/audit.sqlite3`.
+- **Binding:** the API binds to loopback only, so the tunnel is still the only way in from outside.
+
+### Deploy without Docker
+
+```bash
+D=~/.local/share/egeo-audit
+mkdir -p "$D" ~/.local/bin
+curl -sSL -o ~/.local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/download/2024.12.2/cloudflared-linux-amd64
+chmod +x ~/.local/bin/cloudflared
+python3 -m venv "$D/venv"
+SRC="$(mktemp -d)"; git archive main | tar -x -C "$SRC"   # a clean copy of main
+"$D/venv/bin/pip" install "$SRC[audit-service]"   # never `-e`: production must not follow the working tree
+deploy/audit-service/setup-user-systemd.sh   # asks for the OpenAI key and a Cloudflare login link
+```
+
+The script can be re-run: it skips what is already done. It creates the tunnel, writes the DNS record, installs both units and checks `https://api.egeoagents.com/healthz`.
+
+### Operate
+
+```bash
+systemctl --user status egeo-audit egeo-audit-tunnel
+journalctl --user -u egeo-audit -n 100
+systemctl --user restart egeo-audit           # after editing service.env or secrets.env
+# update to the current main
+git fetch && SRC="$(mktemp -d)" && git archive origin/main | tar -x -C "$SRC" \
+  && "$D/venv/bin/pip" install --no-deps --force-reinstall "$SRC" && systemctl --user restart egeo-audit
+```
+
+The sections below describe the Docker Compose alternative. It is still supported for a host where Docker is available.
+
 ## One-time setup
 
 1. Create a Cloudflare Tunnel in Zero Trust (Networks → Tunnels) for the `egeoagents.com` zone.
