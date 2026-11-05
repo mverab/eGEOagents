@@ -481,3 +481,61 @@ def test_checks_past_deadline_is_audit_timeout() -> None:
     net = FakeNet(site(page_html()), clock=clock, cost={"https://acme.example/llms.txt": 31.0})
     with pytest.raises(ua.AuditTimeout):
         run(net, now=clock)
+
+
+# --- rewriter request options (REWRITER_TEMPERATURE / REWRITER_EXTRA_BODY) ---------------
+
+
+def test_rewriter_request_options_parsing() -> None:
+    assert ua.rewriter_request_options({}) == {}
+    opts = ua.rewriter_request_options(
+        {"REWRITER_TEMPERATURE": "0.6", "REWRITER_EXTRA_BODY": '{"thinking": {"type": "disabled"}}'}
+    )
+    assert opts == {"temperature": 0.6, "extra_body": {"thinking": {"type": "disabled"}}}
+
+
+@pytest.mark.parametrize("env", [{"REWRITER_TEMPERATURE": "hot"}, {"REWRITER_TEMPERATURE": "3"},
+                                 {"REWRITER_EXTRA_BODY": "[1]"}, {"REWRITER_EXTRA_BODY": "{bad"}])
+def test_rewriter_request_options_rejects_bad_values(env) -> None:
+    with pytest.raises(ValueError):
+        ua.rewriter_request_options(env)
+
+
+def test_one_shot_client_sends_options_in_the_request(monkeypatch) -> None:
+    import io
+    import json as _json
+
+    import llm_client
+
+    sent = {}
+
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        sent["body"] = _json.loads(req.data)
+        sent["timeout"] = timeout
+        return Resp(b'{"choices": [{"message": {"content": "ok"}}]}')
+
+    monkeypatch.setattr(llm_client.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("REWRITER_TEMPERATURE", "0.6")
+    monkeypatch.setenv("REWRITER_EXTRA_BODY", '{"thinking": {"type": "disabled"}, "model": "evil"}')
+    out = ua._OneShotClient(7).chat_text(model="kimi-k3.1-pro-highspeed", system="s", user="u", temperature=0.0)
+    assert out == "ok"
+    body = sent["body"]
+    assert body["temperature"] == 0.6
+    assert body["thinking"] == {"type": "disabled"}
+    assert body["model"] == "kimi-k3.1-pro-highspeed"  # extra_body cannot replace the model
+    assert sent["timeout"] == 7
+
+
+def test_one_shot_client_defaults_unchanged(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.delenv("REWRITER_TEMPERATURE", raising=False)
+    monkeypatch.delenv("REWRITER_EXTRA_BODY", raising=False)
+    assert ua._OneShotClient(5)._options == {}

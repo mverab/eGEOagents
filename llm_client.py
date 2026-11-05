@@ -54,7 +54,10 @@ class OpenAICompatibleClient:
         temperature: float = 0.0,
         max_tokens: Optional[int] = None,
         max_retries: int = 3,
+        extra_body: Optional[Dict[str, Any]] = None,
     ) -> str:
+        """``extra_body`` adds provider-specific fields (for example Moonshot's
+        ``{"thinking": {"type": "disabled"}}``). It cannot replace ``model`` or ``messages``."""
         url = f"{self._config.base_url.rstrip('/')}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self._config.api_key}",
@@ -70,6 +73,9 @@ class OpenAICompatibleClient:
         }
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
+        for k, v in (extra_body or {}).items():
+            if k not in ("model", "messages"):
+                payload[k] = v
 
         body = json.dumps(payload).encode("utf-8")
 

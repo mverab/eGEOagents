@@ -92,6 +92,22 @@ docker compose -f deploy/audit-service/compose.yml logs -f audit
 docker compose -f deploy/audit-service/compose.yml down
 ```
 
+## Rewrite model
+
+Any OpenAI-compatible API works. Set `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `REWRITER_MODEL`. Some providers also need `REWRITER_TEMPERATURE` and `REWRITER_EXTRA_BODY`. The service checks both at startup and refuses to start if either is malformed.
+
+Benchmark from 2026-11-05: the same 5 pages and the same section for every model, the production prompt, and a 30 s deadline. Total spend was $0.08.
+
+| Model | Passed fidelity | Text actually changed | Max time | Cost per rewrite |
+|---|---|---|---|---|
+| `gpt-4o` | 4/5 | 4/5 | 5.7 s | ~0.3 ¢ |
+| `kimi-k3.1-pro-highspeed`, thinking off | 5/5 | 3/5 | 4.0 s | ~0.6 ¢ |
+| `kimi-k3.1-pro`, thinking off | 5/5 | 3/5 | 9.5 s | ~0.3 ¢ |
+| `kimi-k2.6`, thinking off | 5/5 | 2/5 | 11.5 s | ~0.1 ¢ |
+| `kimi-k3.1-pro`, thinking on | 2/5 | 2/5 | 3 of 5 ran past the deadline | — |
+
+With thinking on, Kimi models accept only `temperature: 1`, and the reasoning tokens cost money and time. With thinking off (`REWRITER_EXTRA_BODY={"thinking": {"type": "disabled"}}`), they accept only `REWRITER_TEMPERATURE=0.6`. Production uses `kimi-k3.1-pro-highspeed` with thinking off. See `.env.example` for the full set of variables.
+
 ## Change limits
 
 Edit `deploy/audit-service/.env`, then run `docker compose ... up -d` (no rebuild needed).

@@ -316,6 +316,9 @@ def main(argv: Optional[List[str]] = None) -> None:
         description="Run the public URL audit API (configured by AUDIT_* and OPENAI_* environment variables; "
         "see docs/audit-service.md).",
     ).parse_args(argv)
+    from egeo.url_audit import rewriter_request_options
+
+    rewriter_request_options()  # fail at startup, not on every rewrite, if misconfigured
     import uvicorn
 
     uvicorn.run(
