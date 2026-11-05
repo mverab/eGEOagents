@@ -102,3 +102,4 @@ There were **8 questions in 2 rounds** (`AskUserQuestion`). In every case the ow
 - **Known limitation, not fixed:** when the *page itself* is a bot challenge, it is audited as if it were the page (title "Client Challenge", 36 words).
 - **Rule deviation:** this phase wrote outside the worktree (`~/.local/bin`, `~/.local/share/egeo-audit`, `~/.cloudflared`, `~/.config/systemd/user`), as the owner's "hazlo tú" required.
 - **Questions asked in this phase:** 0.
+- **Live check (5.4), after #83 merged:** headless Chromium on https://egeoagents.com passed 9 of 9 checks (form visible, report, shared link on mobile, docs page 200). Change archived.
