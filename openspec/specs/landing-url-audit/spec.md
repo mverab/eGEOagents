@@ -77,7 +77,7 @@ When `rewrite.status` is `shown`, the page SHALL show:
 - a copy button for `after`;
 - the fidelity note.
 
-For any other status, the page SHALL show a plain-language reason. For `withheld_fidelity` it SHALL also list the violations.
+For any other status, the page SHALL show a plain-language reason. For `withheld_fidelity` it SHALL also list the violations. For `no_change` it SHALL say the model found nothing to improve in that section for the query used, and suggest trying a more specific target query.
 
 #### Scenario: Report with a shown rewrite
 
@@ -89,6 +89,12 @@ For any other status, the page SHALL show a plain-language reason. For `withheld
 - **WHEN** the API returns `rewrite.status: "skipped_budget"`
 - **THEN** the page says the free daily rewrites are used up and points to `pip install egeo` to run it locally
 - **AND** the checks and features are still shown
+
+#### Scenario: Rewrite with no change
+
+- **WHEN** the API returns `rewrite.status: "no_change"`
+- **THEN** the page says the model found nothing to improve in that section for the query used, and suggests a more specific target query
+- **AND** no before/after comparison is shown
 
 ### Requirement: Shareable Ephemeral Report Link
 
