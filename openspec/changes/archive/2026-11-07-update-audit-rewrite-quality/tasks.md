@@ -8,4 +8,4 @@
 
 ## 3. Verification and rollout
 - [x] 3.1 Run `pytest`, and `npm run build && ./verify.sh` in `site/`.
-- [ ] 3.2 After merge, redeploy the service and re-audit simonwillison.net and basecamp.com: confirm a content section is chosen and `no_change` appears when the model changes nothing.
+- [x] 3.2 After merge, redeploy the service and re-audit simonwillison.net and basecamp.com: confirm a content section is chosen and `no_change` appears when the model changes nothing. Done 2026-11-07: both picked content sections ("Was the best currently available LLM trained in China…", "Durable infrastructure") and the model changed both, so they show as `shown`; `no_change` is covered by the unit and service e2e tests.
