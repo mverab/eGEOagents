@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-09
+
 ### Added
 - `.github/workflows/audit-health.yml`: probes the public audit API every 15 minutes, retries 3 times before failing, and GitHub emails on failure.
 - **Free URL audit on egeoagents.com** (openspec `add-public-url-audit`). A visitor pastes a URL and gets a report:
@@ -33,6 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - URL audit: the rewrite call can now use providers that need specific request settings. `REWRITER_TEMPERATURE` overrides the temperature, and `REWRITER_EXTRA_BODY` adds JSON fields to the request body (for example, Moonshot Kimi with `{"thinking": {"type": "disabled"}}` and temperature 0.6). `llm_client.chat_text` gains an `extra_body` argument that cannot replace `model` or `messages`.
 - URL audit: when `robots.txt` comes back as an HTML page (a bot challenge or a soft 404), the AI-crawler check now reports `unverifiable` instead of `pass`. Seen live on theguardian.com during the smoke test.
 - `egeo-audit-service --help` now prints usage and exits. Before, it started the server.
+
+### Security
+- Site: security update for the documentation site's npm dependencies (9 non-major bumps, #78).
+
+### Known limitations
+- URL audit: an HTML anti-bot challenge returned with HTTP 200 can still be audited as though it were the requested page. The existing `robots.txt` HTML check does not detect a challenge in the main page.
+- URL audit: a derived query still uses the full HTML title, including site suffixes such as ` - Wikipedia` or ` | BBC`.
+- Deployment: the user-systemd deployment is verified in production. The Dockerfile and Compose files are included, but the Docker image build has not been verified in the current environment.
+- Site tooling: `npm audit` on the release commit reports 2 remaining dependency advisories (`sharp`: high; `postcss-selector-parser`: moderate). They belong to the site build toolchain, not the Python wheel; remediation is left for a dedicated dependency update.
 
 ## [2.3.0] - 2026-10-16
 
