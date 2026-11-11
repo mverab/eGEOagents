@@ -34,9 +34,11 @@ Paste a URL into the form on the [home page](/) and you get a report in under 30
 
 `unverifiable` (for example, `robots.txt` timed out) is shown as its own status. It never counts as a pass or a fail.
 
-**2. The [10 GEO features](/concepts/geo-features/), scored 0–10.** These scores come from E-GEO's offline Analyzer, which is a **keyword heuristic**. They tell you which signals the text expresses. They do not predict how ChatGPT, Perplexity or any other engine will rank the page.
+If an HTML response with HTTP 200, 403, 429 or 503 has a known bot-challenge title or strong vendor marker and fewer than 150 visible words, the report identifies the challenge instead of auditing it as the page. The `robots.txt` and `/llms.txt` checks still run; the five page checks are `unverifiable`. The banner explains that AI crawlers may get the same challenge and fail to read the page.
 
-**3. One section, rewritten.** The audit picks the weakest content section of 40–600 words and rewrites it for your target query. If you leave the query empty, it uses "best" + the page title. Sections that are not content are skipped: a heading that is only a link (such as the site name), or a body that is mostly lone links (navigation, footers, tables of contents, call-to-action blocks).
+**2. The [10 GEO features](/concepts/geo-features/), scored 0–10.** These scores come from E-GEO's offline Analyzer, which is a **keyword heuristic**. They tell you which signals the text expresses. They do not predict how ChatGPT, Perplexity or any other engine will rank the page. For a challenged page, the features are not scored because the page itself could not be read.
+
+**3. One section, rewritten.** The audit picks the weakest content section of 40–600 words and rewrites it for your target query. If you leave the query empty, it uses "best" + the page title, after dropping a first or last title segment that names the site (split by ` | `, ` - `, ` – `, ` — `, ` · ` or ` :: `). A visitor-supplied query is never changed. Sections that are not content are skipped: a heading that is only a link (such as the site name), or a body that is mostly lone links (navigation, footers, tables of contents, call-to-action blocks).
 
 The rewrite goes through the same deterministic fidelity rules as `egeo fix-gaps` section mode. A rewrite fails if it:
 - changes the heading;
@@ -48,7 +50,7 @@ The rewrite goes through the same deterministic fidelity rules as `egeo fix-gaps
 
 A rewrite that breaks a rule is **withheld**, and the report lists the rules it broke. No LLM judge checks the rewrite, and the report says so.
 
-If the model returns the section unchanged, the report says it found **nothing to improve** for that query. It does not show a before/after with two identical sides.
+If the model returns the section unchanged, the report says it found **nothing to improve** for that query. It does not show a before/after with two identical sides. For a bot challenge, the rewrite status is `skipped_challenge`: no rewrite was attempted because the page itself could not be read.
 
 ## What it does not do
 

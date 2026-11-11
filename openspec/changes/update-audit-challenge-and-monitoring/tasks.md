@@ -8,8 +8,8 @@
 - [x] 2.2 Implement it in `effective_query` (or a helper it calls), following design.md D3.
 
 ## 3. Landing page (site/src/scripts/url-audit.ts)
-- [ ] 3.1 Challenge banner, empty-features message, and `skipped_challenge` reason, built with `textContent` only (as today). Add the new fields to the TypeScript types.
-- [ ] 3.2 Update `site/src/content/docs/docs/url-audit.md`: challenge behavior, new status, and the derived-query rule.
+- [x] 3.1 Challenge banner, empty-features message, and `skipped_challenge` reason, built with `textContent` only (as today). Add the new fields to the TypeScript types.
+- [x] 3.2 Update `site/src/content/docs/docs/url-audit.md`: challenge behavior, new status, and the derived-query rule.
 
 ## 4. Health alert (deploy/audit-service)
 - [ ] 4.1 RED tests in `tests/test_audit_healthcheck.py`. Run the script with `sh` against a stdlib `http.server` stub on a random loopback port, with `AUDIT_ALERT_CMD` pointing to a tiny script that appends stdin to a file, `AUDIT_HEALTH_SLEEP=0` and a temp state file. Cover: first run records without alerting; up→down alerts once naming tunnel vs app; down→down is silent; down→up alerts once; exit codes. Skip if `sh` or `curl` is missing.
