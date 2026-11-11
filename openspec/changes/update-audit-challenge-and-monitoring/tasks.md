@@ -20,4 +20,4 @@
 
 ## 5. Wrap-up
 - [x] 5.1 `CHANGELOG.md` Unreleased: the three changes; remove the two fixed items from the known limitations if they are listed there.
-- [ ] 5.2 Full verification (commands in the task prompt) passes.
+- [x] 5.2 Full verification (commands in the task prompt) passes.
