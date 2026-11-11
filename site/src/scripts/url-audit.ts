@@ -10,6 +10,7 @@ const SERVICE_URL =
 
 type Check = { id: string; status: 'pass' | 'fail' | 'unverifiable'; evidence: string; fix?: string };
 type Feature = { id: string; score: number; recommendation?: string };
+type Challenge = { vendor: string; http_status: number; evidence: string };
 type Rewrite = {
 	status: string;
 	query: string;
@@ -28,6 +29,7 @@ type Report = {
 	checks: Check[];
 	features: { method: string; note: string; items: Feature[] };
 	rewrite: Rewrite;
+	challenge: Challenge | null;
 	created_at: string;
 	expires_at: string;
 };
@@ -65,6 +67,7 @@ const REWRITE_REASONS: Record<string, string> = {
 		'The free daily rewrites are used up. The checks and features above are complete — run the rewrite on your own machine with pip install egeo.',
 	skipped_timeout:
 		'The page took too long to load, so no time was left for the rewrite. Try again later, or run it locally with pip install egeo.',
+	skipped_challenge: 'No rewrite was attempted because the page itself could not be read.',
 	error: 'The rewrite failed this time. The checks and features above are complete; try again later.',
 };
 
@@ -172,7 +175,32 @@ function renderChecks(checks: Check[]): HTMLElement {
 	return list;
 }
 
+function renderChallenge(challenge: Challenge | null): HTMLElement | null {
+	if (!challenge) return null;
+	const vendorNames: Record<string, string> = {
+		cloudflare: 'Cloudflare',
+		perimeterx: 'PerimeterX',
+		datadome: 'DataDome',
+		imperva: 'Imperva',
+		akamai: 'Akamai',
+		'ddos-guard': 'DDoS-Guard',
+	};
+	const vendor = vendorNames[challenge.vendor];
+	return el('aside', { class: 'ua-challenge' }, [
+		el('p', {
+			text: `The site answered with a ${vendor ? `${vendor} ` : ''}bot challenge (HTTP ${challenge.http_status}). AI crawlers may get the same challenge and fail to read the page.`,
+		}),
+	]);
+}
+
 function renderFeatures(features: Report['features']): HTMLElement {
+	if (features.items.length === 0) {
+		return el('div', {}, [
+			el('p', { class: 'ua-label', text: 'Heuristic — not a ranking prediction' }),
+			el('p', { class: 'ua-note', text: features.note }),
+			el('p', { class: 'ua-reason', text: 'The features were not scored because the page itself could not be read.' }),
+		]);
+	}
 	const list = el('ul', { class: 'ua-features' });
 	for (const f of features.items) {
 		list.appendChild(
@@ -251,6 +279,7 @@ function renderReport(r: Report): HTMLElement {
 				share,
 			]),
 		]),
+		renderChallenge(r.challenge),
 		el('section', { class: 'ua-block' }, [el('h3', { text: 'Technical checks' }), renderChecks(r.checks)]),
 		el('section', { class: 'ua-block' }, [el('h3', { text: 'GEO features' }), renderFeatures(r.features)]),
 		el('section', { class: 'ua-block' }, [

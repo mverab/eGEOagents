@@ -78,6 +78,7 @@ REWRITE_STATUSES: Tuple[str, ...] = (
     "skipped_no_candidate",
     "skipped_budget",
     "skipped_timeout",
+    "skipped_challenge",
     "error",
 )
 REWRITE_NOTE = "Checked by deterministic fidelity rules; not verified by an LLM judge."
@@ -657,6 +658,44 @@ def check_visible_text(facts: PageFacts) -> Dict[str, Any]:
     )
 
 
+_CHALLENGE_TITLES = {
+    "just a moment...": "cloudflare",
+    "attention required! | cloudflare": "cloudflare",
+    "client challenge": "unknown",
+    "access to this page has been denied": "perimeterx",
+    "access denied": "unknown",
+    "pardon our interruption": "imperva",
+    "ddos-guard": "ddos-guard",
+}
+_CHALLENGE_MARKERS = (
+    ("_cf_chl_opt", "cloudflare"),
+    ("cf-chl-", "cloudflare"),
+    ("px-captcha", "perimeterx"),
+    ("_pxAppId", "perimeterx"),
+    ("captcha-delivery.com", "datadome"),
+    ("_Incapsula_Resource", "imperva"),
+    ("sec-if-cpt", "akamai"),
+)
+
+
+def detect_bot_challenge(status: int, html: str, title: str, visible_words: int) -> Optional[Dict[str, Any]]:
+    if status not in (200, 403, 429, 503) or visible_words >= MIN_VISIBLE_WORDS:
+        return None
+    clean_title = (title or "").strip()
+    normalized_title = clean_title.lower()
+    title_match = normalized_title in _CHALLENGE_TITLES or normalized_title.startswith("security check")
+    markers = [(marker, vendor) for marker, vendor in _CHALLENGE_MARKERS if marker in html]
+    if not title_match and not markers:
+        return None
+    vendor = markers[0][1] if markers else _CHALLENGE_TITLES.get(normalized_title, "unknown")
+    signals = ([f'title "{clean_title}"'] if title_match else []) + [f"marker {marker}" for marker, _ in markers]
+    return {
+        "vendor": vendor,
+        "http_status": status,
+        "evidence": ", ".join(signals + [f"{visible_words} visible words"]),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Features, query, rewrite
 # --------------------------------------------------------------------------- #
@@ -672,11 +711,33 @@ def feature_breakdown(markdown: str, title: str) -> Dict[str, Any]:
     return {"method": "heuristic", "note": FEATURES_NOTE, "items": items}
 
 
+def _strip_site_name(subject: str, url: str) -> str:
+    labels = (urlsplit(url).hostname or "").lower().split(".")
+    if labels and labels[0] in ("www", "en", "m"):
+        labels = labels[1:]
+    main_label = labels[-2] if len(labels) >= 2 else ""
+    if len(main_label) < 3:
+        return subject
+    parts = re.split(r"( \| | - | – | — | · | :: )", subject)
+    if len(parts) < 3:
+        return subject
+
+    def names_site(segment: str) -> bool:
+        normalized = "".join(c for c in segment.lower() if c.isalnum())
+        return bool(normalized) and (
+            main_label in normalized or (len(normalized) > 3 and normalized in main_label)
+        )
+
+    start = 2 if names_site(parts[0]) else 0
+    end = len(parts) - 2 if names_site(parts[-1]) else len(parts)
+    return "".join(parts[start:end]) if start < end else subject
+
+
 def effective_query(visitor_query: Optional[str], title: str, first_h1: str, url: str) -> Tuple[str, str]:
     if visitor_query:
         return visitor_query, "visitor"
     subject = title or first_h1 or (urlsplit(url).hostname or "")
-    return f"best {subject}".strip(), "derived"
+    return f"best {_strip_site_name(subject, url)}".strip(), "derived"
 
 
 def rewriter_request_options(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
@@ -856,47 +917,64 @@ def audit_url(
     fetch_kw = dict(resolver=resolver, transport=transport, now=now, deadline=deadline)
 
     page = guarded_fetch(target, **fetch_kw)
-    if page.status != 200:
+    is_html = "html" in (page.content_type or "").lower()
+    challenge = None
+    if is_html:
+        facts = html_to_markdown(page.text, page.url)
+        record = _parse_page(page.url, page.status, page.text)
+        title = (record.get("title") or "").strip()
+        challenge = detect_bot_challenge(page.status, page.text, title, facts.visible_words)
+    if page.status != 200 and challenge is None:
         raise FetchFailed(f"The page returned HTTP {page.status}.")
-    if "html" not in (page.content_type or "").lower():
+    if not is_html:
         raise FetchFailed(f"The URL is not an HTML page ({page.content_type or 'no content type'}).")
-
-    facts = html_to_markdown(page.text, page.url)
-    record = _parse_page(page.url, page.status, page.text)
-    title = (record.get("title") or "").strip()
 
     origin = _origin(page.url)
     robots, robots_err = _fetch_optional(origin + "/robots.txt", **fetch_kw)
     llms, llms_err = _fetch_optional(origin + "/llms.txt", **fetch_kw)
 
-    checks = [
-        check_ai_crawler_access(robots, robots_err, page.url),
-        check_llms_txt(llms, llms_err),
-        *check_page_metadata(record, facts),
-        check_visible_text(facts),
-    ]
+    checks = [check_ai_crawler_access(robots, robots_err, page.url), check_llms_txt(llms, llms_err)]
+    if challenge is not None:
+        evidence = f"The page itself could not be read: bot challenge ({challenge['evidence']})."
+        checks.extend(_check(check_id, "unverifiable", evidence) for check_id in CHECK_IDS[2:])
+    else:
+        checks.extend([*check_page_metadata(record, facts), check_visible_text(facts)])
     if now() >= deadline:
         raise AuditTimeout("The audit ran out of time.")
 
-    q, source = effective_query(visitor_query, title, facts.first_h1, page.url)
-    rewrite = rewrite_one_section(
-        facts.markdown,
-        title=title or facts.first_h1,
-        query=q,
-        now=now,
-        deadline=deadline,
-        reserve_llm=reserve_llm,
-        llm_factory=llm_factory or default_llm_factory,
-        model=model or os.environ.get("REWRITER_MODEL", "gpt-4o"),
-    )
+    if challenge is not None and visitor_query is None:
+        hostname = urlsplit(page.url).hostname or ""
+        if hostname.startswith("www."):
+            hostname = hostname[4:]
+        q, source = f"best {hostname}".strip(), "derived"
+    else:
+        q, source = effective_query(visitor_query, title, facts.first_h1, page.url)
+    if challenge is not None:
+        rewrite = {
+            "status": "skipped_challenge", "query": q, "section_heading": None, "before": None, "note": REWRITE_NOTE,
+        }
+        features = {"method": "heuristic", "note": FEATURES_NOTE, "items": []}
+    else:
+        rewrite = rewrite_one_section(
+            facts.markdown,
+            title=title or facts.first_h1,
+            query=q,
+            now=now,
+            deadline=deadline,
+            reserve_llm=reserve_llm,
+            llm_factory=llm_factory or default_llm_factory,
+            model=model or os.environ.get("REWRITER_MODEL", "gpt-4o"),
+        )
+        features = feature_breakdown(facts.markdown, title)
     return {
         "url": target,
         "final_url": page.url,
         "query": q,
         "query_source": source,
         "checks": checks,
-        "features": feature_breakdown(facts.markdown, title),
+        "features": features,
         "rewrite": rewrite,
+        "challenge": challenge,
     }
 
 
@@ -918,6 +996,7 @@ __all__ = [
     "cache_key",
     "default_resolver",
     "default_transport",
+    "detect_bot_challenge",
     "guarded_fetch",
     "html_to_markdown",
     "is_public_address",

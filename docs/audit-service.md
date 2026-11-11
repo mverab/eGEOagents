@@ -58,7 +58,28 @@ git fetch && SRC="$(mktemp -d)" && git archive origin/main | tar -x -C "$SRC" \
 
 ### Alerts
 
-`.github/workflows/audit-health.yml` probes `https://api.egeoagents.com/healthz` every 15 minutes. It also requests an unknown report id, which must return `not_found`; that proves requests reach the app through the tunnel. It retries 3 times, 30 s apart, before it fails. GitHub emails a failed scheduled run to whoever last changed the workflow's schedule. To test it, run it by hand from the Actions tab (*Run workflow*).
+The primary monitor is `deploy/audit-service/healthcheck.sh`, run on the VPS by a systemd user timer every 5 minutes. Install the script and units from the repository checkout:
+
+```bash
+install -d ~/.local/share/egeo-audit ~/.config/systemd/user
+install -m 755 deploy/audit-service/healthcheck.sh ~/.local/share/egeo-audit/healthcheck.sh
+install -m 644 deploy/audit-service/systemd/egeo-audit-health.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now egeo-audit-health.timer
+```
+
+The script requires only POSIX `sh` and `curl`. It probes the public `/healthz` and an unknown report id 3 times, 10 seconds apart; both the 200 health response and the `not_found` body are required for "up". On a public failure it probes loopback to distinguish a tunnel/Cloudflare problem from an app problem. The first run only records state. After that, it sends one message on up→down and down→up, via stdin to `sh -c "$AUDIT_ALERT_CMD"` (default `hermes send -t telegram`). State defaults to `${XDG_STATE_HOME:-$HOME/.local/state}/egeo-audit/health.state`. `AUDIT_PUBLIC_BASE`, `AUDIT_LOCAL_BASE`, `AUDIT_HEALTH_STATE`, `AUDIT_HEALTH_TRIES` and `AUDIT_HEALTH_SLEEP` can override the defaults; the optional `service.env` is also read by the unit.
+
+Test the probe and timer, or disable them:
+
+```bash
+~/.local/share/egeo-audit/healthcheck.sh   # exit 0 = up, 1 = down
+systemctl --user start egeo-audit-health.service
+systemctl --user status egeo-audit-health.service egeo-audit-health.timer
+systemctl --user disable --now egeo-audit-health.timer
+```
+
+`.github/workflows/audit-health.yml` remains the external backstop for a VPS that is down entirely. Its schedule is hourly at minute 17, but GitHub delays scheduled workflows, so this is best effort rather than a punctual hourly monitor. It performs the same public health and unknown-id probes, retries 3 times, 30 seconds apart, and GitHub emails a failed scheduled run to whoever last changed the workflow's schedule. To test it, run it by hand from the Actions tab (*Run workflow*).
 
 GitHub pauses scheduled workflows after 60 days without repository activity. If the repo goes quiet for that long, re-enable the workflow in the Actions tab.
 

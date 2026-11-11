@@ -1,0 +1,10 @@
+[Unit]
+Description=E-GEO audit API health check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-%h/.local/share/egeo-audit/service.env
+ExecStart=%h/.local/share/egeo-audit/healthcheck.sh

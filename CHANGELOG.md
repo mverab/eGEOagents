@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- URL audit: bot challenges returned with HTTP 200, 403, 429 or 503 now produce a challenged report with unverifiable page checks and no LLM rewrite, instead of auditing challenge text or returning `fetch_failed`. The landing page explains the challenge and its implications for AI crawlers.
+- URL audit: derived queries strip a first or last title segment that names the site, such as ` - Wikipedia` or ` | BBC`; visitor queries remain unchanged.
+- Deployment: a local systemd user timer checks the audit API every 5 minutes and sends alerts on state changes, distinguishing tunnel/Cloudflare failures from app failures. The GitHub health workflow is now an hourly best-effort backstop.
+
 ## [2.4.0] - 2026-11-09
 
 ### Added
@@ -40,8 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Site: security update for the documentation site's npm dependencies (9 non-major bumps, #78).
 
 ### Known limitations
-- URL audit: an HTML anti-bot challenge returned with HTTP 200 can still be audited as though it were the requested page. The existing `robots.txt` HTML check does not detect a challenge in the main page.
-- URL audit: a derived query still uses the full HTML title, including site suffixes such as ` - Wikipedia` or ` | BBC`.
 - Deployment: the user-systemd deployment is verified in production. The Dockerfile and Compose files are included, but the Docker image build has not been verified in the current environment.
 - Site tooling: `npm audit` on the release commit reports 2 remaining dependency advisories (`sharp`: high; `postcss-selector-parser`: moderate). They belong to the site build toolchain, not the Python wheel; remediation is left for a dedicated dependency update.
 

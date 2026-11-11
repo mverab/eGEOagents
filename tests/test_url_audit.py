@@ -360,6 +360,102 @@ def test_visible_text_js_rendered_page(mock_llm) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Bot challenge detection
+# --------------------------------------------------------------------------- #
+def challenge_html(title: str = "Just a moment...", marker: str = "") -> str:
+    return f"<html><head><title>{title}</title></head><body><p>Checking your browser.</p>{marker}</body></html>"
+
+
+def assert_challenge_skips_llm(report) -> None:
+    checks = checks_by_id(report)
+    for check_id in ("json_ld", "title", "meta_description", "single_h1", "visible_text"):
+        assert checks[check_id]["status"] == "unverifiable"
+        assert "challenge" in checks[check_id]["evidence"].lower()
+    assert report["features"]["items"] == []
+    assert report["rewrite"]["status"] == "skipped_challenge"
+
+
+def test_cloudflare_403_returns_challenged_report_without_llm(real_llm_path) -> None:
+    html = challenge_html(marker="<script>window._cf_chl_opt = {};</script>")
+    net = FakeNet(site(html))
+    net.routes["https://acme.example/"] = (403, HTML, html)
+    report = run(
+        net,
+        reserve_llm=lambda: pytest.fail("LLM budget reserved"),
+        llm_factory=lambda timeout: pytest.fail("LLM factory called"),
+    )
+    assert report["challenge"]["vendor"] == "cloudflare"
+    assert report["challenge"]["http_status"] == 403
+    assert "Just a moment..." in report["challenge"]["evidence"]
+    assert "_cf_chl_opt" in report["challenge"]["evidence"]
+    assert_challenge_skips_llm(report)
+    assert checks_by_id(report)["ai_crawler_access"]["status"] == "pass"
+    assert checks_by_id(report)["llms_txt"]["status"] == "pass"
+
+
+def test_challenged_report_derives_query_from_hostname_and_preserves_visitor_query(real_llm_path) -> None:
+    url = "https://www.example.com/"
+    html = challenge_html(marker="<script>window._cf_chl_opt = {};</script>")
+    net = FakeNet({url: (403, HTML, html)})
+    report = run(net, url)
+    assert report["challenge"]["vendor"] == "cloudflare"
+    assert (report["query"], report["query_source"]) == ("best example.com", "derived")
+
+    visitor = run(net, url, query="custom cloudflare query")
+    assert (visitor["query"], visitor["query_source"]) == ("custom cloudflare query", "visitor")
+
+
+def test_challenge_200_with_unknown_title_returns_report(real_llm_path) -> None:
+    report = run(
+        FakeNet(site(challenge_html(title="Client Challenge"))),
+        reserve_llm=lambda: pytest.fail("LLM budget reserved"),
+        llm_factory=lambda timeout: pytest.fail("LLM factory called"),
+    )
+    assert report["challenge"]["vendor"] == "unknown"
+    assert report["challenge"]["http_status"] == 200
+    assert_challenge_skips_llm(report)
+
+
+def test_challenge_platform_script_on_real_page_is_not_a_challenge(mock_llm) -> None:
+    html = page_html(body=f"<h2>Why Acme</h2><p>{LONG_A}</p><p>{BOILER}</p>"
+                           "<script src='/cdn-cgi/challenge-platform/'></script>")
+    report = run(FakeNet(site(html)))
+    assert report["challenge"] is None
+    assert checks_by_id(report)["visible_text"]["status"] == "pass"
+    assert len(report["features"]["items"]) == 10
+
+
+def test_plain_403_without_challenge_signal_is_fetch_failed() -> None:
+    net = FakeNet({"https://acme.example/": (403, HTML, page_html())})
+    with pytest.raises(ua.FetchFailed):
+        run(net)
+
+
+@pytest.mark.parametrize(
+    "marker,vendor",
+    [
+        ("_cf_chl_opt", "cloudflare"),
+        ("px-captcha", "perimeterx"),
+        ("captcha-delivery.com", "datadome"),
+        ("_Incapsula_Resource", "imperva"),
+        ("sec-if-cpt", "akamai"),
+    ],
+)
+def test_vendor_markers_detect_low_word_challenges(marker: str, vendor: str) -> None:
+    detected = ua.detect_bot_challenge(503, challenge_html(title="", marker=marker), "", 4)
+    assert detected is not None
+    assert detected["vendor"] == vendor
+    assert detected["http_status"] == 503
+    assert marker in detected["evidence"]
+    assert "4 visible words" in detected["evidence"]
+    assert ua.detect_bot_challenge(503, challenge_html(title="", marker=marker), "", ua.MIN_VISIBLE_WORDS) is None
+
+
+def test_challenge_platform_alone_is_not_a_marker() -> None:
+    assert ua.detect_bot_challenge(200, "/cdn-cgi/challenge-platform/", "", 4) is None
+
+
+# --------------------------------------------------------------------------- #
 # Features, query, no aggregate score
 # --------------------------------------------------------------------------- #
 def test_features_breakdown_and_no_aggregate(mock_llm) -> None:
@@ -382,6 +478,36 @@ def test_query_visitor_and_derived(mock_llm) -> None:
     assert r["query"] == "best Acme Analytics"  # falls back to the first h1
 
 
+@pytest.mark.parametrize(
+    "title,url,expected",
+    [
+        (
+            "Generative engine optimization - Wikipedia",
+            "https://en.wikipedia.org/wiki/Generative_engine_optimization",
+            "best Generative engine optimization",
+        ),
+        ("BBC", "https://www.bbc.com/", "best BBC"),
+        ("Home - BBC News", "https://www.bbc.com/", "best Home"),
+        (
+            "Plausible Analytics | Simple, privacy-friendly Google Analytics alternative",
+            "https://plausible.io/",
+            "best Simple, privacy-friendly Google Analytics alternative",
+        ),
+        ("Analytics - Example", "https://www.example.co.uk/", "best Analytics - Example"),
+        ("Buy - Laptops", "https://www.bestbuy.com/", "best Buy - Laptops"),
+        ("AI tools | OpenAI", "https://openai.com/", "best AI tools"),
+    ],
+)
+def test_derived_query_strips_site_name(title: str, url: str, expected: str) -> None:
+    assert ua.effective_query(None, title, "", url) == (expected, "derived")
+
+
+def test_visitor_query_is_never_stripped() -> None:
+    assert ua.effective_query("Home - BBC News", "", "", "https://www.bbc.com/") == (
+        "Home - BBC News", "visitor",
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Rewrite
 # --------------------------------------------------------------------------- #
@@ -391,7 +517,7 @@ def test_mock_mode_end_to_end_without_network(mock_llm) -> None:
     # the mock rewriter returns the section unchanged, which is reported honestly as no_change
     assert rw["status"] == "no_change" and "after" not in rw and rw["before"]
     assert rw["note"] == ua.REWRITE_NOTE
-    assert set(report) == {"url", "final_url", "query", "query_source", "checks", "features", "rewrite"}
+    assert set(report) == {"url", "final_url", "query", "query_source", "checks", "features", "rewrite", "challenge"}
 
 
 def _section_from_prompt(user: str) -> str:
