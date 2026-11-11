@@ -711,11 +711,31 @@ def feature_breakdown(markdown: str, title: str) -> Dict[str, Any]:
     return {"method": "heuristic", "note": FEATURES_NOTE, "items": items}
 
 
+def _strip_site_name(subject: str, url: str) -> str:
+    labels = (urlsplit(url).hostname or "").lower().split(".")
+    if labels and labels[0] in ("www", "en", "m"):
+        labels = labels[1:]
+    main_label = labels[-2] if len(labels) >= 2 else ""
+    if len(main_label) < 3:
+        return subject
+    parts = re.split(r"( \| | - | – | — | · | :: )", subject)
+    if len(parts) < 3:
+        return subject
+
+    def names_site(segment: str) -> bool:
+        normalized = "".join(c for c in segment.lower() if c.isalnum())
+        return bool(normalized) and (main_label in normalized or normalized in main_label)
+
+    start = 2 if names_site(parts[0]) else 0
+    end = len(parts) - 2 if names_site(parts[-1]) else len(parts)
+    return "".join(parts[start:end]) if start < end else subject
+
+
 def effective_query(visitor_query: Optional[str], title: str, first_h1: str, url: str) -> Tuple[str, str]:
     if visitor_query:
         return visitor_query, "visitor"
     subject = title or first_h1 or (urlsplit(url).hostname or "")
-    return f"best {subject}".strip(), "derived"
+    return f"best {_strip_site_name(subject, url)}".strip(), "derived"
 
 
 def rewriter_request_options(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:

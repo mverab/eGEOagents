@@ -4,8 +4,8 @@
 - [x] 1.3 Check that the service layer (`egeo/audit_service.py`) stores and returns `challenge` unchanged, and that a challenged audit does not touch the LLM budget table. Add a service test.
 
 ## 2. Site-name stripping (egeo/url_audit.py)
-- [ ] 2.1 RED tests: the two "Target Query Selection" scenarios, plus `Home - BBC News` on www.bbc.com → `best Home`, the Plausible title on plausible.io → `best Simple, privacy-friendly Google Analytics alternative`, a `.co.uk` host left unchanged, and a visitor query never stripped.
-- [ ] 2.2 Implement it in `effective_query` (or a helper it calls), following design.md D3.
+- [x] 2.1 RED tests: the two "Target Query Selection" scenarios, plus `Home - BBC News` on www.bbc.com → `best Home`, the Plausible title on plausible.io → `best Simple, privacy-friendly Google Analytics alternative`, a `.co.uk` host left unchanged, and a visitor query never stripped.
+- [x] 2.2 Implement it in `effective_query` (or a helper it calls), following design.md D3.
 
 ## 3. Landing page (site/src/scripts/url-audit.ts)
 - [ ] 3.1 Challenge banner, empty-features message, and `skipped_challenge` reason, built with `textContent` only (as today). Add the new fields to the TypeScript types.

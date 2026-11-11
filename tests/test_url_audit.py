@@ -466,6 +466,34 @@ def test_query_visitor_and_derived(mock_llm) -> None:
     assert r["query"] == "best Acme Analytics"  # falls back to the first h1
 
 
+@pytest.mark.parametrize(
+    "title,url,expected",
+    [
+        (
+            "Generative engine optimization - Wikipedia",
+            "https://en.wikipedia.org/wiki/Generative_engine_optimization",
+            "best Generative engine optimization",
+        ),
+        ("BBC", "https://www.bbc.com/", "best BBC"),
+        ("Home - BBC News", "https://www.bbc.com/", "best Home"),
+        (
+            "Plausible Analytics | Simple, privacy-friendly Google Analytics alternative",
+            "https://plausible.io/",
+            "best Simple, privacy-friendly Google Analytics alternative",
+        ),
+        ("Analytics - Example", "https://www.example.co.uk/", "best Analytics - Example"),
+    ],
+)
+def test_derived_query_strips_site_name(title: str, url: str, expected: str) -> None:
+    assert ua.effective_query(None, title, "", url) == (expected, "derived")
+
+
+def test_visitor_query_is_never_stripped() -> None:
+    assert ua.effective_query("Home - BBC News", "", "", "https://www.bbc.com/") == (
+        "Home - BBC News", "visitor",
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Rewrite
 # --------------------------------------------------------------------------- #
