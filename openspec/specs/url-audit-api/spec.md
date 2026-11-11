@@ -7,12 +7,12 @@ The public URL audit service behind `https://api.egeoagents.com`. It takes a vis
 
 ### Requirement: Audit Endpoints
 
-The audit service SHALL expose `POST /api/audit` with a JSON body `{"url": string, "query": string | null}` and `GET /api/audit/{id}`. A successful `POST` SHALL return HTTP 200 with a report containing `id`, `url` (normalized input), `final_url` (after redirects), `query`, `query_source`, `checks`, `features`, `rewrite`, `created_at` and `expires_at`. `GET` SHALL return the stored report unchanged.
+The audit service SHALL expose `POST /api/audit` with a JSON body `{"url": string, "query": string | null}` and `GET /api/audit/{id}`. A successful `POST` SHALL return HTTP 200 with a report containing `id`, `url` (normalized input), `final_url` (after redirects), `query`, `query_source`, `checks`, `features`, `rewrite`, `challenge`, `created_at` and `expires_at`. `challenge` SHALL be `null` unless a bot challenge was detected. `GET` SHALL return the stored report unchanged.
 
 #### Scenario: Successful audit
 
 - **WHEN** a client posts `{"url": "https://example.com/pricing"}` and the page returns 200 with HTML
-- **THEN** the response is HTTP 200 with a report containing every listed field
+- **THEN** the response is HTTP 200 with a report containing every listed field, with `challenge: null`
 - **AND** `GET /api/audit/{id}` with the returned id returns the same report
 
 ### Requirement: Audit Error Responses
@@ -141,12 +141,17 @@ Otherwise the check SHALL be `fail`.
 
 ### Requirement: GEO Feature Breakdown
 
-The report's `features` SHALL be an object `{method: "heuristic", note, items}`. Its `items` SHALL list the 10 GEO features scored by the existing offline `egeo.agents.Analyzer` on the page's extracted Markdown. Each item SHALL have `id`, an integer `score` from 0 to 10, and a `recommendation` when the score is below 5.
+The report's `features` SHALL be an object `{method: "heuristic", note, items}`. Its `items` SHALL list the 10 GEO features scored by the existing offline `egeo.agents.Analyzer` on the page's extracted Markdown. Each item SHALL have `id`, an integer `score` from 0 to 10, and a `recommendation` when the score is below 5. When a bot challenge was detected, `items` SHALL be empty.
 
 #### Scenario: Ten features
 
-- **WHEN** any audit completes
+- **WHEN** an audit completes without a bot challenge
 - **THEN** `features.items` has 10 entries, each with an integer score between 0 and 10, and `features.method` is `heuristic`
+
+#### Scenario: No features for a challenge
+
+- **WHEN** an audit completes with a bot challenge
+- **THEN** `features.items` is empty and `features.method` is `heuristic`
 
 ### Requirement: No Aggregate Score
 
@@ -160,8 +165,9 @@ The report SHALL NOT contain a single aggregate score, a percentile, a benchmark
 ### Requirement: Target Query Selection
 
 The `query` field SHALL be optional.
-- When present, it SHALL be trimmed. It SHALL be rejected with `invalid_query` if the trimmed text is empty or longer than 200 characters. `query_source` SHALL be `visitor`.
-- When it is absent, the service SHALL derive `best <title>` without an LLM, using the page `<title>`, or the first `h1` if the title is empty. `query_source` SHALL be `derived`.
+- When present, it SHALL be trimmed, rejected with `invalid_query` if empty or over 200 characters, and reported with `query_source: visitor`.
+- When absent, the service SHALL derive `best <subject>` without an LLM, with `query_source: derived`. The subject is the `<title>` (or the first `h1` if the title is empty) with the site name stripped.
+- For a challenged page, the subject SHALL be the hostname without a leading `www.`.
 
 #### Scenario: Visitor query used
 
@@ -172,6 +178,25 @@ The `query` field SHALL be optional.
 
 - **WHEN** a client posts no query and the page title is `Acme Analytics`
 - **THEN** the report has `query: "best Acme Analytics"` and `query_source: "derived"`
+
+#### Scenario: Derived query for a challenged page
+
+- **WHEN** a client posts no query for `https://www.example.com/` and the page is a Cloudflare challenge titled `Just a moment...`
+- **THEN** the report has `query: "best example.com"` and `query_source: "derived"`
+
+### Requirement: Derived Query Site-Name Stripping
+
+The subject SHALL be split on ` | `, ` - `, ` – `, ` — `, ` · ` and ` :: `, and its first or last segment dropped when it names the site. A segment names the site when its lowercase letters and digits contain the hostname's main label (3+ characters), or, for a segment longer than 3 characters, are contained in it. At least one segment SHALL remain, rejoined with the original separators.
+
+#### Scenario: Site name stripped from the derived query
+
+- **WHEN** a client posts no query for `https://en.wikipedia.org/wiki/Generative_engine_optimization` and the title is `Generative engine optimization - Wikipedia`
+- **THEN** the report has `query: "best Generative engine optimization"`
+
+#### Scenario: Title that is only the site name
+
+- **WHEN** a client posts no query for `https://www.bbc.com/` and the title is `BBC`
+- **THEN** the report has `query: "best BBC"`
 
 ### Requirement: Rewrite Section Selection
 
@@ -203,7 +228,7 @@ Every rewrite SHALL be checked with `egeo.fidelity.check_fidelity(before, after)
 ### Requirement: Rewrite Result Object
 
 `rewrite` SHALL have:
-- `status`: `shown`, `no_change`, `withheld_fidelity`, `skipped_no_candidate`, `skipped_budget`, `skipped_timeout` or `error`;
+- `status`: `shown`, `no_change`, `withheld_fidelity`, `skipped_no_candidate`, `skipped_budget`, `skipped_timeout`, `skipped_challenge` or `error`;
 - `query`;
 - `section_heading`;
 - `before`;
@@ -347,3 +372,73 @@ A section SHALL NOT be a rewrite candidate when its heading is a single Markdown
 
 - **WHEN** a section's body is a list of lone links (for example "Pricing", "Blog", "Careers")
 - **THEN** that section is not a candidate
+
+### Requirement: Bot Challenge Detection
+
+A fetched HTML page with HTTP status 200, 403, 429 or 503 SHALL be treated as a bot challenge only when BOTH of these hold:
+- it has a known challenge title or a strong vendor marker (lists in `design.md` D1);
+- it has fewer than `MIN_VISIBLE_WORDS` visible words.
+
+Any other non-200 status SHALL still return `fetch_failed`.
+
+#### Scenario: Vendor script on a real page
+
+- **WHEN** the target page responds with HTTP 200, contains `/cdn-cgi/challenge-platform/` and has 900 visible words
+- **THEN** the report has `challenge: null` and the page checks run normally
+
+#### Scenario: Plain 403
+
+- **WHEN** the target page responds with HTTP 403 and no challenge signal
+- **THEN** the response is HTTP 502 with `error: "fetch_failed"`
+
+### Requirement: Challenged Report
+
+For a detected challenge, the audit SHALL return a report, not `fetch_failed`, with:
+- `challenge: {vendor, http_status, evidence}`, where `vendor` is `cloudflare`, `perimeterx`, `datadome`, `imperva`, `akamai`, `ddos-guard` or `unknown`;
+- `ai_crawler_access` and `llms_txt` computed as usual, and the five page checks `unverifiable`, with evidence naming the challenge;
+- `features.items` empty;
+- `rewrite.status: skipped_challenge`, with no LLM call and no use of the daily cap.
+
+#### Scenario: Cloudflare challenge served with 403
+
+- **WHEN** the target page responds with HTTP 403, title `Just a moment...` and `_cf_chl_opt` in its HTML
+- **THEN** the response is HTTP 200 with `challenge.vendor: "cloudflare"` and `challenge.http_status: 403`
+- **AND** the five page checks are `unverifiable` and `rewrite.status` is `skipped_challenge`
+- **AND** the daily LLM budget is unchanged
+
+#### Scenario: Challenge served with 200
+
+- **WHEN** the target page responds with HTTP 200, title `Client Challenge` and 36 visible words
+- **THEN** the report has a non-null `challenge` with `vendor: "unknown"`, and no rewrite is attempted
+
+### Requirement: Health Probe
+
+The repository SHALL ship `deploy/audit-service/healthcheck.sh`, plus systemd user units that run it every 5 minutes. The API SHALL count as up only when:
+- the public `/healthz` returns 200; and
+- an unknown report id returns a body containing `"not_found"`.
+
+The script SHALL try `AUDIT_HEALTH_TRIES` times before reporting down. It SHALL exit 0 when up and 1 when down.
+
+#### Scenario: Healthy API
+
+- **WHEN** both public probes succeed
+- **THEN** the script exits 0
+
+### Requirement: Health Alert On State Change
+
+The script SHALL send exactly one message through `AUDIT_ALERT_CMD` per state change, up→down or down→up. The first run SHALL only record the state. A down alert SHALL say whether the loopback API is up (tunnel or Cloudflare problem) or down (app problem).
+
+#### Scenario: API goes down
+
+- **WHEN** the recorded state is up, the public probe fails all tries, and the loopback `/healthz` returns 200
+- **THEN** one alert is sent naming the tunnel/Cloudflare leg, the state becomes down, and the exit code is 1
+
+#### Scenario: Still down
+
+- **WHEN** the recorded state is down and the probe fails again
+- **THEN** no alert is sent
+
+#### Scenario: Recovery
+
+- **WHEN** the recorded state is down and the probe succeeds
+- **THEN** one recovery alert is sent and the state becomes up
