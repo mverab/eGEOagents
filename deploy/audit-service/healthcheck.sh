@@ -57,9 +57,14 @@ else
 	fi
 fi
 
-printf '%s\n' "$current" > "$AUDIT_HEALTH_STATE"
 if [ -n "$message" ]; then
-	printf '%s\n' "$message" | sh -c "$AUDIT_ALERT_CMD"
+	if printf '%s\n' "$message" | sh -c "$AUDIT_ALERT_CMD"; then
+		printf '%s\n' "$current" > "$AUDIT_HEALTH_STATE"
+	else
+		printf 'E-GEO audit health alert failed; keeping previous state "%s".\n' "$previous" >&2
+	fi
+else
+	printf '%s\n' "$current" > "$AUDIT_HEALTH_STATE"
 fi
 
 if [ "$current" = up ]; then

@@ -145,3 +145,25 @@ def test_app_failure_names_app(tmp_path: Path, api: ApiStub, health_env: dict[st
     assert len(messages(tmp_path)) == 1
     assert "app" in messages(tmp_path)[0].lower()
     assert "tunnel or Cloudflare" not in messages(tmp_path)[0]
+
+
+def test_failed_alert_preserves_state_and_retries_on_next_run(
+    tmp_path: Path, api: ApiStub, health_env: dict[str, str]
+) -> None:
+    assert run_healthcheck(health_env).returncode == 0
+    working_alert = health_env["AUDIT_ALERT_CMD"]
+    health_env["AUDIT_ALERT_CMD"] = "exit 1"
+    api.public_health = 503
+
+    failed_alert = run_healthcheck(health_env)
+    assert failed_alert.returncode == 1
+    assert failed_alert.stderr
+    assert Path(health_env["AUDIT_HEALTH_STATE"]).read_text(encoding="utf-8").strip() == "up"
+    assert messages(tmp_path) == []
+
+    health_env["AUDIT_ALERT_CMD"] = working_alert
+    retried_alert = run_healthcheck(health_env)
+    assert retried_alert.returncode == 1
+    assert len(messages(tmp_path)) == 1
+    assert "DOWN" in messages(tmp_path)[0]
+    assert Path(health_env["AUDIT_HEALTH_STATE"]).read_text(encoding="utf-8").strip() == "down"
