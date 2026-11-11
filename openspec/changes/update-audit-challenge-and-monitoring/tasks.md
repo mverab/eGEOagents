@@ -15,7 +15,7 @@
 - [x] 4.1 RED tests in `tests/test_audit_healthcheck.py`. Run the script with `sh` against a stdlib `http.server` stub on a random loopback port, with `AUDIT_ALERT_CMD` pointing to a tiny script that appends stdin to a file, `AUDIT_HEALTH_SLEEP=0` and a temp state file. Cover: first run records without alerting; up→down alerts once naming tunnel vs app; down→down is silent; down→up alerts once; exit codes. Skip if `sh` or `curl` is missing.
 - [x] 4.2 Implement `deploy/audit-service/healthcheck.sh` (POSIX sh + curl, `set -u`, no secrets) following design.md D4.
 - [x] 4.3 Add `deploy/audit-service/systemd/egeo-audit-health.service` (Type=oneshot) and `egeo-audit-health.timer` (OnBootSec=2min, OnUnitActiveSec=5min).
-- [ ] 4.4 `.github/workflows/audit-health.yml`: change the cron to hourly (`17 * * * *`) and make the comment honest (best-effort backstop; GitHub delays schedules).
+- [x] 4.4 `.github/workflows/audit-health.yml`: change the cron to hourly (`17 * * * *`) and make the comment honest (best-effort backstop; GitHub delays schedules).
 - [ ] 4.5 `docs/audit-service.md` "Alerts": the local timer (install, test, disable) first, and GitHub as a backstop with its real cadence.
 
 ## 5. Wrap-up

@@ -1,11 +1,12 @@
 name: Audit API health
 
-# Probes the public URL audit API every 15 minutes. A failed run makes GitHub
-# email the person who last changed this workflow's schedule (GitHub's default
-# notification for scheduled runs). Runbook: docs/audit-service.md.
+# Best-effort external backstop for the local health timer. GitHub can delay
+# scheduled runs, so this is not a punctual hourly monitor. A failed run makes
+# GitHub email the person who last changed this workflow's schedule (GitHub's
+# default notification for scheduled runs). Runbook: docs/audit-service.md.
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
