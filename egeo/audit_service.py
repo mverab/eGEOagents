@@ -192,7 +192,7 @@ class Store:
 # Request handling (framework-free, so it is testable on its own)
 # --------------------------------------------------------------------------- #
 REPORT_FIELDS = ("id", "url", "final_url", "query", "query_source", "checks", "features", "rewrite",
-                 "created_at", "expires_at")
+                 "challenge", "created_at", "expires_at")
 
 
 def _error(status: int, code: str, message: str, headers: Optional[Dict[str, str]] = None):

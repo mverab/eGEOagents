@@ -1,7 +1,7 @@
 ## 1. Bot challenge detection (egeo/url_audit.py)
-- [ ] 1.1 RED tests in `tests/test_url_audit.py`: the four "Bot Challenge Detection" scenarios plus one test per vendor (cloudflare, perimeterx, datadome, imperva, akamai), using small synthetic HTML fixtures inline (no copied third-party pages). Assert the LLM factory and `reserve_llm` are not called for a challenge.
-- [ ] 1.2 Implement `detect_bot_challenge(status, html, title, visible_words) -> Optional[dict]` and wire it into `audit_url`. Challenge-eligible statuses (200, 403, 429, 503) with HTML go through detection before the `status != 200` → `FetchFailed` check. Add `challenge` (null or object) to every report. Add `skipped_challenge` to `REWRITE_STATUSES`.
-- [ ] 1.3 Check that the service layer (`egeo/audit_service.py`) stores and returns `challenge` unchanged, and that a challenged audit does not touch the LLM budget table. Add a service test.
+- [x] 1.1 RED tests in `tests/test_url_audit.py`: the four "Bot Challenge Detection" scenarios plus one test per vendor (cloudflare, perimeterx, datadome, imperva, akamai), using small synthetic HTML fixtures inline (no copied third-party pages). Assert the LLM factory and `reserve_llm` are not called for a challenge.
+- [x] 1.2 Implement `detect_bot_challenge(status, html, title, visible_words) -> Optional[dict]` and wire it into `audit_url`. Challenge-eligible statuses (200, 403, 429, 503) with HTML go through detection before the `status != 200` → `FetchFailed` check. Add `challenge` (null or object) to every report. Add `skipped_challenge` to `REWRITE_STATUSES`.
+- [x] 1.3 Check that the service layer (`egeo/audit_service.py`) stores and returns `challenge` unchanged, and that a challenged audit does not touch the LLM budget table. Add a service test.
 
 ## 2. Site-name stripping (egeo/url_audit.py)
 - [ ] 2.1 RED tests: the two "Target Query Selection" scenarios, plus `Home - BBC News` on www.bbc.com → `best Home`, the Plausible title on plausible.io → `best Simple, privacy-friendly Google Analytics alternative`, a `.co.uk` host left unchanged, and a visitor query never stripped.

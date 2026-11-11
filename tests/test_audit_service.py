@@ -50,6 +50,7 @@ class FakeAuditor:
             "checks": [{"id": i, "status": "pass", "evidence": "ok"} for i in ua.CHECK_IDS],
             "features": {"method": "heuristic", "note": "", "items": []},
             "rewrite": {"status": status, "query": query or "best Acme", "note": ua.REWRITE_NOTE},
+            "challenge": None,
         }
 
 
@@ -79,8 +80,30 @@ def test_successful_audit_and_get(env) -> None:
     assert list(body) == list(svc.REPORT_FIELDS)
     assert len(body["id"]) >= 22  # token_urlsafe(16): 128 bits
     assert body["expires_at"] == svc.iso(T0 + 86400)
+    assert body["challenge"] is None
     g = client.get(f"/api/audit/{body['id']}")
     assert g.status_code == 200 and g.json() == body
+
+
+def test_challenged_report_round_trip_does_not_touch_llm_budget(tmp_path) -> None:
+    challenge = {"vendor": "cloudflare", "http_status": 403, "evidence": "title match, 4 visible words"}
+
+    def auditor(url, query, *, deadline_s, reserve_llm):
+        report = FakeAuditor(use_llm=False)(url, query, deadline_s=deadline_s, reserve_llm=reserve_llm)
+        report["challenge"] = challenge
+        report["rewrite"]["status"] = "skipped_challenge"
+        return report
+
+    settings = svc.Settings(db_path=str(tmp_path / "challenge.sqlite3"))
+    store = svc.Store(settings.db_path)
+    clock = Clock()
+    client = TestClient(svc.create_app(settings, store=store, clock=clock, auditor=auditor))
+    response = post(client)
+    assert response.status_code == 200
+    assert response.json()["challenge"] == challenge
+    assert client.get(f"/api/audit/{response.json()['id']}").json() == response.json()
+    assert store.llm_used(clock()) == 0
+    assert 'INSERT INTO "llm_budget"' not in store.dump()
 
 
 @pytest.mark.parametrize(
