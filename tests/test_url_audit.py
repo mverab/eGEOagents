@@ -393,6 +393,18 @@ def test_cloudflare_403_returns_challenged_report_without_llm(real_llm_path) -> 
     assert checks_by_id(report)["llms_txt"]["status"] == "pass"
 
 
+def test_challenged_report_derives_query_from_hostname_and_preserves_visitor_query(real_llm_path) -> None:
+    url = "https://www.example.com/"
+    html = challenge_html(marker="<script>window._cf_chl_opt = {};</script>")
+    net = FakeNet({url: (403, HTML, html)})
+    report = run(net, url)
+    assert report["challenge"]["vendor"] == "cloudflare"
+    assert (report["query"], report["query_source"]) == ("best example.com", "derived")
+
+    visitor = run(net, url, query="custom cloudflare query")
+    assert (visitor["query"], visitor["query_source"]) == ("custom cloudflare query", "visitor")
+
+
 def test_challenge_200_with_unknown_title_returns_report(real_llm_path) -> None:
     report = run(
         FakeNet(site(challenge_html(title="Client Challenge"))),

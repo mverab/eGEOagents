@@ -940,7 +940,13 @@ def audit_url(
     if now() >= deadline:
         raise AuditTimeout("The audit ran out of time.")
 
-    q, source = effective_query(visitor_query, title, facts.first_h1, page.url)
+    if challenge is not None and visitor_query is None:
+        hostname = urlsplit(page.url).hostname or ""
+        if hostname.startswith("www."):
+            hostname = hostname[4:]
+        q, source = f"best {hostname}".strip(), "derived"
+    else:
+        q, source = effective_query(visitor_query, title, facts.first_h1, page.url)
     if challenge is not None:
         rewrite = {
             "status": "skipped_challenge", "query": q, "section_heading": None, "before": None, "note": REWRITE_NOTE,
