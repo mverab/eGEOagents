@@ -16,7 +16,7 @@
 - [x] 4.2 Implement `deploy/audit-service/healthcheck.sh` (POSIX sh + curl, `set -u`, no secrets) following design.md D4.
 - [x] 4.3 Add `deploy/audit-service/systemd/egeo-audit-health.service` (Type=oneshot) and `egeo-audit-health.timer` (OnBootSec=2min, OnUnitActiveSec=5min).
 - [x] 4.4 `.github/workflows/audit-health.yml`: change the cron to hourly (`17 * * * *`) and make the comment honest (best-effort backstop; GitHub delays schedules).
-- [ ] 4.5 `docs/audit-service.md` "Alerts": the local timer (install, test, disable) first, and GitHub as a backstop with its real cadence.
+- [x] 4.5 `docs/audit-service.md` "Alerts": the local timer (install, test, disable) first, and GitHub as a backstop with its real cadence.
 
 ## 5. Wrap-up
 - [ ] 5.1 `CHANGELOG.md` Unreleased: the three changes; remove the two fixed items from the known limitations if they are listed there.
