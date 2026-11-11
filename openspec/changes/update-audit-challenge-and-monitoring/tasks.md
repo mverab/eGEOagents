@@ -19,5 +19,5 @@
 - [x] 4.5 `docs/audit-service.md` "Alerts": the local timer (install, test, disable) first, and GitHub as a backstop with its real cadence.
 
 ## 5. Wrap-up
-- [ ] 5.1 `CHANGELOG.md` Unreleased: the three changes; remove the two fixed items from the known limitations if they are listed there.
+- [x] 5.1 `CHANGELOG.md` Unreleased: the three changes; remove the two fixed items from the known limitations if they are listed there.
 - [ ] 5.2 Full verification (commands in the task prompt) passes.
