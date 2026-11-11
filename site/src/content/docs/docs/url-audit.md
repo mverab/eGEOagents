@@ -24,7 +24,7 @@ Paste a URL into the form on the [home page](/) and you get a report in under 30
 
 | Check | Passes when |
 |---|---|
-| AI crawler access | `robots.txt` lets `GPTBot`, `OAI-SearchBot`, `ChatGPT-User`, `ClaudeBot`, `PerplexityBot` and `Google-Extended` read the page. No `robots.txt` at all also counts as a pass. |
+| AI crawler access | `robots.txt` lets the AI search crawlers (`OAI-SearchBot`, `ChatGPT-User`, `Claude-SearchBot`, `Claude-User`, `PerplexityBot`, `Perplexity-User`) read the page. No `robots.txt` at all also counts as a pass. Blocking the training crawlers `GPTBot`, `ClaudeBot` and `Google-Extended` is noted in the evidence but does not fail the check, because it does not affect AI search citations. |
 | `/llms.txt` | The site serves a non-HTML [`/llms.txt`](/concepts/what-is-llms-txt/). |
 | JSON-LD | At least one JSON-LD block declares an `@type`. |
 | `<title>` | The page has a non-empty title. |

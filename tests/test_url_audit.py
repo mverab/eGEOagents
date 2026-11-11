@@ -305,12 +305,43 @@ def test_check_order_and_fix_only_on_fail(mock_llm) -> None:
     assert checks_by_id(report)["meta_description"]["status"] == "fail"
 
 
-def test_robots_blocking_gptbot(mock_llm) -> None:
-    robots = (200, TEXT, "User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n")
+CLOUDFLARE_TRAINING_BLOCK = (
+    "User-agent: *\nAllow: /\n\n"
+    "User-agent: GPTBot\nDisallow: /\n\n"
+    "User-agent: ClaudeBot\nDisallow: /\n\n"
+    "User-agent: Google-Extended\nDisallow: /\n"
+)
+
+
+def test_robots_blocking_search_crawler(mock_llm) -> None:
+    robots = (200, TEXT, "User-agent: OAI-SearchBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n")
     c = checks_by_id(run(FakeNet(site(page_html(), robots=robots))))["ai_crawler_access"]
     assert c["status"] == "fail"
-    assert "GPTBot" in c["evidence"] and "ClaudeBot" not in c["evidence"]
-    assert "GPTBot" in c["fix"] and "robots.txt" in c["fix"]
+    assert "OAI-SearchBot" in c["evidence"] and "PerplexityBot" not in c["evidence"]
+    assert "OAI-SearchBot" in c["fix"] and "robots.txt" in c["fix"]
+
+
+def test_robots_blocking_claude_searchbot_fails(mock_llm) -> None:
+    robots = (200, TEXT, "User-agent: Claude-SearchBot\nDisallow: /\n")
+    c = checks_by_id(run(FakeNet(site(page_html(), robots=robots))))["ai_crawler_access"]
+    assert c["status"] == "fail" and "Claude-SearchBot" in c["fix"]
+
+
+def test_robots_blocking_only_training_crawlers_passes(mock_llm) -> None:
+    # Cloudflare's default "Bot Preference Sync" block (live case: appsclavitud.com, 2026-11-11).
+    robots = (200, TEXT, CLOUDFLARE_TRAINING_BLOCK)
+    c = checks_by_id(run(FakeNet(site(page_html(), robots=robots))))["ai_crawler_access"]
+    assert c["status"] == "pass" and "fix" not in c
+    for agent in ("GPTBot", "ClaudeBot", "Google-Extended"):
+        assert agent in c["evidence"]
+    assert "does not affect AI search citations" in c["evidence"]
+
+
+def test_robots_blocking_search_and_training_fix_names_search_only(mock_llm) -> None:
+    robots = (200, TEXT, CLOUDFLARE_TRAINING_BLOCK + "\nUser-agent: PerplexityBot\nDisallow: /\n")
+    c = checks_by_id(run(FakeNet(site(page_html(), robots=robots))))["ai_crawler_access"]
+    assert c["status"] == "fail"
+    assert "PerplexityBot" in c["fix"] and "GPTBot" not in c["fix"]
 
 
 def test_robots_timeout_is_unverifiable(mock_llm) -> None:
