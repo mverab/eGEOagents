@@ -54,14 +54,18 @@ MIN_SECTION_WORDS = 40
 MAX_SECTION_WORDS = 600
 MIN_VISIBLE_WORDS = 150
 
-AI_CRAWLERS: Tuple[str, ...] = (
-    "GPTBot",
+# Crawlers that fetch pages for AI search answers and citations: blocking them fails the check.
+SEARCH_CRAWLERS: Tuple[str, ...] = (
     "OAI-SearchBot",
     "ChatGPT-User",
-    "ClaudeBot",
+    "Claude-SearchBot",
+    "Claude-User",
     "PerplexityBot",
-    "Google-Extended",
+    "Perplexity-User",
 )
+# Training-only crawlers (Cloudflare's default blocks these): reported, never a failure.
+TRAINING_CRAWLERS: Tuple[str, ...] = ("GPTBot", "ClaudeBot", "Google-Extended")
+AI_CRAWLERS: Tuple[str, ...] = SEARCH_CRAWLERS + TRAINING_CRAWLERS
 CHECK_IDS: Tuple[str, ...] = (
     "ai_crawler_access",
     "llms_txt",
@@ -575,14 +579,22 @@ def check_ai_crawler_access(robots: Optional[FetchResult], error: str, page_url:
         return _check(cid, "unverifiable", "robots.txt returned an HTML page (likely a bot challenge), not robots rules.")
     rp = robotparser.RobotFileParser()
     rp.parse(robots.text.splitlines())
-    blocked = [agent for agent in AI_CRAWLERS if not rp.can_fetch(agent, page_url)]
+    blocked = [agent for agent in SEARCH_CRAWLERS if not rp.can_fetch(agent, page_url)]
+    training = [agent for agent in TRAINING_CRAWLERS if not rp.can_fetch(agent, page_url)]
+    training_note = (
+        f" Training crawlers blocked: {', '.join(training)} (this does not affect AI search citations)."
+        if training
+        else ""
+    )
     if not blocked:
-        return _check(cid, "pass", "robots.txt allows " + ", ".join(AI_CRAWLERS) + " on this path.")
+        return _check(
+            cid, "pass", "robots.txt allows " + ", ".join(SEARCH_CRAWLERS) + " on this path." + training_note
+        )
     names = ", ".join(blocked)
     return _check(
         cid,
         "fail",
-        f"robots.txt blocks {names} on this path.",
+        f"robots.txt blocks {names} on this path.{training_note}",
         f"In /robots.txt, remove the Disallow rules that match this path for {names} "
         f"(or add `Allow: /` under `User-agent: {blocked[0]}`) so AI search crawlers can read the page.",
     )
@@ -983,6 +995,8 @@ __all__ = [
     "CHECK_IDS",
     "REWRITE_NOTE",
     "REWRITE_STATUSES",
+    "SEARCH_CRAWLERS",
+    "TRAINING_CRAWLERS",
     "AuditError",
     "AuditTimeout",
     "BlockedTarget",
