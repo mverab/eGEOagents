@@ -31,7 +31,7 @@ The `query` field SHALL be optional.
 - When it is absent, the service SHALL derive `best <subject>` without an LLM. The subject is the page `<title>`, or the first `h1` if the title is empty, with the site name stripped. `query_source` SHALL be `derived`.
 - For a challenged page with no visitor query, the subject SHALL instead be the hostname without a leading `www.`, ignoring the challenge page's title and `h1`.
 
-To strip the site name, the title is split on ` | `, ` - `, ` – `, ` — `, ` · ` and ` :: `. The first or last segment SHALL be dropped when it names the site. A segment names the site when, lowercased and reduced to letters and digits, it contains the hostname's main label (at least 3 characters) or that label contains it. At least one segment SHALL remain, and the remaining segments SHALL be rejoined with their original separators.
+To strip the site name, the title is split on ` | `, ` - `, ` – `, ` — `, ` · ` and ` :: `. The first or last segment SHALL be dropped when it names the site. A segment names the site when, lowercased and reduced to letters and digits, it contains the hostname's main label (at least 3 characters) or, when the segment has more than 3 characters, that label contains it. At least one segment SHALL remain, and the remaining segments SHALL be rejoined with their original separators.
 
 #### Scenario: Visitor query used
 

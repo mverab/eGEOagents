@@ -494,6 +494,8 @@ def test_query_visitor_and_derived(mock_llm) -> None:
             "best Simple, privacy-friendly Google Analytics alternative",
         ),
         ("Analytics - Example", "https://www.example.co.uk/", "best Analytics - Example"),
+        ("Buy - Laptops", "https://www.bestbuy.com/", "best Buy - Laptops"),
+        ("AI tools | OpenAI", "https://openai.com/", "best AI tools"),
     ],
 )
 def test_derived_query_strips_site_name(title: str, url: str, expected: str) -> None:

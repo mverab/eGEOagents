@@ -724,7 +724,9 @@ def _strip_site_name(subject: str, url: str) -> str:
 
     def names_site(segment: str) -> bool:
         normalized = "".join(c for c in segment.lower() if c.isalnum())
-        return bool(normalized) and (main_label in normalized or normalized in main_label)
+        return bool(normalized) and (
+            main_label in normalized or (len(normalized) > 3 and normalized in main_label)
+        )
 
     start = 2 if names_site(parts[0]) else 0
     end = len(parts) - 2 if names_site(parts[-1]) else len(parts)
