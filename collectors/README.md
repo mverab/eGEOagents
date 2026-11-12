@@ -44,6 +44,7 @@ A collector in this directory MUST:
 |---|---|---|
 | `serp.py` | `data/serp/<query-slug>.jsonl` | `{v, ts, query, engine, results[≤10], target_domain, target_position}` |
 | `page.py` | `data/page/<page-slug>.jsonl` | `{v, ts, url, status, content_hash, title, meta_description, jsonld_types, word_count}` |
+| `ai_overview.py` | `data/ai_overview/<query-slug>.jsonl` | `{v, ts, query, engine, available, answer, citations[], target_domain, target_cited, target_position, cost_credits, remaining_credits}` |
 
 ### `serp.py` — position history from the Brave Search API, the SerpBase Google Search API, or the Serply Google Search API
 
@@ -81,6 +82,42 @@ collectors:
     queries:
       - best geo optimization tool
       - how to rank in chatgpt
+```
+
+### `ai_overview.py` — the AI Overview block Google actually serves
+
+`serp.py` records where you rank in the organic list. This one records the other
+answer on the page: the AI Overview, verbatim — its text and the ordered
+sources it cites. That is the unit GEO is judged on, and it is not derivable
+from organic positions.
+
+```bash
+export GOANYAPI_API_KEY=...               # never printed, never written to disk
+python collectors/ai_overview.py          # all queries from config.yaml
+python collectors/ai_overview.py --query "best geo tool"
+python collectors/ai_overview.py --fixture collectors/fixtures/ai_overview_goanyapi_response.json
+python -m egeo loop collect ai_overview   # equivalent, in-process
+```
+
+`available: false` (Google served no Overview for that query) is a **successful
+observation**, not a failure: the absence is part of the history, and it is what
+tells you a query is not worth optimizing for AI citation yet. Each call bills
+~3 credits upstream, so live passes are paced at ≤1 query/second and respect
+`budgets.queries_per_day`.
+
+Citations from `results[].links` and `serp_features[].links` overlap upstream;
+they are merged, deduplicated (tracking params and `www.` ignored) and numbered
+in first-seen order. `target_cited` / `target_position` describe the first
+citation whose domain matches `target_domain`.
+
+Config:
+
+```yaml
+collectors:
+  ai_overview:
+    target_domain: example.com
+    queries:
+      - best geo optimization tool
 ```
 
 ### `page.py` — content and schema drift on your own pages
