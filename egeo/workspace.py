@@ -138,6 +138,9 @@ collectors:
     queries: []
   page:
     urls: []
+  ai_overview:
+    target_domain: example.com
+    queries: []
 """
 
 

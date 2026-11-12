@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import repo_root, resource_root, substrate_lint, workspace
 
 #: Collector name → module file under ``collectors/``.
-COLLECTORS = {"serp": "serp.py", "page": "page.py"}
+COLLECTORS = {"serp": "serp.py", "page": "page.py", "ai_overview": "ai_overview.py"}
 
 _TIMELINE_DATE_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2}) run\s*$")
 
