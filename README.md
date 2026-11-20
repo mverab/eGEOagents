@@ -546,6 +546,7 @@ egeo/                            # Standalone CLI package
 collectors/                      # Deterministic, LLM-free senses
 ├── README.md                    # The collector contract
 ├── serp.py                      # Brave search snapshots
+├── ai_overview.py               # Google AI Overview citation snapshots
 ├── page.py                      # Page snapshots
 └── fixtures/                    # Offline test data
 

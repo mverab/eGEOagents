@@ -1,0 +1,25 @@
+{
+  "code": "ok",
+  "message": "Saved example response",
+  "data": {
+    "endpoint": "google-ai-overview",
+    "query": "site:example.com inurl:goanyapi-overview-no-result-20261110",
+    "costCredits": 3,
+    "remainingCredits": 1231,
+    "result": {
+      "format": "json",
+      "content": {
+        "results": [],
+        "serp_features": [],
+        "search_parameters": {
+          "query": "site:example.com inurl:goanyapi-overview-no-result-20261110",
+          "country": "us",
+          "language": "en",
+          "device": "desktop",
+          "engine": "google",
+          "feature_available": false
+        }
+      }
+    }
+  }
+}

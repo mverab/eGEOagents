@@ -1,0 +1,60 @@
+{
+  "code": "ok",
+  "message": "Saved example response",
+  "data": {
+    "endpoint": "google-ai-overview",
+    "query": "how do solar panels work",
+    "costCredits": 3,
+    "remainingCredits": 1234,
+    "result": {
+      "format": "json",
+      "content": {
+        "results": [
+          {
+            "type": "ai_summary",
+            "title": "AI Overview",
+            "text": "Solar panels convert sunlight into usable electricity through a process called the photovoltaic effect. Photons knock electrons loose in a semiconductor layer, and the resulting current is captured by wiring and converted from DC to AC by an inverter.",
+            "links": [
+              {
+                "title": "How Do Solar Panels Work? | EnergySage",
+                "url": "https://www.energysage.com/solar/how-do-solar-panels-work/"
+              },
+              {
+                "title": "ELI5: how do solar panels actually generate electricity? - Reddit",
+                "url": "https://www.reddit.com/r/explainlikeimfive/comments/1abcde/eli5_how_do_solar_panels_actually_generate/"
+              }
+            ]
+          }
+        ],
+        "serp_features": [
+          {
+            "id": "ai_overview",
+            "engine": "google",
+            "type": "ai_summary",
+            "title": "AI Overview",
+            "confidence": 0.75,
+            "position": { "absolute": 1 },
+            "links": [
+              {
+                "title": "How Do Solar Panels Work? | EnergySage",
+                "url": "https://energysage.com/solar/how-do-solar-panels-work?utm_source=google&utm_medium=serp"
+              },
+              {
+                "title": "Solar panels | National Grid",
+                "url": "https://www.nationalgrid.com/energy-solutions/renewables/solar"
+              }
+            ]
+          }
+        ],
+        "search_parameters": {
+          "query": "how do solar panels work",
+          "country": "us",
+          "language": "en",
+          "device": "desktop",
+          "engine": "google",
+          "feature_available": true
+        }
+      }
+    }
+  }
+}
