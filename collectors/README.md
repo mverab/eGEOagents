@@ -45,7 +45,7 @@ A collector in this directory MUST:
 | `serp.py` | `data/serp/<query-slug>.jsonl` | `{v, ts, query, engine, results[≤10], target_domain, target_position}` |
 | `page.py` | `data/page/<page-slug>.jsonl` | `{v, ts, url, status, content_hash, title, meta_description, jsonld_types, word_count}` |
 
-### `serp.py` — position history from the Brave Search API, the SerpBase Google Search API, or the Serply Google Search API
+### `serp.py` — position history from Brave, SerpBase, Serply, or GoAnyAPI
 
 ```bash
 export BRAVE_API_KEY=...                  # never printed, never written to disk
@@ -63,9 +63,14 @@ python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_s
 export SERPLY_API_KEY=...
 python collectors/serp.py --engine serply
 python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json
+
+# Google SERP via GoAnyAPI (GET API, Bearer key in the Authorization header)
+export GOANYAPI_API_KEY=...
+python collectors/serp.py --engine goanyapi
+python collectors/serp.py --engine goanyapi --fixture collectors/fixtures/serp_goanyapi_response.json
 ```
 
-Brave, SerpBase and Serply are called over their **HTTP APIs directly**, not through an
+Brave, SerpBase, Serply, and GoAnyAPI are called over their **HTTP APIs directly**, not through an
 MCP: collectors run under cron with no agent attached, so an MCP server is not
 available to them. The MCP stays the path for interactive agent sessions. Live
 passes are paced at ≤1 query/second and refuse to exceed
@@ -76,7 +81,7 @@ Config:
 ```yaml
 collectors:
   serp:
-    engine: brave          # optional: brave (default), serpbase or serply (Google via SerpBase / Serply)
+    engine: brave          # optional: brave (default), serpbase, serply, or goanyapi
     target_domain: example.com     # position is reported for this domain
     queries:
       - best geo optimization tool
@@ -118,6 +123,8 @@ response body; `fixtures/serp_serpbase_response.json` is a recorded SerpBase
 recorded Serply `GET /v1/search` response body; `fixtures/pages/*.html` are recorded page
 bodies whose file names encode the URL slug. Fixture mode is what CI runs: no
 network, no key, same code path, same schema.
+`fixtures/serp_goanyapi_response.json` is a synthetic example of GoAnyAPI's
+documented `GET /api/v1/serp` response shape.
 
 ## Adding a collector
 

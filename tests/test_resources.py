@@ -35,6 +35,7 @@ RESOURCE_FILES = [
     "collectors/fixtures/serp_brave_response.json",
     "collectors/fixtures/serp_serpbase_response.json",
     "collectors/fixtures/serp_serply_response.json",
+    "collectors/fixtures/serp_goanyapi_response.json",
     "SUBSTRATE.md",
     "examples/project.yaml",
     "geo-output/schema/Article.json",

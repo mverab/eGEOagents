@@ -1,0 +1,24 @@
+{
+  "_fixture": "Synthetic example of the documented GoAnyAPI GET /api/v1/serp response, trimmed to fields read by the SERP collector.",
+  "code": "ok",
+  "message": "ok",
+  "data": {
+    "endpoint": "serp",
+    "query": {"q": "best geo optimization tool", "gl": "us", "hl": "en", "search_type": "web"},
+    "result": {
+      "organic": [
+        {"rank": 1, "link": "https://searchmonitor.example/blog/best-geo-tools", "title": "The best GEO tools"},
+        {"rank": 2, "link": "https://rivalgeo.example/platform", "title": "GEO platform"},
+        {"rank": 3, "link": "https://www.example.com/egeo", "title": "E-GEO project"},
+        {"rank": 4, "link": "https://research.example/geo", "title": "GEO research"},
+        {"rank": 5, "link": "https://content.example/geo-guide", "title": "GEO guide"},
+        {"rank": 6, "link": "https://tools.example/seo", "title": "SEO tools"},
+        {"rank": 7, "link": "https://ranking.example/geo", "title": "Ranking study"},
+        {"rank": 8, "link": "https://analytics.example/guide", "title": "Analytics guide"},
+        {"rank": 9, "link": "https://market.example/reviews", "title": "Tool reviews"},
+        {"rank": 10, "link": "https://learn.example/geo", "title": "Learn GEO"},
+        {"rank": 11, "link": "https://ignored.example/eleventh", "title": "Overflow result"}
+      ]
+    }
+  }
+}

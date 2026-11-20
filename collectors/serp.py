@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """SERP collector: position history for your queries, from the Brave Search API,
-the SerpBase Google Search API, or the Serply Google Search API.
+the SerpBase Google Search API, the Serply Google Search API, or GoAnyAPI.
 
 Deterministic, zero LLM calls. One record per query per pass, appended to
 ``$EGEO_HOME/data/serp/<query-slug>.jsonl``::
@@ -9,7 +9,7 @@ Deterministic, zero LLM calls. One record per query per pass, appended to
      "results": [{"position": 1, "url": "...", "domain": "...", "title": "..."}, ...],
      "target_domain": "example.com", "target_position": 3 | null}
 
-The engine is selected with ``--engine brave|serpbase|serply`` (or
+The engine is selected with ``--engine brave|serpbase|serply|goanyapi`` (or
 ``collectors.serp.engine`` in config.yaml; default ``brave``):
 
 - ``brave`` — Brave Search API over HTTP directly (``BRAVE_API_KEY``).
@@ -17,9 +17,11 @@ The engine is selected with ``--engine brave|serpbase|serply`` (or
   organic results (plus AI Overviews on the SERP) as JSON, no browser.
 - ``serply`` — Serply Google Search API (``SERPLY_API_KEY``): Google organic
   results as JSON over a GET request, no browser.
+- ``goanyapi`` — GoAnyAPI Google SERP API (``GOANYAPI_API_KEY``): structured
+  organic results as JSON over a GET request, no browser.
 
 All are called over their HTTP API directly (``BRAVE_API_KEY`` /
-``SERPBASE_API_KEY`` / ``SERPLY_API_KEY``) rather than through an MCP: a cron-launched collector
+``SERPBASE_API_KEY`` / ``SERPLY_API_KEY`` / ``GOANYAPI_API_KEY``) rather than through an MCP: a cron-launched collector
 has no agent, hence no MCP. Live passes are paced at ≤1 query/second and
 refuse to exceed ``budgets.queries_per_day``.
 
@@ -28,9 +30,11 @@ Usage::
     python collectors/serp.py                       # queries from config.yaml
     python collectors/serp.py --query "best geo tool"
     python collectors/serp.py --engine serpbase     # Google SERP via SerpBase
+    python collectors/serp.py --engine goanyapi     # Google SERP via GoAnyAPI
     python collectors/serp.py --fixture collectors/fixtures/serp_brave_response.json
     python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json
     python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json
+    python collectors/serp.py --engine goanyapi --fixture collectors/fixtures/serp_goanyapi_response.json
 """
 from __future__ import annotations
 
@@ -61,8 +65,16 @@ SERPBASE_API_KEY_ENV = "SERPBASE_API_KEY"
 SERPLY_ENGINE = "serply"
 SERPLY_API_URL = "https://api.serply.io/v1/search"
 SERPLY_API_KEY_ENV = "SERPLY_API_KEY"
-ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE)
-API_KEY_ENVS = {ENGINE: API_KEY_ENV, SERPBASE_ENGINE: SERPBASE_API_KEY_ENV, SERPLY_ENGINE: SERPLY_API_KEY_ENV}
+GOANYAPI_ENGINE = "goanyapi"
+GOANYAPI_API_URL = "https://api.goanyapi.com/api/v1/serp"
+GOANYAPI_API_KEY_ENV = "GOANYAPI_API_KEY"
+ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE, GOANYAPI_ENGINE)
+API_KEY_ENVS = {
+    ENGINE: API_KEY_ENV,
+    SERPBASE_ENGINE: SERPBASE_API_KEY_ENV,
+    SERPLY_ENGINE: SERPLY_API_KEY_ENV,
+    GOANYAPI_ENGINE: GOANYAPI_API_KEY_ENV,
+}
 MAX_RESULTS = 10
 MIN_SECONDS_BETWEEN_QUERIES = 1.0
 
@@ -218,6 +230,57 @@ def parse_serply_response(payload: Dict[str, Any], query: str, target_domain: st
     }
 
 
+def parse_goanyapi_response(payload: Dict[str, Any], query: str, target_domain: str) -> Dict[str, Any]:
+    """Normalize GoAnyAPI's documented ``data.result.organic`` module."""
+    if payload.get("code") != "ok":
+        raise common.CollectorError(f"GoAnyAPI reported {payload.get('code')!r} for {query!r}")
+    data = payload.get("data")
+    result = data.get("result") if isinstance(data, dict) else None
+    if not isinstance(result, dict):
+        raise common.CollectorError(f"unexpected GoAnyAPI payload for {query!r}: data.result is not an object")
+    raw_results = result.get("organic", [])
+    if raw_results is None:
+        raw_results = []
+    if not isinstance(raw_results, list):
+        raise common.CollectorError(f"unexpected GoAnyAPI payload for {query!r}: organic is not a list")
+
+    results: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw_results[:MAX_RESULTS], start=1):
+        if not isinstance(item, dict):
+            raise common.CollectorError(f"unexpected GoAnyAPI payload for {query!r}: result is not an object")
+        url = item.get("link")
+        rank = item.get("rank", index)
+        if not isinstance(url, str) or not url:
+            raise common.CollectorError(f"unexpected GoAnyAPI payload for {query!r}: organic link is missing")
+        try:
+            position = int(rank)
+        except (TypeError, ValueError) as exc:
+            raise common.CollectorError(f"unexpected GoAnyAPI payload for {query!r}: organic rank is invalid") from exc
+        if position < 1:
+            raise common.CollectorError(f"unexpected GoAnyAPI payload for {query!r}: organic rank is invalid")
+        results.append({
+            "position": position,
+            "url": url,
+            "domain": _domain_of(url),
+            "title": str(item.get("title") or ""),
+        })
+
+    target = _normalize_domain(target_domain)
+    target_position = next(
+        (item["position"] for item in results if target and (item["domain"] == target or item["domain"].endswith("." + target))),
+        None,
+    )
+    return {
+        "v": SCHEMA_VERSION,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "query": query,
+        "engine": GOANYAPI_ENGINE,
+        "results": results,
+        "target_domain": target or None,
+        "target_position": target_position,
+    }
+
+
 def fetch_brave(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str, Any]:
     """Call the Brave Search API and return the parsed JSON body."""
     url = f"{API_URL}?{urlencode({'q': query, 'count': count})}"
@@ -300,6 +363,30 @@ def fetch_serply(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str
     return payload
 
 
+def fetch_goanyapi(query: str, api_key: str) -> Dict[str, Any]:
+    """Call the documented GoAnyAPI Google web SERP endpoint."""
+    url = f"{GOANYAPI_API_URL}?{urlencode({'q': query, 'gl': 'us', 'hl': 'en', 'search_type': 'web'})}"
+    status, body = common.http_get(
+        url,
+        headers={"Accept": "application/json", "Authorization": f"Bearer {api_key}"},
+    )
+    if status in (401, 403):
+        raise common.CollectorError(f"GoAnyAPI rejected the request (HTTP {status}). Check ${GOANYAPI_API_KEY_ENV}.")
+    if status == 402:
+        raise common.CollectorError("GoAnyAPI credits are insufficient (HTTP 402). Check the account balance.")
+    if status == 429:
+        raise common.CollectorError("GoAnyAPI rate limit hit (HTTP 429); retry later or lower the cadence.")
+    if status != 200:
+        raise common.CollectorError(f"GoAnyAPI returned HTTP {status} for {query!r}")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise common.CollectorError(f"GoAnyAPI returned invalid JSON for {query!r}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise common.CollectorError(f"GoAnyAPI returned a non-object body for {query!r}")
+    return payload
+
+
 def load_fixture(path: Path) -> Dict[str, Any]:
     """Read a recorded Brave response body from disk (fixture mode)."""
     try:
@@ -364,12 +451,16 @@ def collect(
                 payload = fetch_serpbase(query, api_key)
             elif engine == SERPLY_ENGINE:
                 payload = fetch_serply(query, api_key)
+            elif engine == GOANYAPI_ENGINE:
+                payload = fetch_goanyapi(query, api_key)
             else:
                 payload = fetch_brave(query, api_key)
         if engine == SERPBASE_ENGINE:
             record = parse_serpbase_response(payload, query, target_domain)
         elif engine == SERPLY_ENGINE:
             record = parse_serply_response(payload, query, target_domain)
+        elif engine == GOANYAPI_ENGINE:
+            record = parse_goanyapi_response(payload, query, target_domain)
         else:
             record = parse_brave_response(payload, query, target_domain)
         common.append_record(paths[query], record)
@@ -403,15 +494,15 @@ def build_parser() -> argparse.ArgumentParser:
         choices=list(ENGINES),
         default=None,
         help=f"SERP source engine: '{ENGINE}' (Brave Search API), '{SERPBASE_ENGINE}' "
-        f"(SerpBase Google Search API) or '{SERPLY_ENGINE}' (Serply Google Search API). "
+        f"(SerpBase Google Search API), '{SERPLY_ENGINE}' (Serply Google Search API), "
+        f"or '{GOANYAPI_ENGINE}' (GoAnyAPI Google SERP API). "
         f"Default: collectors.serp.engine from config.yaml, else '{ENGINE}'.",
     )
     parser.add_argument(
         "--fixture",
         default=None,
         help="Replay a recorded response JSON file instead of calling the API (offline). "
-        "Use --engine serpbase with collectors/fixtures/serp_serpbase_response.json, or --engine serply "
-        "with collectors/fixtures/serp_serply_response.json, for a Google SERP pass.",
+        "Use a matching serp_<engine>_response.json fixture for an offline pass.",
     )
     parser.add_argument("--json", action="store_true", help="Print the machine-readable summary.")
     return parser
