@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Optional goanyapi engine for the loop-mode SERP collector (`GOANYAPI_API_KEY`), with an offline fixture and a provider-aware doctor check.
+- Loop-mode AI Overview collector (`collectors/ai_overview.py`) that records Google's AI Overview answer and citation list via the configured provider (`GOANYAPI_API_KEY`), with offline fixtures and loop-run deltas/signals.
 
 ### Fixed
 - URL audit: `ai_crawler_access` now fails only when an AI search crawler (OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User) is blocked. Blocked training crawlers (GPTBot, ClaudeBot, Google-Extended), as in Cloudflare's default Bot Preference Sync, are noted in the evidence instead of failing the check.

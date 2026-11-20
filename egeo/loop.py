@@ -142,6 +142,17 @@ def collector_deltas(home: Path, since: Optional[str]) -> List[Dict[str, Any]]:
             item["content_changed"] = len(hashes) > 1 and hashes[-1] != hashes[-2]
             item["word_count"] = records[-1].get("word_count")
             item["jsonld_types"] = records[-1].get("jsonld_types")
+        if stream.parent.name == "ai_overview":
+            item["available"] = records[-1].get("available")
+            item["target_cited"] = records[-1].get("target_cited")
+            item["target_position"] = records[-1].get("target_position")
+            item["citation_count"] = len(records[-1].get("citations", []))
+            available_history = [r.get("available") for r in records]
+            cited_history = [r.get("target_cited") for r in records]
+            if len(available_history) > 1 and available_history[-1] != available_history[-2]:
+                item["available_changed"] = available_history[-1]
+            if len(cited_history) > 1 and cited_history[-1] != cited_history[-2]:
+                item["target_cited_changed"] = cited_history[-1]
         out.append(item)
     return out
 
@@ -172,6 +183,18 @@ def candidate_signals(deltas: List[Dict[str, Any]]) -> List[str]:
                 candidates.append(f"page/{item['stream']}: content hash changed since the previous pass")
             if not item.get("jsonld_types"):
                 candidates.append(f"page/{item['stream']}: no JSON-LD detected on the page")
+        if item["collector"] == "ai_overview":
+            if item.get("available_changed") is True:
+                candidates.append(f"ai_overview/{item['stream']}: AI Overview appeared")
+            elif item.get("available_changed") is False:
+                candidates.append(f"ai_overview/{item['stream']}: AI Overview disappeared")
+            if item.get("target_cited_changed") is True:
+                candidates.append(
+                    f"ai_overview/{item['stream']}: target now cited "
+                    f"(position {item.get('target_position')})"
+                )
+            elif item.get("target_cited_changed") is False:
+                candidates.append(f"ai_overview/{item['stream']}: target no longer cited")
     return candidates
 
 
@@ -224,6 +247,12 @@ def _print_plan(plan: Dict[str, Any], dry_run: bool) -> None:
                 extra += f" (delta {item['position_delta']:+d})"
         elif item["collector"] == "page":
             extra = f", {item.get('word_count')} words, changed={item.get('content_changed')}"
+        elif item["collector"] == "ai_overview":
+            extra = (
+                f", AI Overview available={item.get('available')}, "
+                f"target_cited={item.get('target_cited')} "
+                f"at position {item.get('target_position')}"
+            )
         print(f"    - {item['collector']}/{item['stream']}: {item['fresh']}/{item['records']} fresh{extra}")
 
     candidates = plan["candidate_signals"]
