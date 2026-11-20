@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Optional goanyapi engine for the loop-mode SERP collector (`GOANYAPI_API_KEY`), with an offline fixture and a provider-aware doctor check.
+
 ### Fixed
 - URL audit: `ai_crawler_access` now fails only when an AI search crawler (OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User) is blocked. Blocked training crawlers (GPTBot, ClaudeBot, Google-Extended), as in Cloudflare's default Bot Preference Sync, are noted in the evidence instead of failing the check.
 - URL audit: bot challenges returned with HTTP 200, 403, 429 or 503 now produce a challenged report with unverifiable page checks and no LLM rewrite, instead of auditing challenge text or returning `fetch_failed`. The landing page explains the challenge and its implications for AI crawlers.

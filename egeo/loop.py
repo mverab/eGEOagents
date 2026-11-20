@@ -296,8 +296,15 @@ def diagnose(home: Path) -> Tuple[List[str], List[str], Dict[str, Any]]:
         problems.append(f"substrate {path}:{line}: {message}")
 
     facts["brave_api_key_set"] = bool(os.environ.get("BRAVE_API_KEY", "").strip())
-    if not facts["brave_api_key_set"]:
-        warnings.append("BRAVE_API_KEY is not set: the serp collector can only run in --fixture mode")
+    serp_engine = str(workspace.config_get(config, "collectors.serp.engine", "brave") or "brave")
+    key_env = load_collector("serp").API_KEY_ENVS.get(serp_engine)
+    facts["serp_engine"] = serp_engine
+    facts["serp_api_key_env"] = key_env
+    facts["serp_api_key_set"] = bool(os.environ.get(key_env, "").strip()) if key_env else False
+    if key_env is None:
+        problems.append(f"unknown SERP engine {serp_engine!r}")
+    elif not facts["serp_api_key_set"]:
+        warnings.append(f"{key_env} is not set: the serp collector can only run in --fixture mode")
 
     overrides = sorted(p.name for p in workspace.prompts_dir(home).glob("*.txt")) if workspace.prompts_dir(home).is_dir() else []
     facts["prompt_overrides"] = overrides
@@ -391,7 +398,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"  project:   {facts.get('project.id') or 'legacy'} ({facts.get('project.config_source', 'unknown')})")
     print(f"  targets:   queries={facts.get('project.active_queries', 0)} pages={facts.get('project.active_pages', 0)}")
     print(f"  reflect:   auto_apply={facts.get('reflect.auto_apply')}")
-    print(f"  BRAVE_API_KEY: {'set' if facts.get('brave_api_key_set') else 'not set'}")
+    print(f"  SERP engine: {facts['serp_engine']}")
+    print(f"  {facts['serp_api_key_env'] or 'SERP_API_KEY'}: {'set' if facts['serp_api_key_set'] else 'not set'}")
     overrides = facts.get("prompt_overrides") or []
     print(f"  prompt overrides: {', '.join(overrides) if overrides else 'none (repo defaults in use)'}")
     for warning in warnings:
