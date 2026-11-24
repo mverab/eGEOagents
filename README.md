@@ -370,6 +370,7 @@ See [`examples/project.yaml`](examples/project.yaml) for the portable contract.
 |---------|--------------|
 | `egeo loop doctor` | Bootstrap the workspace if missing, then health-check it (layout, config, budgets, substrate lint) |
 | `egeo loop decide` | Rank exactly one next action from collector JSONL + the outcome ledger (LLM-free; never publishes) |
+| `egeo loop mark <id> applied\|withdrawn` | Owner: record that a ledger proposal was applied or withdrawn; grading windows count from the applied time |
 | `egeo loop collect serp` | Record a search-result snapshot (Brave API) into `data/serp/*.jsonl` |
 | `egeo loop collect page` | Record a page snapshot (hash, title, meta, JSON-LD types, word count) into `data/page/*.jsonl` |
 | `egeo loop run <domain>` | Resolve and print the run plan — current focus, fresh collector deltas, candidate signals |

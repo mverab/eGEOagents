@@ -52,12 +52,27 @@ The contract contains no API keys, OAuth tokens, or private Search Console data.
 
 `egeo loop decide` ranks **one** next action from that contract plus collector JSONL and `$EGEO_HOME/data/outcomes/ledger.jsonl`. It is LLM-free and never publishes. `--dry-run` writes nothing.
 
+The ledger is append-only, and a proposal moves through it like this:
+
+1. `decide` records a proposal (`status: proposed`) and writes a proposal doc that names its ledger id.
+2. You act on it, then run `egeo loop mark <id> applied` (or `withdrawn`). `decide` never records `applied` itself.
+3. At 7, 14 and 28 days from the applied time (or from the proposal, if you never marked it), `decide` grades the proposal once per window from later collector observations.
+
+| Grade | Meaning |
+|-------|---------|
+| `verified` | The metric moved after an application you recorded, or the observation is the change itself (JSON-LD now on the page, a target page now in `project.yaml`) |
+| `resolved_unattributed` | The metric moved, but no application was recorded, so nothing can be credited |
+| `unchanged` | No movement in that window |
+
+A proposal closes on `verified`, `resolved_unattributed`, `withdrawn`, or after its 28-day grade. A before/after comparison is observational; it does not prove the change caused the movement.
+
 ## Commands
 
 | Command | What it does |
 |---------|--------------|
 | `egeo loop doctor` | Bootstrap the workspace if missing, then health-check it (layout, config, budgets, substrate lint) |
 | `egeo loop decide` | Rank exactly one next action from collector JSONL + the outcome ledger (LLM-free; never publishes) |
+| `egeo loop mark <id> applied\|withdrawn` | Owner: record that a ledger proposal was applied or withdrawn; grading windows count from the applied time |
 | `egeo loop collect serp` | Record a search-result snapshot (Brave API) into `data/serp/*.jsonl` |
 | `egeo loop collect page` | Record a page snapshot (hash, title, meta, JSON-LD types, word count) into `data/page/*.jsonl` |
 | `egeo loop run <domain>` | Resolve and print the run plan — current focus, fresh collector deltas, candidate signals |

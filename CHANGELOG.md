@@ -10,8 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Optional goanyapi engine for the loop-mode SERP collector (`GOANYAPI_API_KEY`), with an offline fixture and a provider-aware doctor check.
 - Loop-mode AI Overview collector (`collectors/ai_overview.py`) that records Google's AI Overview answer and citation list via the configured provider (`GOANYAPI_API_KEY`), with offline fixtures and loop-run deltas/signals.
+- `egeo loop mark <ledger-id> applied|withdrawn [--at TS] [--note TEXT]`: the owner records that a ledger proposal was applied or withdrawn. Grading windows count from the applied time (openspec `update-loop-ledger-lifecycle`).
+
+### Changed
+- `egeo loop decide` grades `verified` only for a change the owner recorded with `egeo loop mark`, or one the collectors observe directly (JSON-LD on the page, a target page in `project.yaml`). A query that reappears with no recorded application is graded `resolved_unattributed`. Grade lines now carry `window`; the ledger stays `v: 1` and existing ledgers load unchanged.
 
 ### Fixed
+- `egeo loop decide` no longer sticks on the first graded proposal. In 2.4.0 the proposal never closed, so every run appended another grade for the same window and no further action was ranked. Each window is now graded once, and a proposal closes on `verified`, `resolved_unattributed`, `withdrawn` or its 28-day grade. Duplicate grade lines already in a ledger are folded when read.
+- `egeo loop decide`: `propose_page_owner` proposals are graded from `project.yaml`. Before, they returned `wait_for_window` forever from day 7 and blocked every other action.
 - URL audit: `ai_crawler_access` now fails only when an AI search crawler (OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User) is blocked. Blocked training crawlers (GPTBot, ClaudeBot, Google-Extended), as in Cloudflare's default Bot Preference Sync, are noted in the evidence instead of failing the check.
 - URL audit: bot challenges returned with HTTP 200, 403, 429 or 503 now produce a challenged report with unverifiable page checks and no LLM rewrite, instead of auditing challenge text or returning `fetch_failed`. The landing page explains the challenge and its implications for AI crawlers.
 - URL audit: derived queries strip a first or last title segment that names the site, such as ` - Wikipedia` or ` | BBC`; visitor queries remain unchanged.

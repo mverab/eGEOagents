@@ -122,6 +122,9 @@ egeo loop run example-com --dry-run
 # Rank one next action from collector JSONL + the outcome ledger — writes nothing
 egeo loop decide --dry-run
 
+# After you act on a proposal, record it so the outcome is graded from that date
+egeo loop mark <ledger-id> applied --note "PR link"
+
 # Execute one bounded iteration (the agent does the interpretive work)
 claude -p "/geo:loop example-com"
 

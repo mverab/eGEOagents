@@ -191,6 +191,12 @@ Bootstrap the workspace if needed, then self-check it: layout, config, substrate
 
 Rank exactly one next action from `project.yaml`, collector JSONL, and `$EGEO_HOME/data/outcomes/ledger.jsonl`. LLM-free. `--dry-run` writes nothing. Without it, the command may append one ledger row and one proposal doc. It never publishes, merges, or sets `status: applied`.
 
+Each open proposal is graded once per window (7, 14 and 28 days). The grade is `verified` only for a change you recorded with `egeo loop mark`, or one the collectors can observe directly; movement with no recorded application is `resolved_unattributed`.
+
+### `egeo loop mark <ledger-id> applied|withdrawn [--at TS] [--note TEXT] [--json]`
+
+Owner command. Appends one ledger line saying you applied or withdrew a proposal. The id is printed by `egeo loop decide` and written in the proposal doc. `applied` restarts the grading windows from the applied time; `--at` backdates it (ISO 8601, between the proposal time and now). `withdrawn` closes the proposal. Unknown ids, closed proposals and a second `applied` are rejected.
+
 Full loop-mode guide: [GEO Loop](/docs/geo-loop/).
 
 ## Environment variables
