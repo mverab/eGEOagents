@@ -284,7 +284,7 @@ From a clone, `pip install -e .` still works. `python -m egeo --help` runs witho
 
 | Command | What it does |
 |---------|--------------|
-| `egeo optimize <file>` | **Full pipeline** — analyze → rank → rewrite → schema, writes `report.md`, `optimized/*.md`, `schema/*.json`, `analysis.json` |
+| `egeo optimize <file>` | **Full pipeline** — analyze → rank → rewrite → fidelity gate → schema, writes `report.md`, `optimized/*.md`, `schema/*.json`, `analysis.json`. A rewrite that drops or invents links or numbers, or cuts more than 20% of the text, goes to `rejected/` instead of `optimized/` |
 | `egeo evaluate` | Run the evaluation harness (reuses `geo_eval.py`, identical metrics) |
 | `egeo optimize-prompts` | Meta-optimize the rewriter prompt (non-destructive by default) |
 | `egeo runtimes` | List available runtime adapters and their status |

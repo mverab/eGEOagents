@@ -26,11 +26,13 @@ Every command honors `GEO_EVAL_MOCK=1`, which swaps in a deterministic mock LLM 
 
 ## `egeo optimize`
 
-Run the full GEO pipeline on a local content file (Markdown/text): analyze → rank → rewrite → schema.
+Run the full GEO pipeline on a local content file (Markdown/text): analyze → rank → rewrite → fidelity gate → schema.
 
 ```
 usage: egeo optimize [-h] [--out-dir OUT_DIR] [--query QUERY]
                      [--schema-type {Organization,Product,Service,Article,FAQPage}]
+                     [--format {markdown,html}]
+                     [--content-type {auto,product,article}] [--allow-lossy]
                      [--runtime RUNTIME] [--ranker-model RANKER_MODEL]
                      [--rewriter-model REWRITER_MODEL]
                      [--temperature TEMPERATURE] [--json]
@@ -43,6 +45,9 @@ usage: egeo optimize [-h] [--out-dir OUT_DIR] [--query QUERY]
 | `--out-dir` | `geo-output` | Output directory. |
 | `--query` | derived from the title | Search query to rank against. |
 | `--schema-type` | `Article` | JSON-LD schema template to emit: `Organization`, `Product`, `Service`, `Article`, or `FAQPage`. |
+| `--format` | `markdown` | Export format for the optimized content: `markdown` or `html`. |
+| `--content-type` | `auto` | Rewriter prompt. `product`: a short product or service description. `article`: a guide, concept page or docs page (no "Best for" line; keeps sources, dates and caveats). `auto`: `article` when the body has at least 150 words or 3 headings. |
+| `--allow-lossy` | off | Write the rewrite to `optimized/` even when it fails the fidelity rules. |
 | `--runtime` | `python` | Runtime adapter to use. |
 | `--ranker-model` / `--rewriter-model` | — | Model overrides. |
 | `--temperature` | — | Sampling temperature. |
@@ -51,6 +56,25 @@ usage: egeo optimize [-h] [--out-dir OUT_DIR] [--query QUERY]
 ```bash
 GEO_EVAL_MOCK=1 egeo optimize examples/sample-input.md --out-dir /tmp/egeo
 ```
+
+### Fidelity gate
+
+Before anything is written, the rewrite is compared with the original using deterministic rules:
+
+- no link or number removed, and none added;
+- no table row lost, and fenced code blocks unchanged;
+- at least 80% of the original word count.
+
+If a rule fails, the rewriter gets one repair attempt with the list of violations. The result is reported as `fidelity.status` in the CLI output, `report.md`, `analysis.json` and `--json`:
+
+| Status | Meaning | Where the rewrite goes |
+|---|---|---|
+| `passed` | First rewrite met every rule | `optimized/` |
+| `repaired` | First rewrite failed, the repair attempt passed | `optimized/` |
+| `rejected` | Both attempts failed | `rejected/`, for manual review; the rank is reported unchanged |
+| `lossy_allowed` | Both failed and `--allow-lossy` was set | `optimized/`, with the violations listed |
+
+The rules are mechanical. They cannot see a new unsupported adjective, or a dropped sentence that contains no link or number, so still read the rewrite against the original. Page-mode `egeo fix-gaps` runs the same gate and reports it per page in `fix-gaps.json`.
 
 ## `egeo evaluate`
 

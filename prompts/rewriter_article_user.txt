@@ -1,0 +1,8 @@
+Rewrite the body of this page following every hard constraint. Change wording, order and emphasis only where it makes the page answer its topic more directly. Leave a passage as it is when you cannot improve it without losing detail.
+
+Page:
+Title: {{title}}
+Description:
+{{description}}
+
+Return ONLY JSON.

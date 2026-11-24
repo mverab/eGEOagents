@@ -24,6 +24,8 @@ RESOURCE_FILES = [
     "prompts/ranker_user.txt",
     "prompts/rewriter_system.txt",
     "prompts/rewriter_user.txt",
+    "prompts/rewriter_article_system.txt",
+    "prompts/rewriter_article_user.txt",
     "prompts/meta_optimizer_system.txt",
     "prompts/meta_optimizer_user.txt",
     "prompts/section_rewriter_system.txt",

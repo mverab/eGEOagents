@@ -75,6 +75,24 @@ def _add_optimize_parser(sub: argparse._SubParsersAction) -> None:
         choices=["markdown", "html"],
         help="Export format for optimized content (default: markdown).",
     )
+    p.add_argument(
+        "--content-type",
+        default="auto",
+        choices=["auto", "product", "article"],
+        help=(
+            "Which rewriter prompt to use. product: a short product/service description. "
+            "article: a guide, concept page or docs page (no 'Best for' line, keeps sources and dates). "
+            "auto (default): article when the body has >= 150 words or >= 3 headings."
+        ),
+    )
+    p.add_argument(
+        "--allow-lossy",
+        action="store_true",
+        help=(
+            "Write the rewrite to optimized/ even if it fails the fidelity rules (links, numbers, "
+            "tables, code blocks, length). Default: a failing rewrite goes to rejected/ instead."
+        ),
+    )
     p.add_argument("--runtime", default="python", help="Runtime to use (default: python).")
     p.add_argument("--ranker-model", default=os.environ.get("RANKER_MODEL", "gpt-4o"))
     p.add_argument("--rewriter-model", default=os.environ.get("REWRITER_MODEL", "gpt-4o"))
@@ -161,6 +179,8 @@ def _cmd_optimize(args: argparse.Namespace) -> int:
         query=args.query,
         schema_type=args.schema_type,
         export_format=args.format,
+        content_type=args.content_type,
+        allow_lossy=args.allow_lossy,
     )
 
     if args.json:
@@ -169,10 +189,24 @@ def _cmd_optimize(args: argparse.Namespace) -> int:
 
     delta = result.rank_improvement
     delta_str = f"+{delta}" if delta > 0 else str(delta)
-    print(f"✓ Optimized: {result.title}")
+    fid = result.fidelity or {"status": "passed", "violations": [], "attempts": 1}
+    rejected = fid["status"] == "rejected"
+    print(f"{'✗ Rewrite rejected' if rejected else '✓ Optimized'}: {result.title}")
     print(f"  Runtime:     {result.runtime}")
+    print(f"  Content:     {result.content_type}")
     print(f"  GEO score:   {result.analysis.total_score}/100")
-    print(f"  Rank:        #{result.rank_before} → #{result.rank_after} ({delta_str})")
+    if rejected:
+        print(f"  Rank:        #{result.rank_before} (unchanged: no rewrite accepted)")
+    else:
+        print(f"  Rank:        #{result.rank_before} → #{result.rank_after} ({delta_str})")
+    print(f"  Fidelity:    {fid['status']} ({fid['attempts']} attempt(s), {len(fid['violations'])} violation(s))")
+    for violation in fid["violations"][:10]:
+        print(f"     - {violation}")
+    if len(fid["violations"]) > 10:
+        print(f"     … {len(fid['violations']) - 10} more in report.md")
+    if rejected:
+        print("  The rewrite changed facts or dropped content. It is in rejected/ for manual review,")
+        print("  not in optimized/. Pass --allow-lossy to write it anyway.")
     print(f"  Output dir:  {result.output_dir}")
     for path in result.written_files:
         print(f"   - {path}")

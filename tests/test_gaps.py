@@ -208,6 +208,8 @@ def test_run_writes_outputs_and_report_without_touching_source(
     assert saved["pages"][0]["page_id"] == "compare"
     assert saved["pages"][0]["query"] == "Open source AEO tools?"
     assert "rank_before" in saved["pages"][0] and "rank_after" in saved["pages"][0]
+    assert saved["pages"][0]["fidelity"]["status"] == "passed"
+    assert saved["pages"][0]["content_type"] in ("product", "article")
     assert saved["remeasure"]["queries"] == ["Open source AEO tools?", "best GEO tools 2026"]
     assert "geo citations" in saved["remeasure"]["command"]
     assert "--domain demo.dev" in saved["remeasure"]["command"]

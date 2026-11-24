@@ -215,3 +215,181 @@ def test_markdown_to_html_escapes_metadata():
     # The un-escaped raw values must NOT appear in the document.
     assert 'content="Vera <hola@example.com>' not in out
     assert "The <Best>" not in out
+
+
+# --------------------------------------------------------------------------- #
+# Page fidelity gate + content type (openspec update-optimize-page-fidelity)
+# --------------------------------------------------------------------------- #
+import json  # noqa: E402
+
+import pytest  # noqa: E402
+
+from egeo.agents import RewriteResult, Rewriter  # noqa: E402
+from egeo.pipeline import check_page_fidelity, detect_content_type  # noqa: E402
+from egeo.runtimes import PythonRuntime  # noqa: E402
+
+GUIDE = """# How to Get Cited
+
+**Last verified: 2026-08-11.** Projects with 17 stars appeared while one with 147 did not.
+
+See the [paper](https://arxiv.org/abs/2511.20867) for the method.
+
+| Source | Share |
+|---|---|
+| LibHunt | 40% |
+
+```bash
+pip install egeo
+```
+"""
+GUIDE_BODY = GUIDE.split("\n", 2)[2].strip()
+GOOD = GUIDE_BODY.replace("for the method", "for the full method")
+LOSSY = "Projects with 17 stars appeared while one with 147 did not.\n\n| Source | Share |\n|---|---|\n| LibHunt | 40% |"
+
+
+class _ScriptedRuntime(PythonRuntime):
+    """PythonRuntime whose rewriter returns scripted outputs, one per call."""
+
+    def __init__(self, outputs):
+        super().__init__()
+        self.outputs = list(outputs)
+        self.calls = []
+        self.content_types = []
+
+    def make_rewriter(self, content_type="product"):
+        runtime = self
+        runtime.content_types.append(content_type)
+
+        class _R:
+            def rewrite(self, title, description, *, previous=None, violations=()):
+                runtime.calls.append({"previous": previous, "violations": tuple(violations)})
+                return RewriteResult(title, description, runtime.outputs.pop(0))
+
+        return _R()
+
+
+def _run(tmp_path, monkeypatch, outputs, content=GUIDE, **kwargs):
+    monkeypatch.setenv("GEO_EVAL_MOCK", "1")
+    runtime = _ScriptedRuntime(outputs)
+    result = optimize_content(runtime=runtime, content=content, source="guide.md", output_dir=tmp_path, **kwargs)
+    return runtime, result
+
+
+def test_detect_content_type():
+    assert detect_content_type("We help businesses understand their data.\n\n- Dashboard\n- Reports") == "product"
+    assert detect_content_type("word " * 150) == "article"
+    assert detect_content_type("word " * 149) == "product"
+    assert detect_content_type("## A\nx\n## B\ny\n## C\nz") == "article"
+    # headings and words inside code fences do not count
+    assert detect_content_type("```\n# a\n# b\n# c\n" + "word " * 200 + "\n```") == "product"
+
+
+def test_page_rules_ignore_list_markers_heading_and_growth():
+    original = "First do this. Then do that. It costs $99."
+    rewritten = "## Steps\n\n1. First do this.\n2. Then do that.\n\nIt costs $99. " + "More helpful context here. " * 20
+    assert check_page_fidelity(original, rewritten).passed
+    assert check_page_fidelity("1. one\n2. two", "- one\n- two").passed
+
+
+def test_page_rules_catch_lost_and_invented_facts():
+    result = check_page_fidelity(GUIDE_BODY, LOSSY)
+    assert not result.passed
+    assert "link_removed:https://arxiv.org/abs/2511.20867" in result.violations
+    assert "number_removed:2026" in result.violations  # the "Last verified" date
+    assert "code_block_changed" in result.violations
+    assert "too_short" in result.violations
+    added = check_page_fidelity("It costs $99.", "It costs $99 and is rated 4.9 by 10,000 users.")
+    assert {"number_added:4.9", "number_added:10000"} <= set(added.violations)
+
+
+def test_passing_rewrite_is_written_once(tmp_path, monkeypatch):
+    runtime, result = _run(tmp_path, monkeypatch, [GOOD])
+    assert result.fidelity == {"status": "passed", "violations": [], "attempts": 1}
+    assert len(runtime.calls) == 1
+    assert (tmp_path / "optimized" / "how-to-get-cited.md").is_file()
+    assert not (tmp_path / "rejected").exists()
+
+
+def test_repair_attempt_gets_violations_and_is_accepted(tmp_path, monkeypatch):
+    runtime, result = _run(tmp_path, monkeypatch, [LOSSY, GOOD])
+    assert result.fidelity["status"] == "repaired"
+    assert result.fidelity["attempts"] == 2
+    assert result.fidelity["violations"] == []
+    assert "link_removed:https://arxiv.org/abs/2511.20867" in result.fidelity["first_attempt_violations"]
+    assert runtime.calls[1]["previous"] == LOSSY
+    assert "link_removed:https://arxiv.org/abs/2511.20867" in runtime.calls[1]["violations"]
+    assert "full method" in (tmp_path / "optimized" / "how-to-get-cited.md").read_text(encoding="utf-8")
+
+
+def test_failing_rewrite_is_rejected_not_published(tmp_path, monkeypatch):
+    runtime, result = _run(tmp_path, monkeypatch, [LOSSY, LOSSY])
+    assert len(runtime.calls) == 2  # exactly one repair attempt
+    assert result.fidelity["status"] == "rejected"
+    assert not result.rewrite_accepted
+    assert not (tmp_path / "optimized").exists()
+    assert (tmp_path / "rejected" / "how-to-get-cited.md").is_file()
+    assert result.rank_after == result.rank_before
+    analysis = json.loads((tmp_path / "analysis.json").read_text(encoding="utf-8"))
+    assert analysis["fidelity"]["status"] == "rejected"
+    assert "link_removed:https://arxiv.org/abs/2511.20867" in analysis["fidelity"]["violations"]
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "`rejected`" in report and "link_removed:https://arxiv.org/abs/2511.20867" in report
+    # the schema must not describe content that was rejected
+    schema = (tmp_path / "schema" / "how-to-get-cited.json").read_text(encoding="utf-8")
+    assert "Last verified" in schema
+
+
+def test_allow_lossy_writes_and_still_reports(tmp_path, monkeypatch):
+    _, result = _run(tmp_path, monkeypatch, [LOSSY, LOSSY], allow_lossy=True)
+    assert result.fidelity["status"] == "lossy_allowed"
+    assert result.fidelity["violations"]
+    assert (tmp_path / "optimized" / "how-to-get-cited.md").is_file()
+
+
+def test_auto_content_type_selects_prompt(tmp_path, monkeypatch):
+    runtime, result = _run(tmp_path / "a", monkeypatch, [GOOD])
+    assert (runtime.content_types, result.content_type) == (["product"], "product")  # short body
+    long_guide = GUIDE + "\n" + "Extra explanatory sentence for length. " * 40
+    body = long_guide.split("\n", 2)[2].strip()
+    runtime, result = _run(tmp_path / "b", monkeypatch, [body], content=long_guide)
+    assert (runtime.content_types, result.content_type) == (["article"], "article")
+    runtime, result = _run(tmp_path / "c", monkeypatch, [GOOD], content_type="article")
+    assert runtime.content_types == ["article"]
+    with pytest.raises(ValueError):
+        _run(tmp_path / "d", monkeypatch, [GOOD], content_type="poem")
+
+
+def test_rewriter_loads_prompt_pair_and_repair_suffix():
+    captured = {}
+
+    class _Client:
+        def chat_json(self, *, model, system, user, temperature):
+            captured.update(system=system, user=user)
+            return {"rewritten_description": "ok"}
+
+    prompts = Path(__file__).resolve().parents[1] / "prompts"
+    Rewriter(client=_Client(), model="m", prompts_dir=prompts, content_type="article").rewrite("T", "Body {{title}}")
+    assert "informational web page" in captured["system"]
+    assert "Best for ..." in captured["system"] and "Do not add" in captured["system"]
+    assert "previous rewrite was rejected" not in captured["user"]
+
+    Rewriter(client=_Client(), model="m", prompts_dir=prompts).rewrite(
+        "T", "Body", previous="old {{description}}", violations=("link_removed:https://x.y",)
+    )
+    assert "product description" in captured["system"]
+    assert "link_removed:https://x.y" in captured["user"]
+    assert "old {{description}}" in captured["user"]  # suffix is not re-rendered as a template
+    with pytest.raises(ValueError):
+        Rewriter(client=_Client(), model="m", prompts_dir=prompts, content_type="poem")
+
+
+def test_mock_end_to_end_cli_passes_gate(tmp_path, monkeypatch, capsys):
+    from egeo.cli import main
+
+    monkeypatch.setenv("GEO_EVAL_MOCK", "1")
+    sample = Path(__file__).resolve().parents[1] / "examples" / "sample-input.md"
+    assert main(["optimize", str(sample), "--out-dir", str(tmp_path), "--json"]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["fidelity"]["status"] == "passed"
+    assert summary["content_type"] == "product"
+    assert list((tmp_path / "optimized").glob("*.md"))
