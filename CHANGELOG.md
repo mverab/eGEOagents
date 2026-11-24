@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `egeo loop mark <ledger-id> applied|withdrawn [--at TS] [--note TEXT]`: the owner records that a ledger proposal was applied or withdrawn. Grading windows count from the applied time (openspec `update-loop-ledger-lifecycle`).
 
 ### Changed
+- `egeo loop decide`: an open proposal waiting for its grading window no longer blocks different proposals. Before, one open proposal held back every other one for 7 days, and for 7 more after it was marked applied. A due grade still goes first, and the same kind + query/page is never proposed twice while open.
 - `egeo loop decide` grades `verified` only for a change the owner recorded with `egeo loop mark`, or one the collectors observe directly (JSON-LD on the page, a target page in `project.yaml`). A query that reappears with no recorded application is graded `resolved_unattributed`. Grade lines now carry `window`; the ledger stays `v: 1` and existing ledgers load unchanged.
 
 ### Fixed

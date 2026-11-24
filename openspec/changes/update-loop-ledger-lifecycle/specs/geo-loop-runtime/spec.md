@@ -23,6 +23,22 @@ The effective state of a proposal SHALL be computed by folding later ledger line
 - **THEN** they fold into one grade
 - **AND** the file is not modified by reading it
 
+### Requirement: Waiting Proposals Do Not Block New Proposals
+
+An open proposal that has no window due SHALL NOT prevent `egeo loop decide` from ranking a different proposal. It SHALL only prevent a second proposal with the same kind and query/page ids. A due grade SHALL be ranked before any new proposal. `wait_for_window` SHALL be ranked only when no grade is due and no new proposal exists while at least one proposal is open.
+
+#### Scenario: Second gap found while the first proposal waits
+
+- **WHEN** a proposal for one query is less than 7 days old
+- **AND** a different query is absent in its last three observations
+- **THEN** the ranked action is `escalate_absent` for the second query
+
+#### Scenario: Nothing new to propose
+
+- **WHEN** an open proposal has no window due and no other action applies
+- **THEN** the ranked action is `wait_for_window` naming that proposal
+- **AND** no ledger line is appended
+
 ### Requirement: Owner Records Application Explicitly
 
 The CLI SHALL expose `egeo loop mark <ledger-id> applied|withdrawn [--at TS] [--note TEXT] [--json]`. It SHALL append one event line and one `LOG.md` line, and SHALL reject unknown ids, event lines, closed proposals and a second `applied` mark. `egeo loop decide` SHALL NOT record `applied`.

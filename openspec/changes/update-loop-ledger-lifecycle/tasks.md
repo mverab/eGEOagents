@@ -1,6 +1,7 @@
 ## 1. Tests
 - [x] 1.1 Tests (14 fail on the 2.4.0 `decide.py`) in `tests/test_decide.py`: a graded window is not graded again; the next action is ranked after grading; unapplied reappearance is `resolved_unattributed`; applied reappearance is `verified`; windows count from the applied time; closed proposals can be re-proposed; latest due window only; `propose_page_owner` is graded; 2.4.0 duplicate grade lines collapse.
 - [x] 1.2 Tests for `mark`: applied, withdrawn, unknown id, closed proposal, applied twice, `--at` bounds; CLI test in `tests/test_cli.py`.
+- [x] 1.3 Tests: a waiting proposal does not block a different proposal; a due grade still goes first; `wait_for_window` when nothing else is left.
 
 ## 2. Implementation
 - [x] 2.1 `egeo/decide.py`: `ledger_state`, anchor/due-window logic, attribution-aware grading, `propose_page_owner` grader, grade lines with `window`.

@@ -262,7 +262,10 @@ def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = N
             next_gate="scheduler",
         )
 
-    # 2/3. wait_for_window or grade_outcome
+    # 2. grade_outcome. An open proposal that is still waiting does not stop new proposals:
+    # it only keeps its own kind+query/page from being proposed again (open_keys). The first
+    # waiting one is reported as wait_for_window if nothing else is found below.
+    waiting: Optional[Dict[str, Any]] = None
     for row in states:
         if row["closed"] or not row.get("anchor"):
             continue
@@ -273,22 +276,26 @@ def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = N
         )
         window = _due_window(row, now)
         if window is None:
-            if (now - row["anchor"]).days < WINDOWS_DAYS[0]:
-                return _action(
+            age = (now - row["anchor"]).days
+            nxt = next((d for d in WINDOWS_DAYS if d > max(age, max(row["grades"], default=0))), None)
+            if waiting is None and nxt is not None:
+                waiting = _action(
                     kind="wait_for_window",
-                    reason=f"open {row.get('kind')} {row.get('id')} waiting for day {WINDOWS_DAYS[0]}",
+                    reason=f"open {row.get('kind')} {row.get('id')} waiting for day {nxt}",
                     next_gate="none",
                     **ids,
                 )
             continue
         grade, evidence = _grade_row(home, project, row)
         if grade is None:
-            return _action(
-                kind="wait_for_window",
-                reason=f"window {window}d reached but no later observations for {row.get('id')}",
-                next_gate="scheduler",
-                **ids,
-            )
+            if waiting is None:
+                waiting = _action(
+                    kind="wait_for_window",
+                    reason=f"window {window}d reached but no later observations for {row.get('id')}",
+                    next_gate="scheduler",
+                    **ids,
+                )
+            continue
         return _action(
             kind="grade_outcome",
             reason=f"window {window}d grade={grade} for {row.get('id')}",
@@ -357,6 +364,8 @@ def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = N
             evidence=[rel],
         )
 
+    if waiting is not None:
+        return waiting
     return _action(kind="no_op", reason="no deterministic action", next_gate="none")
 
 

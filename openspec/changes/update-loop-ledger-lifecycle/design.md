@@ -41,9 +41,11 @@ Closed when status is `withdrawn`, any grade is `verified` or `resolved_unattrib
 
 `egeo loop mark <id> applied|withdrawn`. Rejects unknown ids, event lines, closed proposals, and `applied` twice. `--at` backdates the application; it must lie between the proposal time and now. Appends one event line and one LOG.md line. It does not need `project.yaml`.
 
-## Unchanged on purpose
+### Waiting does not block (owner decision, 2026-11-24)
 
-An open proposal younger than 7 days still returns `wait_for_window` before any new proposal (one owner action at a time). Priority order of action kinds is unchanged.
+In 2.4.0 an open proposal younger than 7 days returned `wait_for_window` before anything else, so proposals came out at most once a week, and marking one applied restarted the wait. Proposals are independent and already deduped by kind + query/page ids, so a waiting proposal now only prevents proposing the same thing again. Order per run: `collect_fresh`, then a due grade, then new proposals, then `wait_for_window` (naming the first waiting proposal and its next window) if any proposal is open, else `no_op`. Still exactly one action per run.
+
+Trade-off: an owner who does not act accumulates open proposals (one more per run until every gap is listed). Each closes by itself after its 28-day grade.
 
 ## Risks
 

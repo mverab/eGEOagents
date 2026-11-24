@@ -64,6 +64,8 @@ The ledger is append-only, and a proposal moves through it like this:
 | `resolved_unattributed` | The metric moved, but no application was recorded, so nothing can be credited |
 | `unchanged` | No movement in that window |
 
+Several proposals can be open at once: a waiting proposal only stops the same action from being proposed again. Each run still ranks one action, in this order: collect fresh data, grade a due window, propose something new, otherwise wait.
+
 A proposal closes on `verified`, `resolved_unattributed`, `withdrawn`, or after its 28-day grade. A before/after comparison is observational; it does not prove the change caused the movement.
 
 ## Commands

@@ -318,6 +318,32 @@ class LedgerLifecycleTests(DecideTests):
         self.assertNotEqual(action["kind"], "grade_outcome")
         self.assertEqual(decide.ledger_path(self.home).read_bytes(), before)
 
+    def test_open_proposal_does_not_block_other_proposals(self) -> None:
+        first = self._propose()
+        other = "what is llms.txt"
+        for day in range(3):
+            decide.append_jsonl(
+                decide._query_stream(self.home, other),
+                {"ts": self._day(day).strftime("%Y-%m-%dT%H:%M:%SZ"), "query": other, "target_position": None},
+            )
+        second = self._step(self._day(3.1))  # same day, first proposal 0 days old
+        self.assertEqual(second["kind"], "escalate_absent")
+        self.assertEqual(second["query_ids"], ["generic-llms-txt"])
+        third = self._step(self._day(3.2))  # nothing new left: report the wait, propose nothing twice
+        self.assertEqual((third["kind"], third["ledger_id"]), ("wait_for_window", first))
+        self.assertEqual(len(decide.load_ledger(self.home)), 2)
+
+    def test_due_grade_goes_before_new_proposals(self) -> None:
+        self._propose()
+        self._obs(None, self._day(9))
+        for page in self.project["pages"]:
+            decide.append_jsonl(
+                decide._page_stream(self.home, page["url"]),
+                {"ts": self._day(9).strftime("%Y-%m-%dT%H:%M:%SZ"), "url": page["url"], "jsonld_types": []},
+            )
+        self.assertEqual(self._step(self._day(10.5))["kind"], "grade_outcome")
+        self.assertEqual(self._step(self._day(10.6))["kind"], "propose_schema")
+
     def test_mark_applied_appends_one_event_and_one_log_line(self) -> None:
         pid = self._propose()
         log_before = (self.home / "LOG.md").read_text(encoding="utf-8").count("\n")
