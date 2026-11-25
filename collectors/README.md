@@ -46,7 +46,7 @@ A collector in this directory MUST:
 | `page.py` | `data/page/<page-slug>.jsonl` | `{v, ts, url, status, content_hash, title, meta_description, jsonld_types, word_count}` |
 | `ai_overview.py` | `data/ai_overview/<query-slug>.jsonl` | `{v, ts, query, engine, available, answer, citations[], target_domain, target_cited, target_position, cost_credits, remaining_credits}` |
 
-### `serp.py` — position history from Brave, SerpBase, Serply, or GoAnyAPI
+### `serp.py` — position history from Brave, SerpBase, Serply, GoAnyAPI, or Monid
 
 ```bash
 export BRAVE_API_KEY=...                  # never printed, never written to disk
@@ -69,9 +69,19 @@ python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_ser
 export GOANYAPI_API_KEY=...
 python collectors/serp.py --engine goanyapi
 python collectors/serp.py --engine goanyapi --fixture collectors/fixtures/serp_goanyapi_response.json
+
+# Google SERP via Search1API through Monid (POST API, Bearer key in the Authorization header)
+export MONID_API_KEY=...
+python collectors/serp.py --engine monid
+python collectors/serp.py --engine monid --fixture collectors/fixtures/serp_monid_response.json
 ```
 
-Brave, SerpBase, Serply, and GoAnyAPI are called over their **HTTP APIs directly**, not through an
+The `monid` engine sends each query to Monid, a third-party intermediary, which
+runs it on Search1API's `/search` endpoint pinned to Google web results and
+returns them in rank order. Search1API reports no rank field, so a position is
+the order of the result. Observations are recorded with `engine: monid`.
+
+Brave, SerpBase, Serply, GoAnyAPI, and Monid are called over their **HTTP APIs directly**, not through an
 MCP: collectors run under cron with no agent attached, so an MCP server is not
 available to them. The MCP stays the path for interactive agent sessions. Live
 passes are paced at ≤1 query/second and refuse to exceed
@@ -82,7 +92,7 @@ Config:
 ```yaml
 collectors:
   serp:
-    engine: brave          # optional: brave (default), serpbase, serply, or goanyapi
+    engine: brave          # optional: brave (default), serpbase, serply, goanyapi, or monid
     target_domain: example.com     # position is reported for this domain
     queries:
       - best geo optimization tool
@@ -162,6 +172,8 @@ bodies whose file names encode the URL slug. Fixture mode is what CI runs: no
 network, no key, same code path, same schema.
 `fixtures/serp_goanyapi_response.json` is a synthetic example of GoAnyAPI's
 documented `GET /api/v1/serp` response shape.
+`fixtures/serp_monid_response.json` is a recorded Monid `POST /v1/run` response
+for Search1API's `/search` (price, billing and hint fields removed).
 
 ## Adding a collector
 
