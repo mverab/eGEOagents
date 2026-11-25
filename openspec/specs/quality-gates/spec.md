@@ -1,4 +1,10 @@
-## ADDED Requirements
+# quality-gates Specification
+
+## Purpose
+
+The automated checks the repository guarantees on every change and monthly: an offline mock evaluation, non-destructive prompt optimization, SKILL.md and JSON-LD validation, the deprecated-slug link check, and documented, reproducible evaluation.
+
+## Requirements
 
 ### Requirement: Offline Deterministic Evaluation
 The evaluation harness SHALL run end-to-end without network access or API keys when a mock mode is enabled, so it can execute in CI.
@@ -61,7 +67,7 @@ The project SHALL validate the structure of JSON-LD schema templates.
 Continuous integration SHALL fail when deprecated repository slugs reappear in documentation.
 
 #### Scenario: Deprecated slug blocks the build
-- **WHEN** any markdown file contains `egeo-claude-agents`
+- **WHEN** any markdown file contains a link or URL with the slug `egeo-claude-agents`
 - **THEN** the CI link-check step fails the build
 
 #### Scenario: Canonical links pass
