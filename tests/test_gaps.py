@@ -1,4 +1,4 @@
-"""Tests for ``egeo fix-gaps`` (openspec/changes/add-fix-gaps)."""
+"""Tests for ``egeo fix-gaps`` (openspec/specs/citation-gap-fixing)."""
 from __future__ import annotations
 
 import json

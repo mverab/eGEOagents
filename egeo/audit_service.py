@@ -1,6 +1,6 @@
 """HTTP service for the public URL audit (``POST /api/audit``, ``GET /api/audit/{id}``).
 
-Spec: ``openspec/changes/add-public-url-audit/specs/url-audit-api/spec.md``. All audit logic is
+Spec: ``openspec/specs/url-audit-api/spec.md``. All audit logic is
 in :mod:`egeo.url_audit`; this module only adds the HTTP contract, CORS, the per-IP daily limit,
 the 1 h cache, the global daily LLM cap, and the 24 h report store (SQLite).
 

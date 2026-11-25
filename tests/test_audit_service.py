@@ -1,4 +1,4 @@
-"""Contract tests for egeo.audit_service (spec: openspec/changes/add-public-url-audit, url-audit-api).
+"""Contract tests for egeo.audit_service (spec: openspec/specs/url-audit-api).
 
 Fake clock, fake auditor or fake network: never the real network.
 """

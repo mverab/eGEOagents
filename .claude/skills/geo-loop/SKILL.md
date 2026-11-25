@@ -51,6 +51,8 @@ not in a runnable state (`egeo loop doctor` explains why).
 - `$EGEO_HOME/data/outcomes/ledger.jsonl` — append-only decision outcomes when `egeo loop decide` has run.
   Only the owner records that a proposal was applied (`egeo loop mark <id> applied`); never run
   `mark` yourself. A `resolved_unattributed` grade is not evidence that an action worked.
+  An `escalate_uncited` proposal means Google's AI Overview was shown and did not cite the target;
+  its `details.cited_instead` lists who was cited, not why.
 
 ### 3. Do the work
 

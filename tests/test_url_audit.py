@@ -1,4 +1,4 @@
-"""Contract tests for egeo.url_audit (spec: openspec/changes/add-public-url-audit, url-audit-api).
+"""Contract tests for egeo.url_audit (spec: openspec/specs/url-audit-api).
 
 No network: every test injects a resolver and a transport; ``socket`` is patched to fail loudly.
 """

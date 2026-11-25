@@ -52,6 +52,17 @@ The contract contains no API keys, OAuth tokens, or private Search Console data.
 
 `egeo loop decide` ranks **one** next action from that contract plus collector JSONL and `$EGEO_HOME/data/outcomes/ledger.jsonl`. It is LLM-free and never publishes. `--dry-run` writes nothing.
 
+What `decide` can propose, in priority order (each needs your approval; nothing is applied for you):
+
+| Proposal | Trigger | Data |
+|----------|---------|------|
+| `escalate_uncited` | Google showed an AI Overview for the query in the last 3 observations that had one, and never cited your domain | `data/ai_overview/` (optional collector) |
+| `escalate_absent` | Your domain is missing from the top 10 in the last 3 SERP observations | `data/serp/` |
+| `propose_page_owner` | A generic or informational query has no target page | `project.yaml` |
+| `propose_schema` | A tracked page has no JSON-LD | `data/page/` |
+
+An `escalate_uncited` proposal lists the domains the AI Overview cited instead. A pass where Google showed no AI Overview is not counted as "uncited", and the rule only applies to Google AI Overview: it says nothing about ChatGPT, Perplexity or Gemini.
+
 The ledger is append-only, and a proposal moves through it like this:
 
 1. `decide` records a proposal (`status: proposed`) and writes a proposal doc that names its ledger id.
@@ -63,6 +74,7 @@ The ledger is append-only, and a proposal moves through it like this:
 | `verified` | The metric moved after an application you recorded, or the observation is the change itself (JSON-LD now on the page, a target page now in `project.yaml`) |
 | `resolved_unattributed` | The metric moved, but no application was recorded, so nothing can be credited |
 | `unchanged` | No movement in that window |
+| `unobservable` | `escalate_uncited` only: Google showed no AI Overview in that window, so citation could not be checked |
 
 Several proposals can be open at once: a waiting proposal only stops the same action from being proposed again. Each run still ranks one action, in this order: collect fresh data, grade a due window, propose something new, otherwise wait.
 
