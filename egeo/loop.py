@@ -334,7 +334,13 @@ def diagnose(home: Path) -> Tuple[List[str], List[str], Dict[str, Any]]:
     if key_env is None:
         problems.append(f"unknown SERP engine {serp_engine!r}")
     elif not facts["serp_api_key_set"]:
-        warnings.append(f"{key_env} is not set: the serp collector can only run in --fixture mode")
+        if serp_engine == "keenable":
+            warnings.append(
+                "KEENABLE_API_KEY is not set: keenable will use the keyless public tier "
+                "(1,000 req/hr per IP); set KEENABLE_API_KEY for 100,000 free req/mo"
+            )
+        else:
+            warnings.append(f"{key_env} is not set: the serp collector can only run in --fixture mode")
 
     overrides = sorted(p.name for p in workspace.prompts_dir(home).glob("*.txt")) if workspace.prompts_dir(home).is_dir() else []
     facts["prompt_overrides"] = overrides

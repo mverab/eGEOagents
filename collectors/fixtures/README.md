@@ -9,6 +9,7 @@ key. Content is synthetic; the *shape* mirrors the real responses.
 | `serp_serpbase_response.json` | `python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json` |
 | `serp_serply_response.json` | `python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json` |
 | `serp_goanyapi_response.json` | `python collectors/serp.py --engine goanyapi --fixture collectors/fixtures/serp_goanyapi_response.json` |
+| `serp_keenable_response.json` | `python collectors/serp.py --engine keenable --fixture collectors/fixtures/serp_keenable_response.json` |
 | `pages/<page-slug>.html` | `python collectors/page.py --fixture collectors/fixtures/pages/` |
 
 Page fixtures are matched by slug: `https://example.com/pricing` resolves to
