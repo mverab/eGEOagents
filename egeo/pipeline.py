@@ -2,7 +2,11 @@
 
 Orchestrates the four agents for a single piece of content:
 
-    analyze → rank (before) → rewrite → rank (after) → index → write artifacts
+    analyze → rank (before) → rewrite → fidelity gate → rank (after) → index → write artifacts
+
+The fidelity gate (openspec ``update-optimize-page-fidelity``) checks the rewrite with the
+deterministic rules in :mod:`egeo.fidelity`, asks the rewriter for one repair when they fail, and
+keeps a rewrite that still fails out of ``optimized/`` (it goes to ``rejected/``).
 
 Ranking needs something to rank *against*. Because the offline runtime cannot
 ask an LLM to invent competitors, the pipeline ranks the target against a small
@@ -21,10 +25,64 @@ from typing import Any, Dict, List, Optional
 
 from geo_eval import Candidate
 
-from .agents import AnalysisResult, RankResult, RewriteResult, SchemaResult
+from . import fidelity
+from .agents import CONTENT_TYPES, AnalysisResult, RankResult, RewriteResult, SchemaResult
 from .runtimes import RuntimeAdapter
 
-__all__ = ["OptimizeResult", "optimize_content", "DEFAULT_COMPETITORS"]
+__all__ = [
+    "OptimizeResult",
+    "optimize_content",
+    "detect_content_type",
+    "check_page_fidelity",
+    "DEFAULT_COMPETITORS",
+    "ARTICLE_MIN_WORDS",
+    "ARTICLE_MIN_HEADINGS",
+]
+
+# `--content-type auto`: a body this long, or with this many headings, is an article.
+ARTICLE_MIN_WORDS = 150
+ARTICLE_MIN_HEADINGS = 3
+# Rules of egeo.fidelity that do not apply to a whole page body: the body has no fixed heading
+# line (the H1 is handled separately), and a thin page is meant to grow.
+_PAGE_IGNORED_RULES = ("heading_changed", "too_long")
+_LIST_MARKER = re.compile(r"^(\s*(?:>\s*)*)\d+[.)](?=\s)", re.MULTILINE)
+_FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
+
+
+def detect_content_type(body: str) -> str:
+    """``article`` for a body with >= 150 words or >= 3 headings, else ``product``."""
+    words, headings, in_code = 0, 0, False
+    for line in body.splitlines():
+        if _FENCE.match(line):
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        if re.match(r"^#{1,6}[ \t]", line):
+            headings += 1
+        words += len(re.findall(r"\w+", line))
+    return "article" if words >= ARTICLE_MIN_WORDS or headings >= ARTICLE_MIN_HEADINGS else "product"
+
+
+def _strip_list_markers(text: str) -> str:
+    """Drop ordered-list markers (``1.``, ``2)``) outside code blocks: they are layout, not facts."""
+    out, in_code = [], False
+    for line in text.split("\n"):
+        if _FENCE.match(line):
+            in_code = not in_code
+        out.append(line if in_code else _LIST_MARKER.sub(r"\1-", line))
+    return "\n".join(out)
+
+
+def check_page_fidelity(original: str, rewritten: str) -> fidelity.FidelityResult:
+    """Deterministic fidelity rules for a whole page body.
+
+    Same rules as section mode, except ``heading_changed`` and ``too_long`` are not applied and
+    ordered-list markers are not counted as numbers.
+    """
+    result = fidelity.check_fidelity(_strip_list_markers(original), _strip_list_markers(rewritten))
+    kept = tuple(v for v in result.violations if v not in _PAGE_IGNORED_RULES)
+    return fidelity.FidelityResult(passed=not kept, violations=kept)
 
 # Deterministic, generic competitor stubs. They are intentionally plausible but
 # synthetic; the report labels them as such. They never contain the "Best for"
@@ -75,6 +133,14 @@ class OptimizeResult:
     schema: SchemaResult
     output_dir: Path
     written_files: List[Path]
+    content_type: str = "product"
+    # {"status": passed|repaired|rejected|lossy_allowed, "violations": [...], "attempts": 1|2,
+    #  "first_attempt_violations": [...]}
+    fidelity: Optional[Dict[str, Any]] = None
+
+    @property
+    def rewrite_accepted(self) -> bool:
+        return not self.fidelity or self.fidelity["status"] != "rejected"
 
     @property
     def rank_improvement(self) -> int:
@@ -90,6 +156,8 @@ class OptimizeResult:
             "rank_before": self.rank_before,
             "rank_after": self.rank_after,
             "rank_improvement": self.rank_improvement,
+            "content_type": self.content_type,
+            "fidelity": self.fidelity,
             "output_dir": str(self.output_dir),
             "written_files": [str(p) for p in self.written_files],
         }
@@ -364,13 +432,43 @@ def _build_report(result: "OptimizeResult") -> str:
     actions = "\n".join(f"{i}. {act}" for i, act in enumerate(result.analysis.priority_actions, 1)) or "1. (none)"
     delta = result.rank_improvement
     delta_str = f"+{delta}" if delta > 0 else str(delta)
+    fid = result.fidelity or {"status": "passed", "violations": [], "attempts": 1}
+    fid_lines = [f"- **Status:** `{fid['status']}` ({fid['attempts']} rewrite attempt(s))"]
+    if fid["violations"]:
+        fid_lines.append("- **Violations:**")
+        fid_lines.extend(f"  - `{v}`" for v in fid["violations"])
+    if fid["status"] == "rejected":
+        fid_lines.append(
+            "- The rewrite changed facts or dropped content, so it was **not** written to "
+            "`optimized/`. It is in `rejected/` for manual review; merge what is useful by hand. "
+            "The rank below is unchanged because no rewrite was accepted."
+        )
+    elif fid["status"] == "lossy_allowed":
+        fid_lines.append("- Written to `optimized/` because `--allow-lossy` was set. Review it against the original.")
+    elif fid["status"] == "repaired":
+        fid_lines.append("- The first rewrite failed the rules; the repair attempt passed.")
+    fidelity_block = "\n".join(fid_lines)
+    outputs_first = (
+        "- `rejected/` — the rewrite that failed the fidelity rules (not for publishing)"
+        if fid["status"] == "rejected"
+        else "- `optimized/` — GEO-optimized content (copy-paste ready)"
+    )
 
     return f"""# 🎯 GEO Optimization Report
 
 - **Source:** `{result.source}`
 - **Title:** {result.title}
 - **Runtime:** `{result.runtime}`
+- **Content type:** `{result.content_type}`
 - **GEO Score:** {a.total_score}/100
+
+## Rewrite Fidelity
+
+Deterministic rules: no link or number removed or added, tables and code blocks kept, at least
+80% of the original length. They cannot see a new unsupported adjective or a dropped sentence
+that has no link or number, so still read the rewrite against the original.
+
+{fidelity_block}
 
 ## Ranking Simulation
 
@@ -401,7 +499,7 @@ Simulated against {len(DEFAULT_COMPETITORS)} generic competitor stubs (synthetic
 
 ## Outputs
 
-- `optimized/` — GEO-optimized content (copy-paste ready)
+{outputs_first}
 - `schema/` — JSON-LD markup (`{result.schema.schema_type}`)
 - `analysis.json` — raw analysis data
 
@@ -420,14 +518,20 @@ def optimize_content(
     query: Optional[str] = None,
     schema_type: str = "Article",
     export_format: str = "markdown",
+    content_type: str = "auto",
+    allow_lossy: bool = False,
 ) -> OptimizeResult:
-    """Run analyze → rank → rewrite → rank → index and write artifacts."""
+    """Run analyze → rank → rewrite → fidelity gate → rank → index and write artifacts."""
     title, description, raw_frontmatter, parsed_fm = _derive_title_and_body(content)
     effective_query = query or f"best {title}".strip()
+    if content_type == "auto":
+        content_type = detect_content_type(description)
+    elif content_type not in CONTENT_TYPES:
+        raise ValueError(f"Unknown content type '{content_type}'. Known: auto, {', '.join(CONTENT_TYPES)}")
 
     analyzer = runtime.make_analyzer()
     ranker = runtime.make_ranker()
-    rewriter = runtime.make_rewriter()
+    rewriter = runtime.make_rewriter(content_type)
     indexer = runtime.make_indexer()
 
     analysis = analyzer.analyze(content, title=title)
@@ -438,21 +542,42 @@ def optimize_content(
     rank_before = before.position_of(_TARGET_ID)
 
     rewrite = rewriter.rewrite(title, description)
+    check = check_page_fidelity(description, rewrite.rewritten_description)
+    fid: Dict[str, Any] = {"status": "passed", "violations": [], "attempts": 1}
+    if not check.passed:
+        fid["first_attempt_violations"] = list(check.violations)
+        repaired = rewriter.rewrite(
+            title, description, previous=rewrite.rewritten_description, violations=check.violations
+        )
+        recheck = check_page_fidelity(description, repaired.rewritten_description)
+        fid["attempts"] = 2
+        if recheck.passed:
+            rewrite, fid["status"] = repaired, "repaired"
+        else:
+            # Keep whichever attempt broke fewer rules, for the reviewer.
+            if len(recheck.violations) <= len(check.violations):
+                rewrite, check = repaired, recheck
+            fid["violations"] = list(check.violations)
+            fid["status"] = "lossy_allowed" if allow_lossy else "rejected"
+    accepted = fid["status"] != "rejected"
 
-    target_after = Candidate(id=_TARGET_ID, title=title, description=rewrite.rewritten_description)
-    after = ranker.rank(effective_query, [target_after, *competitors])
-    rank_after = after.position_of(_TARGET_ID)
+    if accepted:
+        target_after = Candidate(id=_TARGET_ID, title=title, description=rewrite.rewritten_description)
+        after = ranker.rank(effective_query, [target_after, *competitors])
+        rank_after = after.position_of(_TARGET_ID)
+    else:
+        rank_after = rank_before  # nothing was accepted, so nothing changed
 
     schema = indexer.generate_schema(
         schema_type=schema_type,
         name=title,
-        description=_short_description(rewrite.rewritten_description),
+        description=_short_description(rewrite.rewritten_description if accepted else description),
     )
 
     # --- write artifacts --------------------------------------------------- #
     output_dir = Path(output_dir)
     slug = _slugify(title)
-    optimized_dir = output_dir / "optimized"
+    optimized_dir = output_dir / ("optimized" if accepted else "rejected")
     schema_out_dir = output_dir / "schema"
     optimized_dir.mkdir(parents=True, exist_ok=True)
     schema_out_dir.mkdir(parents=True, exist_ok=True)
@@ -491,6 +616,8 @@ def optimize_content(
         "rank_before": rank_before,
         "rank_after": rank_after,
         "rank_improvement": rank_before - rank_after,
+        "content_type": content_type,
+        "fidelity": fid,
         "analysis": analysis.to_dict(),
     }
     analysis_path.write_text(json.dumps(analysis_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -508,6 +635,8 @@ def optimize_content(
         schema=schema,
         output_dir=output_dir,
         written_files=written,
+        content_type=content_type,
+        fidelity=fid,
     )
 
     report_path = output_dir / "report.md"

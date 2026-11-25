@@ -228,6 +228,8 @@ def run_fix_gaps(
             "other_gaps": page.other_gaps,
             "rank_before": summary["rank_before"],
             "rank_after": summary["rank_after"],
+            "content_type": summary["content_type"],
+            "fidelity": summary["fidelity"],
             "written_files": summary["written_files"],
         })
     report = {
@@ -527,7 +529,12 @@ def cli(args: Any) -> int:
         return 0
     print(describe_plan(plan))
     for page in report["pages"]:
-        print(f"✓ {page['page_id']}: rank #{page['rank_before']} → #{page['rank_after']} (proxy)")
+        fid = page["fidelity"]
+        if fid["status"] == "rejected":
+            print(f"✗ {page['page_id']}: rewrite rejected by the fidelity rules "
+                  f"({len(fid['violations'])} violation(s)); see {page['page_id']}/report.md and rejected/")
+        else:
+            print(f"✓ {page['page_id']}: rank #{page['rank_before']} → #{page['rank_after']} (proxy), fidelity {fid['status']}")
     print(f"Report: {Path(args.out_dir) / REPORT_NAME}")
     if report["remeasure"]["command"]:
         print(f"Re-measure: {report['remeasure']['command']}")

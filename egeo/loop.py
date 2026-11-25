@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import shlex
 import os
 import re
 import sys
@@ -488,6 +489,39 @@ def cmd_decide(args: argparse.Namespace) -> int:
             print(f"  evidence:  {', '.join(action['evidence'])}")
         if payload.get("written"):
             print(f"  wrote:     {', '.join(payload['written'])}")
+        row = payload.get("ledger_row") or {}
+        if row.get("status") == "proposed":
+            print(f"  ledger id: {row['id']}")
+            print(f"  after you act: egeo loop mark {shlex.quote(row['id'])} applied   (or: withdrawn)")
+    return 0
+
+
+def cmd_mark(args: argparse.Namespace) -> int:
+    from . import decide
+
+    home = workspace.resolve_home()
+    if not workspace.exists(home):
+        print(f"egeo loop mark: {home} is not bootstrapped; there is no ledger to mark.", file=sys.stderr)
+        return 1
+    at = None
+    if args.at:
+        at = decide._parse_ts(args.at)
+        if at is None:
+            print(f"egeo loop mark: --at {args.at!r} is not an ISO 8601 time (e.g. 2026-11-20T09:00:00Z).", file=sys.stderr)
+            return 1
+    try:
+        result = decide.mark_row(home, args.ledger_id, args.status, at=at, note=args.note or "")
+    except decide.LedgerError as exc:
+        print(f"egeo loop mark: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True, default=str))
+    else:
+        row = result["ledger_row"]
+        print(f"egeo loop mark: {args.ledger_id} -> {args.status} (recorded)")
+        if args.status == "applied":
+            print(f"  grading windows count from {row['ts']}")
+        print(f"  wrote: {', '.join(result['written'])}")
     return 0
 
 
@@ -503,7 +537,8 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
             "Loop mode keeps state in a per-user workspace ($EGEO_HOME, default ~/.egeo). "
             "These commands are the scheduler seam and make zero LLM calls: `collect` gathers "
             "ground truth, `run` resolves the plan for one unit of work, `doctor` checks the "
-            "workspace, `decide` ranks one next action from collector data and the outcome ledger. "
+            "workspace, `decide` ranks one next action from collector data and the outcome ledger, "
+            "`mark` records that the owner applied or withdrew a proposal. "
             "The interpretive loop run itself is executed by an agent runtime via "
             ".claude/skills/geo-loop/SKILL.md (`/geo:loop <domain>`)."
         ),
@@ -556,12 +591,30 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         description=(
             "Reads project.yaml, collector JSONL, and data/outcomes/ledger.jsonl, then ranks one "
             "action. Without --dry-run it may append one ledger row, one proposal doc, and one LOG "
-            "line. It never sets status=applied, never edits the site, and never opens a PR."
+            "line. It never sets status=applied (the owner does, with `egeo loop mark`), never edits "
+            "the site, and never opens a PR."
         ),
     )
     decide_p.add_argument("--dry-run", action="store_true", help="Print the ranked action and write nothing.")
     decide_p.add_argument("--json", action="store_true", help="Print the decision as JSON.")
     decide_p.set_defaults(loop_handler=cmd_decide)
+
+    mark_p = loop_sub.add_parser(
+        "mark",
+        help="Owner: record that a ledger proposal was applied or withdrawn (appends one ledger line).",
+        description=(
+            "Records an owner decision about one proposal in data/outcomes/ledger.jsonl. `applied` "
+            "starts the 7/14/28-day grading windows from the applied time, and lets `decide` grade a "
+            "later improvement as verified. `withdrawn` closes the proposal. Nothing is rewritten, "
+            "and nothing is published."
+        ),
+    )
+    mark_p.add_argument("ledger_id", help="Proposal id, as printed by `egeo loop decide` and in the proposal doc.")
+    mark_p.add_argument("status", choices=["applied", "withdrawn"], help="What the owner did.")
+    mark_p.add_argument("--at", help="When the change was applied (ISO 8601, UTC assumed). Default: now.")
+    mark_p.add_argument("--note", help="Short free-text note stored with the mark (e.g. a PR link).")
+    mark_p.add_argument("--json", action="store_true", help="Print the result as JSON.")
+    mark_p.set_defaults(loop_handler=cmd_mark)
 
 
 def main(args: argparse.Namespace) -> int:
@@ -569,4 +622,4 @@ def main(args: argparse.Namespace) -> int:
     return int(args.loop_handler(args))
 
 
-__all__ = ["add_parser", "main", "build_plan", "diagnose", "load_collector", "parse_charter", "cmd_decide"]
+__all__ = ["add_parser", "main", "build_plan", "diagnose", "load_collector", "parse_charter", "cmd_decide", "cmd_mark"]

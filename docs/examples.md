@@ -11,6 +11,12 @@ mocked: the "after" text is the rewriter's output verbatim (excerpted where long
 > simulation against 3 generic, synthetic competitor stubs. For measured
 > AI-search visibility, see the [case study](https://egeoagents.com/case-study/).
 
+> **Since these runs were recorded:** `egeo optimize` checks every rewrite with deterministic
+> fidelity rules (links, numbers, tables, code blocks, length) and uses a separate prompt for
+> long pages (`--content-type article`). Run today, rewrites 2 and 3 below would fail the rules
+> (dropped links and dates, about a third shorter) and go to `rejected/` unless a repair attempt
+> fixes them. The runs below are kept as recorded; they have not been repeated with a live model.
+
 ## Summary
 
 | Page | Query | GEO score | Simulated rank | Words |

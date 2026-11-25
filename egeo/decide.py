@@ -3,11 +3,17 @@
 LLM-free. Reads project.yaml, collector JSONL, and an append-only outcome
 ledger. Writes at most one proposed ledger row, one proposal doc, and one
 LOG.md line. Never publishes, merges, or sets status ``applied``.
+
+The ledger is never rewritten. A proposal's effective state (applied time,
+grades, closed) is derived by :func:`ledger_state`, which folds later event
+lines (``grade_outcome``, ``mark_applied``, ``mark_withdrawn``) onto it. Only
+the owner records ``applied``, through :func:`mark_row` (``egeo loop mark``).
 """
 from __future__ import annotations
 
 import json
 import re
+import shlex
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -19,6 +25,10 @@ SCHEMA_VERSION = 1
 WINDOWS_DAYS = (7, 14, 28)
 OPEN_STATUSES = {"proposed", "applied"}
 OWNER_KINDS = {"escalate_absent", "propose_page_owner", "propose_schema"}
+GRADE_KIND = "grade_outcome"
+MARK_KINDS = {"applied": "mark_applied", "withdrawn": "mark_withdrawn"}
+# Grades that end a proposal before its last window.
+TERMINAL_GRADES = {"verified", "resolved_unattributed"}
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
@@ -73,6 +83,90 @@ def load_ledger(home: Path) -> List[Dict[str, Any]]:
     return read_jsonl(ledger_path(home))
 
 
+class LedgerError(ValueError):
+    """Raised when an owner mark cannot be recorded."""
+
+
+def _legacy_window(anchor: Optional[datetime], graded_at: Optional[datetime]) -> int:
+    """Window for a 2.4.0 grade line, which has no ``window`` field."""
+    if not anchor or not graded_at:
+        return WINDOWS_DAYS[0]
+    age = (graded_at - anchor).days
+    reached = [d for d in WINDOWS_DAYS if age >= d]
+    return reached[-1] if reached else WINDOWS_DAYS[0]
+
+
+def ledger_state(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Fold event lines onto their proposals. Returns one state per proposal, in file order.
+
+    Each state is a copy of the proposal line with the effective ``status`` and ``grades``
+    plus ``created``, ``applied_ts``, ``anchor`` (datetimes) and ``closed``.
+    """
+    states: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        kind = row.get("kind")
+        if kind in OWNER_KINDS:
+            ident = str(row.get("id") or "")
+            if not ident or ident in states:
+                continue
+            state = dict(row)
+            created = _parse_ts(row.get("ts"))
+            status = str(row.get("status") or "proposed")
+            applied_ts = _parse_ts(row.get("applied_ts")) or (created if status == "applied" else None)
+            state.update(
+                status=status,
+                grades={int(k): v for k, v in (row.get("grades") or {}).items() if str(k).isdigit()},
+                created=created,
+                applied_ts=applied_ts,
+            )
+            states[ident] = state
+            continue
+        if kind == GRADE_KIND:
+            state = states.get(str(row.get("graded_id") or ""))
+            if state is None:
+                continue
+            window = row.get("window")
+            if not isinstance(window, int) or isinstance(window, bool):
+                window = _legacy_window(state["applied_ts"] or state["created"], _parse_ts(row.get("ts")))
+            state["grades"][window] = str(row.get("status") or "unchanged")
+            continue
+        if kind in MARK_KINDS.values():
+            state = states.get(str(row.get("target_id") or ""))
+            if state is None or state["status"] == "withdrawn":
+                continue
+            if kind == MARK_KINDS["withdrawn"]:
+                state["status"] = "withdrawn"
+            elif state["applied_ts"] is None:
+                state["status"] = "applied"
+                state["applied_ts"] = _parse_ts(row.get("ts"))
+                # Grades recorded before the application measured the untouched page.
+                state["pre_application_grades"] = state["grades"]
+                state["grades"] = {}
+    out = []
+    for state in states.values():
+        grades = state["grades"]
+        state["anchor"] = state["applied_ts"] or state["created"]
+        final = next((g for _, g in sorted(grades.items()) if g in TERMINAL_GRADES), None)
+        if final is None and WINDOWS_DAYS[-1] in grades:
+            final = grades[WINDOWS_DAYS[-1]]
+        if state["status"] in OPEN_STATUSES and final is not None:
+            state["status"] = final
+        state["closed"] = state["status"] not in OPEN_STATUSES
+        out.append(state)
+    return out
+
+
+def _due_window(state: Dict[str, Any], now: datetime) -> Optional[int]:
+    """Latest window reached and not yet covered by a grade, or None."""
+    anchor = state.get("anchor")
+    if not anchor:
+        return None
+    age = (now - anchor).days
+    done = max(state["grades"], default=0)
+    due = [d for d in WINDOWS_DAYS if d <= age and d > done]
+    return due[-1] if due else None
+
+
 def _stream_slug(value: str, max_length: int = 60) -> str:
     value = re.sub(r"^https?://", "", value.strip().lower())
     value = re.sub(r"[^a-z0-9]+", "-", value).strip("-")
@@ -100,11 +194,11 @@ def _key(kind: str, query_ids: List[str], page_ids: List[str]) -> Tuple[str, Tup
     return (kind, tuple(query_ids), tuple(page_ids))
 
 
-def _open_keys(ledger: List[Dict[str, Any]]) -> set:
+def _open_keys(states: List[Dict[str, Any]]) -> set:
     return {
         _key(str(row.get("kind") or ""), list(row.get("query_ids") or []), list(row.get("page_ids") or []))
-        for row in ledger
-        if row.get("status") in OPEN_STATUSES
+        for row in states
+        if not row["closed"]
     }
 
 
@@ -118,6 +212,7 @@ def _action(
     evidence: Optional[List[str]] = None,
     grade: Optional[str] = None,
     ledger_id: Optional[str] = None,
+    window: Optional[int] = None,
 ) -> Dict[str, Any]:
     return {
         "kind": kind,
@@ -128,6 +223,7 @@ def _action(
         "evidence": evidence or [],
         "grade": grade,
         "ledger_id": ledger_id,
+        "window": window,
         "auto_apply": False,
     }
 
@@ -135,8 +231,8 @@ def _action(
 def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, Any]:
     """Return exactly one ranked action. Pure read except path resolution."""
     now = now or _now()
-    ledger = load_ledger(home)
-    open_keys = _open_keys(ledger)
+    states = ledger_state(load_ledger(home))
+    open_keys = _open_keys(states)
     cadence = _cadence_days(project)
     queries = [q for q in project.get("queries", []) if q.get("active", True)]
     pages = [p for p in project.get("pages", []) if p.get("active", True)]
@@ -166,47 +262,48 @@ def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = N
             next_gate="scheduler",
         )
 
-    # 2/3. wait_for_window or grade_outcome
-    for row in ledger:
-        if row.get("status") not in OPEN_STATUSES:
+    # 2. grade_outcome. An open proposal that is still waiting does not stop new proposals:
+    # it only keeps its own kind+query/page from being proposed again (open_keys). The first
+    # waiting one is reported as wait_for_window if nothing else is found below.
+    waiting: Optional[Dict[str, Any]] = None
+    for row in states:
+        if row["closed"] or not row.get("anchor"):
             continue
-        created = _parse_ts(row.get("ts"))
-        if not created:
-            continue
-        age_days = (now - created).days
-        grades = row.get("grades") or {}
-        pending = [d for d in WINDOWS_DAYS if age_days >= d and str(d) not in {str(k) for k in grades}]
-        if not pending:
-            if age_days < WINDOWS_DAYS[0]:
-                return _action(
+        ids = dict(
+            query_ids=list(row.get("query_ids") or []),
+            page_ids=list(row.get("page_ids") or []),
+            ledger_id=str(row.get("id")),
+        )
+        window = _due_window(row, now)
+        if window is None:
+            age = (now - row["anchor"]).days
+            nxt = next((d for d in WINDOWS_DAYS if d > max(age, max(row["grades"], default=0))), None)
+            if waiting is None and nxt is not None:
+                waiting = _action(
                     kind="wait_for_window",
-                    reason=f"open {row.get('kind')} {row.get('id')} waiting for day {WINDOWS_DAYS[0]}",
+                    reason=f"open {row.get('kind')} {row.get('id')} waiting for day {nxt}",
                     next_gate="none",
-                    query_ids=list(row.get("query_ids") or []),
-                    page_ids=list(row.get("page_ids") or []),
-                    ledger_id=str(row.get("id")),
+                    **ids,
                 )
             continue
-        window = pending[0]
-        grade, evidence = _grade_row(home, project, row, created)
+        grade, evidence = _grade_row(home, project, row)
         if grade is None:
-            return _action(
-                kind="wait_for_window",
-                reason=f"window {window}d reached but no later observations for {row.get('id')}",
-                next_gate="scheduler",
-                query_ids=list(row.get("query_ids") or []),
-                page_ids=list(row.get("page_ids") or []),
-                ledger_id=str(row.get("id")),
-            )
+            if waiting is None:
+                waiting = _action(
+                    kind="wait_for_window",
+                    reason=f"window {window}d reached but no later observations for {row.get('id')}",
+                    next_gate="scheduler",
+                    **ids,
+                )
+            continue
         return _action(
             kind="grade_outcome",
             reason=f"window {window}d grade={grade} for {row.get('id')}",
             next_gate="none",
-            query_ids=list(row.get("query_ids") or []),
-            page_ids=list(row.get("page_ids") or []),
             evidence=evidence,
             grade=grade,
-            ledger_id=str(row.get("id")),
+            window=window,
+            **ids,
         )
 
     # 4. escalate_absent
@@ -267,57 +364,73 @@ def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = N
             evidence=[rel],
         )
 
+    if waiting is not None:
+        return waiting
     return _action(kind="no_op", reason="no deterministic action", next_gate="none")
 
 
-def _grade_row(home: Path, project: Dict[str, Any], row: Dict[str, Any], created: datetime) -> Tuple[Optional[str], List[str]]:
+def _grade_row(home: Path, project: Dict[str, Any], row: Dict[str, Any]) -> Tuple[Optional[str], List[str]]:
+    """Grade one folded proposal from observations after its anchor.
+
+    ``verified`` needs an owner-recorded application, or an observation that is itself the
+    proposed change. A metric that moved with no recorded application is ``resolved_unattributed``.
+    Returns ``(None, evidence)`` when there is nothing to grade from yet.
+    """
     kind = row.get("kind")
+    anchor: datetime = row["anchor"]
+    applied = row.get("applied_ts") is not None
     evidence: List[str] = []
     later = False
+
+    def _after(stream: Path) -> List[Dict[str, Any]]:
+        found = [r for r in read_jsonl(stream) if (_parse_ts(r.get("ts")) or anchor) > anchor]
+        if found:
+            evidence.append(str(stream.relative_to(home)) if stream.is_relative_to(home) else str(stream))
+        return found
+
     if kind == "escalate_absent":
         query_ids = set(row.get("query_ids") or [])
         for query in project.get("queries", []):
             if query.get("id") not in query_ids:
                 continue
-            stream = _query_stream(home, query["text"])
-            records = read_jsonl(stream)
-            after = [r for r in records if (_parse_ts(r.get("ts")) or created) > created]
+            after = _after(_query_stream(home, query["text"]))
             if not after:
                 continue
             later = True
-            rel = str(stream.relative_to(home)) if stream.is_relative_to(home) else str(stream)
-            evidence.append(rel)
             if any(r.get("target_position") is not None for r in after):
-                return "verified", evidence
+                return ("verified" if applied else "resolved_unattributed"), evidence
         return ("unchanged" if later else None), evidence
     if kind == "propose_schema":
-        page_ids = set(row.get("page_ids") or [])
         pages = {p["id"]: p for p in project.get("pages", [])}
-        for page_id in page_ids:
+        for page_id in row.get("page_ids") or []:
             page = pages.get(page_id)
             if not page:
                 continue
-            stream = _page_stream(home, page["url"])
-            records = read_jsonl(stream)
-            after = [r for r in records if (_parse_ts(r.get("ts")) or created) > created]
+            after = _after(_page_stream(home, page["url"]))
             if not after:
                 continue
             later = True
-            rel = str(stream.relative_to(home)) if stream.is_relative_to(home) else str(stream)
-            evidence.append(rel)
             if after[-1].get("jsonld_types"):
                 return "verified", evidence
         return ("unchanged" if later else None), evidence
+    if kind == "propose_page_owner":
+        active_pages = {p["id"] for p in project.get("pages", []) if p.get("active", True)}
+        query_ids = set(row.get("query_ids") or [])
+        for query in project.get("queries", []):
+            if query.get("id") in query_ids and any(t in active_pages for t in (query.get("target_pages") or [])):
+                return "verified", [workspace.PROJECT_CONFIG_NAME]
+        return "unchanged", [workspace.PROJECT_CONFIG_NAME]
     return (None, evidence)
 
 
-def _proposal_markdown(action: Dict[str, Any], project: Dict[str, Any]) -> str:
+def _proposal_markdown(action: Dict[str, Any], project: Dict[str, Any], ledger_id: str = "") -> str:
     ident = project["project"]["id"]
     lines = [
         f"# Decision proposal: {action['kind']}",
         "",
         f"- project: `{ident}`",
         f"- kind: `{action['kind']}`",
+        f"- ledger_id: `{ledger_id or '—'}`",
         f"- next_gate: `{action['next_gate']}`",
         f"- auto_apply: `false`",
         f"- query_ids: {', '.join(action['query_ids']) or '—'}",
@@ -341,6 +454,17 @@ def _proposal_markdown(action: Dict[str, Any], project: Dict[str, Any]) -> str:
             "",
             "Owner must approve before any site edit, PR, merge, or deploy.",
             "Visible copy, prices, and CTAs are never auto-published.",
+            "",
+            "## After you act",
+            "",
+            "Record what happened so the outcome is graded from the right date:",
+            "",
+            "```bash",
+            f"egeo loop mark {shlex.quote(ledger_id or '<ledger-id>')} applied     # you made the change",
+            f"egeo loop mark {shlex.quote(ledger_id or '<ledger-id>')} withdrawn   # you decided not to",
+            "```",
+            "",
+            "Without a recorded application, a later improvement is graded `resolved_unattributed`.",
             "",
         ]
     )
@@ -371,7 +495,7 @@ def apply_decision(home: Path, project: Dict[str, Any], action: Dict[str, Any], 
     if action["kind"] == "grade_outcome":
         row = {
             "v": SCHEMA_VERSION,
-            "id": f"{stamp}-grade-{_slug(action.get('ledger_id') or 'row')}",
+            "id": f"{stamp}-grade-{action.get('window') or 0}d-{_slug(action.get('ledger_id') or 'row')}",
             "ts": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "project_id": project["project"]["id"],
             "kind": "grade_outcome",
@@ -384,12 +508,13 @@ def apply_decision(home: Path, project: Dict[str, Any], action: Dict[str, Any], 
             "next_gate": "none",
             "auto_apply": False,
             "graded_id": action.get("ledger_id"),
+            "window": action.get("window"),
         }
         append_jsonl(ledger_path(home), row)
         line = workspace.append_log(
             "egeo-core",
             "decide",
-            f"graded {action.get('ledger_id')} as {row['status']}, outcome=success",
+            f"graded {action.get('ledger_id')} window {action.get('window')}d as {row['status']}, outcome=success",
             home=home,
         )
         result["written"].extend([str(LEDGER_REL), "LOG.md"])
@@ -420,7 +545,7 @@ def apply_decision(home: Path, project: Dict[str, Any], action: Dict[str, Any], 
         doc_name = f"{now.strftime('%Y-%m-%d')}-decide-{slug}.md"
         doc_path = home / "docs" / doc_name
         doc_path.parent.mkdir(parents=True, exist_ok=True)
-        doc_path.write_text(_proposal_markdown(action, project), encoding="utf-8")
+        doc_path.write_text(_proposal_markdown(action, project, row["id"]), encoding="utf-8")
         result["written"].append(f"docs/{doc_name}")
         result["proposal"] = str(doc_path)
     line = workspace.append_log(
@@ -432,3 +557,59 @@ def apply_decision(home: Path, project: Dict[str, Any], action: Dict[str, Any], 
     result["written"].append("LOG.md")
     result["log"] = line
     return result
+
+
+def mark_row(
+    home: Path,
+    ledger_id: str,
+    status: str,
+    *,
+    at: Optional[datetime] = None,
+    note: str = "",
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Owner action: record that a proposal was applied or withdrawn. Appends, never rewrites.
+
+    ``at`` backdates an application; it must lie between the proposal time and ``now``.
+    """
+    now = now or _now()
+    if status not in MARK_KINDS:
+        raise LedgerError(f"status must be one of: {', '.join(sorted(MARK_KINDS))}")
+    states = {str(s.get("id")): s for s in ledger_state(load_ledger(home))}
+    state = states.get(ledger_id)
+    if state is None:
+        open_ids = [i for i, s in states.items() if not s["closed"]]
+        hint = f" Open proposals: {', '.join(open_ids)}." if open_ids else " The ledger has no open proposals."
+        raise LedgerError(f"no proposal with id {ledger_id!r}.{hint}")
+    if state["closed"]:
+        raise LedgerError(f"proposal {ledger_id!r} is already closed (status {state['status']})")
+    if status == "applied" and state["applied_ts"] is not None:
+        raise LedgerError(f"proposal {ledger_id!r} is already marked applied")
+    when = now
+    if at is not None:
+        if status != "applied":
+            raise LedgerError("--at only applies to `applied`")
+        if at > now:
+            raise LedgerError("--at is in the future")
+        if state["created"] and at < state["created"]:
+            raise LedgerError("--at is earlier than the proposal itself")
+        when = at
+    row = {
+        "v": SCHEMA_VERSION,
+        "id": f"{now.strftime('%Y-%m-%dT%H:%MZ')}-mark-{status}-{_slug(ledger_id)}",
+        "ts": when.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "recorded_ts": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "project_id": state.get("project_id"),
+        "kind": MARK_KINDS[status],
+        "status": status,
+        "target_id": ledger_id,
+        "query_ids": list(state.get("query_ids") or []),
+        "page_ids": list(state.get("page_ids") or []),
+        "evidence": [],
+        "note": note,
+        "next_gate": "none",
+        "auto_apply": False,
+    }
+    append_jsonl(ledger_path(home), row)
+    line = workspace.append_log("egeo-core", "mark", f"{ledger_id} marked {status} by owner, outcome=success", home=home)
+    return {"ledger_row": row, "written": [str(LEDGER_REL), "LOG.md"], "log": line}

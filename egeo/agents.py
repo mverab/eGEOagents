@@ -29,6 +29,7 @@ from geo_eval import Candidate
 
 __all__ = [
     "GEO_FEATURES",
+    "CONTENT_TYPES",
     "AnalysisResult",
     "RankResult",
     "RewriteResult",
@@ -247,18 +248,66 @@ class Ranker:
         return RankResult(query=query, ordered_ids=list(ordered))
 
 
-class Rewriter:
-    """Optimize a description by delegating to ``geo_eval._rewrite_description``."""
+CONTENT_TYPES = ("product", "article")
+_PROMPT_STEM = {"product": "rewriter", "article": "rewriter_article"}
 
-    def __init__(self, *, client: Any, model: str, prompts_dir: Path, temperature: float = 0.0):
+
+def _repair_suffix(previous: str, violations: Sequence[str]) -> str:
+    """Instruction appended to the rewriter prompt for the single repair attempt."""
+    listed = "\n".join(f"- {v}" for v in violations)
+    return (
+        "Your previous rewrite was rejected by an automatic fidelity check. Violations "
+        "(`link_removed:X` / `number_removed:X` means X is in the original and missing from your "
+        "rewrite; `link_added` / `number_added` means you introduced it; `too_short` means you cut "
+        "more than 20% of the words; `table_rows_decreased` and `code_block_changed` mean a table "
+        "or code block was altered):\n"
+        f"{listed}\n\n"
+        "Rewrite again from the original above. Fix every violation and follow all the rules.\n\n"
+        "Previous rejected rewrite, for reference only:\n"
+        f"{previous}\n\n"
+        "Return ONLY JSON."
+    )
+
+
+class Rewriter:
+    """Optimize a description by delegating to ``geo_eval._rewrite_description``.
+
+    ``content_type`` picks the prompt pair: ``product`` (``rewriter_*.txt``, the prompts the
+    evaluation harness uses) or ``article`` (``rewriter_article_*.txt``, for guides, concept
+    pages and documentation).
+    """
+
+    def __init__(
+        self,
+        *,
+        client: Any,
+        model: str,
+        prompts_dir: Path,
+        temperature: float = 0.0,
+        content_type: str = "product",
+    ):
+        if content_type not in CONTENT_TYPES:
+            raise ValueError(f"Unknown content type '{content_type}'. Known: {list(CONTENT_TYPES)}")
+        stem = _PROMPT_STEM[content_type]
+        self.content_type = content_type
         self._client = client
         self._model = model
-        self._system = geo_eval._read_text(prompts_dir / "rewriter_system.txt")
-        self._user = geo_eval._read_text(prompts_dir / "rewriter_user.txt")
+        self._system = geo_eval._read_text(prompts_dir / f"{stem}_system.txt")
+        self._user = geo_eval._read_text(prompts_dir / f"{stem}_user.txt")
         self._temperature = temperature
 
-    def rewrite(self, title: str, description: str) -> RewriteResult:
+    def rewrite(
+        self,
+        title: str,
+        description: str,
+        *,
+        previous: Optional[str] = None,
+        violations: Sequence[str] = (),
+    ) -> RewriteResult:
+        """Rewrite ``description``. With ``previous`` and ``violations`` it is a repair attempt."""
+        suffix = _repair_suffix(previous, violations) if previous is not None and violations else ""
         rewritten = geo_eval._rewrite_description(
+            suffix=suffix,
             client=self._client,
             model=self._model,
             system_prompt=self._system,

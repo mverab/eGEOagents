@@ -49,6 +49,8 @@ directory is left untouched.
 
 Turn an AI-visibility tracker's report into surgical page rewrites. `fix-gaps` reads the queries where your domain is **not** cited, maps each one to the local page that should win it through `project.yaml`, and rewrites it. The default **page mode** optimizes each affected page with the `optimize` pipeline; the opt-in, **experimental section mode** (`--mode sections`) rewrites only the one section that loses the query. Page mode stays the default until `remeasure` evidence shows section mode helps. Your source files are never modified.
 
+Page mode checks every rewrite with deterministic fidelity rules (no link or number removed or added, tables and code blocks kept, at least 80% of the length) and retries once. A rewrite that still fails is written to `<page>/rejected/`, not `<page>/optimized/`, and `fix-gaps.json` reports it under `fidelity`.
+
 ```bash
 # 1. Measure with any tracker, e.g. geo-optimizer-skill:
 geo citations --brand "Acme" --domain acme.com --format json --output gaps.json
@@ -121,6 +123,9 @@ egeo loop run example-com --dry-run
 
 # Rank one next action from collector JSONL + the outcome ledger — writes nothing
 egeo loop decide --dry-run
+
+# After you act on a proposal, record it so the outcome is graded from that date
+egeo loop mark <ledger-id> applied --note "PR link"
 
 # Execute one bounded iteration (the agent does the interpretive work)
 claude -p "/geo:loop example-com"

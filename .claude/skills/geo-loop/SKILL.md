@@ -49,6 +49,8 @@ not in a runnable state (`egeo loop doctor` explains why).
   dedupe instead of duplicating.
 - `$EGEO_HOME/config.yaml` — models, budgets, `reflect.auto_apply`.
 - `$EGEO_HOME/data/outcomes/ledger.jsonl` — append-only decision outcomes when `egeo loop decide` has run.
+  Only the owner records that a proposal was applied (`egeo loop mark <id> applied`); never run
+  `mark` yourself. A `resolved_unattributed` grade is not evidence that an action worked.
 
 ### 3. Do the work
 

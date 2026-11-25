@@ -164,6 +164,7 @@ def _rewrite_description(
     title: str,
     description: str,
     temperature: float,
+    suffix: str = "",
 ) -> str:
     user = _render_template(
         user_template,
@@ -172,6 +173,9 @@ def _rewrite_description(
             "description": description,
         },
     )
+    if suffix:
+        # Appended after rendering, so its text is never treated as a template.
+        user = f"{user.rstrip()}\n\n{suffix}"
     out = client.chat_json(model=model, system=system_prompt, user=user, temperature=temperature)
     rewritten = out.get("rewritten_description")
     if not isinstance(rewritten, str) or not rewritten.strip():

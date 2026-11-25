@@ -284,7 +284,7 @@ From a clone, `pip install -e .` still works. `python -m egeo --help` runs witho
 
 | Command | What it does |
 |---------|--------------|
-| `egeo optimize <file>` | **Full pipeline** — analyze → rank → rewrite → schema, writes `report.md`, `optimized/*.md`, `schema/*.json`, `analysis.json` |
+| `egeo optimize <file>` | **Full pipeline** — analyze → rank → rewrite → fidelity gate → schema, writes `report.md`, `optimized/*.md`, `schema/*.json`, `analysis.json`. A rewrite that drops or invents links or numbers, or cuts more than 20% of the text, goes to `rejected/` instead of `optimized/` |
 | `egeo evaluate` | Run the evaluation harness (reuses `geo_eval.py`, identical metrics) |
 | `egeo optimize-prompts` | Meta-optimize the rewriter prompt (non-destructive by default) |
 | `egeo runtimes` | List available runtime adapters and their status |
@@ -370,6 +370,7 @@ See [`examples/project.yaml`](examples/project.yaml) for the portable contract.
 |---------|--------------|
 | `egeo loop doctor` | Bootstrap the workspace if missing, then health-check it (layout, config, budgets, substrate lint) |
 | `egeo loop decide` | Rank exactly one next action from collector JSONL + the outcome ledger (LLM-free; never publishes) |
+| `egeo loop mark <id> applied\|withdrawn` | Owner: record that a ledger proposal was applied or withdrawn; grading windows count from the applied time |
 | `egeo loop collect serp` | Record a search-result snapshot (Brave API) into `data/serp/*.jsonl` |
 | `egeo loop collect page` | Record a page snapshot (hash, title, meta, JSON-LD types, word count) into `data/page/*.jsonl` |
 | `egeo loop run <domain>` | Resolve and print the run plan — current focus, fresh collector deltas, candidate signals |

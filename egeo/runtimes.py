@@ -91,7 +91,7 @@ class RuntimeAdapter(ABC):
     def make_ranker(self) -> Ranker: ...
 
     @abstractmethod
-    def make_rewriter(self) -> Rewriter: ...
+    def make_rewriter(self, content_type: str = "product") -> Rewriter: ...
 
     @abstractmethod
     def make_indexer(self) -> Indexer: ...
@@ -149,12 +149,13 @@ class PythonRuntime(RuntimeAdapter):
             temperature=self.temperature,
         )
 
-    def make_rewriter(self) -> Rewriter:
+    def make_rewriter(self, content_type: str = "product") -> Rewriter:
         return Rewriter(
             client=self._client(),
             model=self.rewriter_model,
             prompts_dir=self.prompts_dir,
             temperature=self.temperature,
+            content_type=content_type,
         )
 
     def make_indexer(self) -> Indexer:
@@ -203,7 +204,7 @@ class ClaudeCodeRuntime(RuntimeAdapter):
     def make_ranker(self) -> Ranker:
         raise self._unsupported("ranker")
 
-    def make_rewriter(self) -> Rewriter:
+    def make_rewriter(self, content_type: str = "product") -> Rewriter:
         raise self._unsupported("rewriter")
 
     def make_indexer(self) -> Indexer:
