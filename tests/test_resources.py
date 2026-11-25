@@ -39,6 +39,7 @@ RESOURCE_FILES = [
     "collectors/fixtures/serp_serpbase_response.json",
     "collectors/fixtures/serp_serply_response.json",
     "collectors/fixtures/serp_goanyapi_response.json",
+    "collectors/fixtures/serp_monid_response.json",
     "collectors/fixtures/ai_overview_goanyapi_response.json",
     "collectors/fixtures/ai_overview_goanyapi_response_empty.json",
     "SUBSTRATE.md",

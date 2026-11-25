@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """SERP collector: position history for your queries, from the Brave Search API,
-the SerpBase Google Search API, the Serply Google Search API, or GoAnyAPI.
+the SerpBase Google Search API, the Serply Google Search API, GoAnyAPI, or
+Search1API through Monid.
 
 Deterministic, zero LLM calls. One record per query per pass, appended to
 ``$EGEO_HOME/data/serp/<query-slug>.jsonl``::
@@ -9,7 +10,7 @@ Deterministic, zero LLM calls. One record per query per pass, appended to
      "results": [{"position": 1, "url": "...", "domain": "...", "title": "..."}, ...],
      "target_domain": "example.com", "target_position": 3 | null}
 
-The engine is selected with ``--engine brave|serpbase|serply|goanyapi`` (or
+The engine is selected with ``--engine brave|serpbase|serply|goanyapi|monid`` (or
 ``collectors.serp.engine`` in config.yaml; default ``brave``):
 
 - ``brave`` — Brave Search API over HTTP directly (``BRAVE_API_KEY``).
@@ -19,9 +20,14 @@ The engine is selected with ``--engine brave|serpbase|serply|goanyapi`` (or
   results as JSON over a GET request, no browser.
 - ``goanyapi`` — GoAnyAPI Google SERP API (``GOANYAPI_API_KEY``): structured
   organic results as JSON over a GET request, no browser.
+- ``monid`` — Search1API's ``/search`` endpoint, pinned to Google web results,
+  requested through Monid's ``POST /v1/run`` API (``MONID_API_KEY``). Monid is
+  a third-party intermediary: it receives each query and forwards it to
+  Search1API.
 
 All are called over their HTTP API directly (``BRAVE_API_KEY`` /
-``SERPBASE_API_KEY`` / ``SERPLY_API_KEY`` / ``GOANYAPI_API_KEY``) rather than through an MCP: a cron-launched collector
+``SERPBASE_API_KEY`` / ``SERPLY_API_KEY`` / ``GOANYAPI_API_KEY`` /
+``MONID_API_KEY``) rather than through an MCP: a cron-launched collector
 has no agent, hence no MCP. Live passes are paced at ≤1 query/second and
 refuse to exceed ``budgets.queries_per_day``.
 
@@ -31,10 +37,12 @@ Usage::
     python collectors/serp.py --query "best geo tool"
     python collectors/serp.py --engine serpbase     # Google SERP via SerpBase
     python collectors/serp.py --engine goanyapi     # Google SERP via GoAnyAPI
+    python collectors/serp.py --engine monid        # Google SERP via Search1API through Monid
     python collectors/serp.py --fixture collectors/fixtures/serp_brave_response.json
     python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json
     python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json
     python collectors/serp.py --engine goanyapi --fixture collectors/fixtures/serp_goanyapi_response.json
+    python collectors/serp.py --engine monid --fixture collectors/fixtures/serp_monid_response.json
 """
 from __future__ import annotations
 
@@ -46,7 +54,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 if __package__ in (None, ""):  # executed as a script
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -68,12 +76,22 @@ SERPLY_API_KEY_ENV = "SERPLY_API_KEY"
 GOANYAPI_ENGINE = "goanyapi"
 GOANYAPI_API_URL = "https://api.goanyapi.com/api/v1/serp"
 GOANYAPI_API_KEY_ENV = "GOANYAPI_API_KEY"
-ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE, GOANYAPI_ENGINE)
+MONID_ENGINE = "monid"
+MONID_API_URL = "https://api.monid.ai"
+MONID_API_KEY_ENV = "MONID_API_KEY"
+MONID_PROVIDER = "search1api"
+MONID_ENDPOINT = "/search"
+MONID_SEARCH_SERVICE = "google"
+MONID_FINAL_STATES = ("COMPLETED", "FAILED", "BLOCKED", "TIMED_OUT", "STOPPED")
+MONID_POLL_SECONDS = 2.0
+MONID_RUN_TIMEOUT_SECONDS = 60.0
+ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE, GOANYAPI_ENGINE, MONID_ENGINE)
 API_KEY_ENVS = {
     ENGINE: API_KEY_ENV,
     SERPBASE_ENGINE: SERPBASE_API_KEY_ENV,
     SERPLY_ENGINE: SERPLY_API_KEY_ENV,
     GOANYAPI_ENGINE: GOANYAPI_API_KEY_ENV,
+    MONID_ENGINE: MONID_API_KEY_ENV,
 }
 MAX_RESULTS = 10
 MIN_SECONDS_BETWEEN_QUERIES = 1.0
@@ -281,6 +299,72 @@ def parse_goanyapi_response(payload: Dict[str, Any], query: str, target_domain: 
     }
 
 
+def parse_monid_response(payload: Dict[str, Any], query: str, target_domain: str) -> Dict[str, Any]:
+    """Normalize a finished Monid run of Search1API's ``/search`` endpoint.
+
+    The results sit under ``output.results`` in rank order with no rank field,
+    so a result's position is its order, as with Brave. A run that did not
+    complete, or that Search1API answered with an HTTP error, is rejected.
+    """
+    run_status = payload.get("status")
+    if run_status != "COMPLETED":
+        reason = payload.get("reason") or payload.get("error") or payload.get("message")
+        raise common.CollectorError(
+            f"Monid run {payload.get('runId')!r} ended {run_status!r} for {query!r}"
+            + (f": {str(reason)[:300]}" if reason else "")
+        )
+    provider = payload.get("providerResponse")
+    if provider is None:
+        provider = {}
+    if not isinstance(provider, dict):
+        raise common.CollectorError(f"unexpected Monid payload for {query!r}: providerResponse is not an object")
+    http_status = provider.get("httpStatus")
+    if http_status is not None and (isinstance(http_status, bool) or not isinstance(http_status, int)):
+        raise common.CollectorError(
+            f"unexpected Monid payload for {query!r}: providerResponse.httpStatus is not an integer"
+        )
+    if http_status == 429:
+        raise common.CollectorError("Search1API rate limit hit through Monid (HTTP 429); retry later or lower the cadence.")
+    if http_status is not None and http_status >= 400:
+        error = provider.get("error")
+        raise common.CollectorError(
+            f"Search1API returned HTTP {http_status} through Monid for {query!r}"
+            + (f": {str(error)[:300]}" if error else "")
+        )
+    output = payload.get("output")
+    if not isinstance(output, dict):
+        raise common.CollectorError(f"unexpected Monid payload for {query!r}: output is not an object")
+    raw_results = output.get("results")
+    if raw_results is None:
+        raw_results = []
+    if not isinstance(raw_results, list):
+        raise common.CollectorError(f"unexpected Monid payload for {query!r}: output.results is not a list")
+
+    results: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw_results[:MAX_RESULTS], start=1):
+        if not isinstance(item, dict):
+            raise common.CollectorError(f"unexpected Monid payload for {query!r}: result is not an object")
+        url = item.get("link")
+        if not isinstance(url, str) or not url:
+            raise common.CollectorError(f"unexpected Monid payload for {query!r}: result link is missing")
+        results.append({"position": index, "url": url, "domain": _domain_of(url), "title": str(item.get("title") or "")})
+
+    target = _normalize_domain(target_domain)
+    target_position = next(
+        (item["position"] for item in results if target and (item["domain"] == target or item["domain"].endswith("." + target))),
+        None,
+    )
+    return {
+        "v": SCHEMA_VERSION,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "query": query,
+        "engine": MONID_ENGINE,
+        "results": results,
+        "target_domain": target or None,
+        "target_position": target_position,
+    }
+
+
 def fetch_brave(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str, Any]:
     """Call the Brave Search API and return the parsed JSON body."""
     url = f"{API_URL}?{urlencode({'q': query, 'count': count})}"
@@ -387,6 +471,58 @@ def fetch_goanyapi(query: str, api_key: str) -> Dict[str, Any]:
     return payload
 
 
+def _monid_body(status: int, body: str, query: str) -> Dict[str, Any]:
+    """Check one Monid API answer and return its JSON object."""
+    if status in (401, 403):
+        raise common.CollectorError(f"Monid API rejected the request (HTTP {status}). Check ${MONID_API_KEY_ENV}.")
+    if status == 429:
+        raise common.CollectorError("Monid API rate limit hit (HTTP 429); retry later or lower the cadence.")
+    if status not in (200, 202):
+        raise common.CollectorError(f"Monid API returned HTTP {status} for {query!r}: {body[:300]}")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise common.CollectorError(f"Monid API returned invalid JSON for {query!r}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise common.CollectorError(f"Monid API returned a non-object body for {query!r}")
+    return payload
+
+
+def fetch_monid(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str, Any]:
+    """Run Search1API's ``/search`` (Google web results) through Monid and return the run body.
+
+    ``POST /v1/run`` usually answers with the finished run. A run still going
+    is read again from ``GET /v1/runs/<runId>`` every ``MONID_POLL_SECONDS``
+    until it ends; after ``MONID_RUN_TIMEOUT_SECONDS`` the pass fails.
+    """
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {api_key}"}
+    status, body = common.http_post(
+        f"{MONID_API_URL}/v1/run",
+        headers=headers,
+        payload={
+            "provider": MONID_PROVIDER,
+            "endpoint": MONID_ENDPOINT,
+            "input": {"body": {"query": query, "max_results": count, "search_service": MONID_SEARCH_SERVICE}},
+        },
+    )
+    run = _monid_body(status, body, query)
+    if run.get("status") in MONID_FINAL_STATES:
+        return run
+    run_id = run.get("runId")
+    if not isinstance(run_id, str) or not run_id:
+        raise common.CollectorError(f"Monid API returned an unfinished run without a runId for {query!r}")
+    deadline = time.monotonic() + MONID_RUN_TIMEOUT_SECONDS
+    while run.get("status") not in MONID_FINAL_STATES:
+        if time.monotonic() >= deadline:
+            raise common.CollectorError(
+                f"Monid run {run_id!r} did not finish within {MONID_RUN_TIMEOUT_SECONDS:.0f}s for {query!r}"
+            )
+        time.sleep(MONID_POLL_SECONDS)
+        status, body = common.http_get(f"{MONID_API_URL}/v1/runs/{quote(run_id, safe='')}", headers=headers)
+        run = _monid_body(status, body, query)
+    return run
+
+
 def load_fixture(path: Path) -> Dict[str, Any]:
     """Read a recorded Brave response body from disk (fixture mode)."""
     try:
@@ -453,6 +589,8 @@ def collect(
                 payload = fetch_serply(query, api_key)
             elif engine == GOANYAPI_ENGINE:
                 payload = fetch_goanyapi(query, api_key)
+            elif engine == MONID_ENGINE:
+                payload = fetch_monid(query, api_key)
             else:
                 payload = fetch_brave(query, api_key)
         if engine == SERPBASE_ENGINE:
@@ -461,6 +599,8 @@ def collect(
             record = parse_serply_response(payload, query, target_domain)
         elif engine == GOANYAPI_ENGINE:
             record = parse_goanyapi_response(payload, query, target_domain)
+        elif engine == MONID_ENGINE:
+            record = parse_monid_response(payload, query, target_domain)
         else:
             record = parse_brave_response(payload, query, target_domain)
         common.append_record(paths[query], record)
@@ -495,7 +635,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"SERP source engine: '{ENGINE}' (Brave Search API), '{SERPBASE_ENGINE}' "
         f"(SerpBase Google Search API), '{SERPLY_ENGINE}' (Serply Google Search API), "
-        f"or '{GOANYAPI_ENGINE}' (GoAnyAPI Google SERP API). "
+        f"'{GOANYAPI_ENGINE}' (GoAnyAPI Google SERP API), "
+        f"or '{MONID_ENGINE}' (Search1API Google web results through Monid, MONID_API_KEY). "
         f"Default: collectors.serp.engine from config.yaml, else '{ENGINE}'.",
     )
     parser.add_argument(

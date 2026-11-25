@@ -100,7 +100,7 @@ without a workspace.
 
 ### Environment
 - `EGEO_HOME`: optional (defaults to `~/.egeo`)
-- `BRAVE_API_KEY`, `SERPBASE_API_KEY`, `SERPLY_API_KEY`, or `GOANYAPI_API_KEY`: required by the `serp` collector according to the selected engine; see [collector setup](collectors/README.md)
+- `BRAVE_API_KEY`, `SERPBASE_API_KEY`, `SERPLY_API_KEY`, `GOANYAPI_API_KEY`, or `MONID_API_KEY`: required by the `serp` collector according to the selected engine; see [collector setup](collectors/README.md)
 
 ### Commands
 

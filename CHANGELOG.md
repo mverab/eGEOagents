@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Optional monid engine for the loop-mode SERP collector (`MONID_API_KEY`): Google web results from Search1API through Monid, a third-party intermediary, with a recorded fixture and a doctor check. Selected only with `--engine monid` or `collectors.serp.engine: monid`; the `brave` engine is unchanged.
 - Optional goanyapi engine for the loop-mode SERP collector (`GOANYAPI_API_KEY`), with an offline fixture and a provider-aware doctor check.
 - Loop-mode AI Overview collector (`collectors/ai_overview.py`) that records Google's AI Overview answer and citation list via the configured provider (`GOANYAPI_API_KEY`), with offline fixtures and loop-run deltas/signals.
 - `egeo loop mark <ledger-id> applied|withdrawn [--at TS] [--note TEXT]`: the owner records that a ledger proposal was applied or withdrawn. Grading windows count from the applied time (openspec `update-loop-ledger-lifecycle`).
