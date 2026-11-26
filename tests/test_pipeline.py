@@ -420,3 +420,35 @@ def test_no_aggregate_score_in_any_output(tmp_path, monkeypatch, capsys):
     summary = json.loads(capsys.readouterr().out)
     assert "geo_score" not in summary and "total_score" not in summary
     assert len(summary["signals"]) == 10
+
+
+def test_frontmatter_title_keeps_opening_paragraph_and_first_section_heading():
+    """The first body line was dropped when the title came from frontmatter (lost before the gate)."""
+    page = '---\ntitle: "What is GEO"\n---\n\n**GEO** is the practice of X. Last verified: 2026-08-11.\n\n## Why\n\nBecause.\n'
+    title, body, _, _ = _derive_title_and_body(page)
+    assert title == "What is GEO"
+    assert body.startswith("**GEO** is the practice of X. Last verified: 2026-08-11.")
+
+    title, body, _, _ = _derive_title_and_body('---\ntitle: T\n---\n\n## First section\n\nText.\n')
+    assert body.startswith("## First section")
+
+    # an H1 in the body is still the title line, with or without a frontmatter title
+    title, body, _, _ = _derive_title_and_body('---\ntitle: T\n---\n\n# Body H1\n\nText.\n')
+    assert (title, body) == ("T", "Text.")
+    title, body, _, _ = _derive_title_and_body("# Only H1\n\nText.\n")
+    assert (title, body) == ("Only H1", "Text.")
+    title, body, _, _ = _derive_title_and_body("Plain first line\n\nText.\n")
+    assert (title, body) == ("Plain first line", "Text.")
+
+
+def test_opening_paragraph_reaches_rewriter_and_output(tmp_path, monkeypatch):
+    page = '---\ntitle: "Guide"\n---\n\n**Last verified: 2026-08-11.** Opening claim.\n\n## Step\n\nDo it.\n'
+    body = "**Last verified: 2026-08-11.** Opening claim.\n\n## Step\n\nDo it."
+    runtime, result = _run(tmp_path, monkeypatch, [body], content=page)
+    assert result.rewrite.original_description == body
+    out = (tmp_path / "optimized" / "guide.md").read_text(encoding="utf-8")
+    assert "Last verified: 2026-08-11." in out
+    # and a rewrite that drops it is now caught by the gate
+    runtime, result = _run(tmp_path / "b", monkeypatch, ["## Step\n\nDo it.", "## Step\n\nDo it."], content=page)
+    assert result.fidelity["status"] == "rejected"
+    assert "number_removed:2026" in result.fidelity["violations"]

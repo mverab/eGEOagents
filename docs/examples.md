@@ -166,6 +166,40 @@ Source: `site/src/content/docs/concepts/what-is-geo.md` (frontmatter preserved u
 
 ---
 
+## Re-run with the fidelity gate — 2026-11-26
+
+The same three commands, run once on 2026-11-26 from source after 2.4.0 (`gpt-4o` as ranker and
+rewriter, temperature 0), with the fidelity gate, the article prompt and the fix below.
+
+| Page | Prompt used | Words (body) | Fidelity | Simulated rank |
+|---|---|---|---|---|
+| `examples/sample-input.md` | product | 20 → 116 | passed, 1 attempt | #1 → #1 |
+| `rank-in-perplexity.md` | article | 526 → 549 | passed, 1 attempt | #1 → #1 |
+| `what-is-geo.md` | article | 419 → 441 | passed, 1 attempt | #1 → #1 |
+
+**What changed since the recorded runs**
+
+- **The lost openings were a pipeline bug, not the model.** When the title came from
+  frontmatter, `egeo optimize` dropped the first line of the body before the rewriter saw it.
+  That is how the "Last verified: 2026-08-11" paragraph and the one-sentence GEO definition
+  disappeared in runs 2 and 3. Fixed: both pages now keep their opening, word for word at
+  the start.
+- **Long pages keep their substance.** Both site pages kept every link (including both arXiv
+  links and the GitHub link), every number, the LibHunt data point, all section headings and
+  their length. No "Best for …" line was added.
+- **The thin page still gets unsupported claims.** The product rewrite again added
+  "real-time", plus "comprehensive", "just $99", and a "Why Choose Us?" section with two
+  benefits the source never states. The gate passed it: these are new adjectives and
+  sentences with no link or number, which the deterministic rules cannot see. Read every
+  product rewrite against the original.
+
+**Not shown by this run**
+
+- The repair attempt never fired (all three passed on the first try), so it is still
+  untested against a live model.
+- The simulated rank saturated at #1 again and gives no signal.
+- One run per page, one model. Nothing here measures whether an AI engine cites the result.
+
 ## Reproduce
 
 ```bash

@@ -209,16 +209,19 @@ def _derive_title_and_body(content: str) -> tuple[str, str, str, Dict[str, Any]]
         title = str(parsed_fm["title"]).strip()
 
     for i, ln in enumerate(lines):
-        if ln.strip().startswith("#"):
+        if not ln.strip():
+            continue
+        is_h1 = bool(re.match(r"^#[ \t]", ln.strip()))
+        if title and not is_h1:
+            # The title came from frontmatter, so this first line is content (an opening
+            # paragraph or a section heading) and must stay in the body. Dropping it here
+            # removed it from the output without the rewriter or the fidelity gate seeing it.
+            body_start = i
+        else:
             if not title:
-                title = ln.lstrip("#").strip()
+                title = ln.strip().lstrip("#").strip()
             body_start = i + 1
-            break
-        if ln.strip():
-            if not title:
-                title = ln.strip()
-            body_start = i + 1
-            break
+        break
     description = "\n".join(lines[body_start:]).strip() or body.strip()
     if not title:
         title = "Untitled"
