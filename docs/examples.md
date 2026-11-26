@@ -16,6 +16,10 @@ mocked: the "after" text is the rewriter's output verbatim (excerpted where long
 > long pages (`--content-type article`). Run today, rewrites 2 and 3 below would fail the rules
 > (dropped links and dates, about a third shorter) and go to `rejected/` unless a repair attempt
 > fixes them. The runs below are kept as recorded; they have not been repeated with a live model.
+>
+> `egeo optimize` also no longer prints or writes the total out of 100 used in the tables
+> below. It lists the ten signals individually, because the total moved for the wrong reasons
+> in these very runs (60 → 61 after the opening definition and both research links were removed).
 
 ## Summary
 

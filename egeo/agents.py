@@ -76,6 +76,8 @@ class AnalysisResult:
     title: str
     content_length: int
     scores: Dict[str, int]
+    # Sum of the ten heuristic signals. Internal only (e.g. to order sections): it is not
+    # serialized or shown, because a keyword count out of 100 reads as a ranking score.
     total_score: int
     gaps: List[Dict[str, str]] = field(default_factory=list)
     strengths: List[str] = field(default_factory=list)
@@ -86,7 +88,6 @@ class AnalysisResult:
             "title": self.title,
             "content_length": self.content_length,
             "scores": self.scores,
-            "total_score": self.total_score,
             "gaps": self.gaps,
             "strengths": self.strengths,
             "priority_actions": self.priority_actions,

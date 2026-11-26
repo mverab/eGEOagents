@@ -393,3 +393,30 @@ def test_mock_end_to_end_cli_passes_gate(tmp_path, monkeypatch, capsys):
     assert summary["fidelity"]["status"] == "passed"
     assert summary["content_type"] == "product"
     assert list((tmp_path / "optimized").glob("*.md"))
+
+
+def test_no_aggregate_score_in_any_output(tmp_path, monkeypatch, capsys):
+    """openspec update-optimize-remove-aggregate-score: the ten signals stay, the total goes."""
+    from egeo.cli import main
+
+    monkeypatch.setenv("GEO_EVAL_MOCK", "1")
+    sample = Path(__file__).resolve().parents[1] / "examples" / "sample-input.md"
+
+    assert main(["optimize", str(sample), "--out-dir", str(tmp_path)]) == 0
+    text = capsys.readouterr().out
+    assert "/100" not in text and "GEO score" not in text
+    assert "keyword heuristic, not a ranking score" in text
+
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "/100" not in report and "GEO Score" not in report
+    assert "## GEO Signals (keyword heuristic)" in report
+    assert report.count("/10 |") == 10  # the ten signals are still listed
+
+    analysis = json.loads((tmp_path / "analysis.json").read_text(encoding="utf-8"))
+    assert "total_score" not in analysis["analysis"]
+    assert len(analysis["analysis"]["scores"]) == 10
+
+    assert main(["optimize", str(sample), "--out-dir", str(tmp_path), "--json"]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert "geo_score" not in summary and "total_score" not in summary
+    assert len(summary["signals"]) == 10

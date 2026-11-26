@@ -194,7 +194,11 @@ def _cmd_optimize(args: argparse.Namespace) -> int:
     print(f"{'✗ Rewrite rejected' if rejected else '✓ Optimized'}: {result.title}")
     print(f"  Runtime:     {result.runtime}")
     print(f"  Content:     {result.content_type}")
-    print(f"  GEO score:   {result.analysis.total_score}/100")
+    scores = result.analysis.scores
+    weak = [name for name, value in scores.items() if value < 5]
+    print(f"  Signals:     {len(scores) - len(weak)} of {len(scores)} detected (keyword heuristic, not a ranking score)")
+    if weak:
+        print(f"  Not found:   {', '.join(weak)}")
     if rejected:
         print(f"  Rank:        #{result.rank_before} (unchanged: no rewrite accepted)")
     else:

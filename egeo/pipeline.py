@@ -152,7 +152,7 @@ class OptimizeResult:
             "title": self.title,
             "runtime": self.runtime,
             "query": self.query,
-            "geo_score": self.analysis.total_score,
+            "signals": dict(self.analysis.scores),
             "rank_before": self.rank_before,
             "rank_after": self.rank_after,
             "rank_improvement": self.rank_improvement,
@@ -460,7 +460,6 @@ def _build_report(result: "OptimizeResult") -> str:
 - **Title:** {result.title}
 - **Runtime:** `{result.runtime}`
 - **Content type:** `{result.content_type}`
-- **GEO Score:** {a.total_score}/100
 
 ## Rewrite Fidelity
 
@@ -479,10 +478,14 @@ Simulated against {len(DEFAULT_COMPETITORS)} generic competitor stubs (synthetic
 - **Rank after optimization:** #{result.rank_after}
 - **Improvement:** {delta_str} position(s)
 
-## GEO Feature Scores
+## GEO Signals (keyword heuristic)
 
-| Feature | Score |
-|---------|-------|
+Each row counts words and structure the offline analyzer looks for (for example "best",
+"unlike", bullet lists, numbers). It shows which signals were detected. It is not a quality or
+ranking score, and there is no total: a page can add these words and get worse.
+
+| Signal | Detected |
+|--------|----------|
 {score_rows}
 
 ## Strengths
@@ -503,7 +506,7 @@ Simulated against {len(DEFAULT_COMPETITORS)} generic competitor stubs (synthetic
 - `schema/` — JSON-LD markup (`{result.schema.schema_type}`)
 - `analysis.json` — raw analysis data
 
-> **Honest scope:** competitor stubs and the analyzer score are an offline
+> **Honest scope:** competitor stubs and the analyzer signals are an offline
 > proxy, not a measurement of real AI-engine rankings. Use the Claude Code
 > runtime with MCP validation, or the evaluation harness, for higher fidelity.
 """
