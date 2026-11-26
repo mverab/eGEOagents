@@ -13,7 +13,7 @@ All boxes below describe future execution. Creating this scaffold does not compl
 - [x] 1.8 Produce `baseline.md` with evidence, first-use friction and prioritized fixes; obtain Gate B review. → merged as #36; P0 fix implemented in #37
 
 ## 2. User validation and approved distribution
-- [ ] 2.1 Prepare a consent/recruitment packet, observation worksheet and bounded API budget for owner approval.
+- [ ] 2.1 Prepare a consent/recruitment packet, observation worksheet and bounded API budget for owner approval. → draft at `docs/pilot/evidence-loop-pilot-packet.md` (2026-11-26); budget figures, candidate source and note storage still `[FILL]`; not approved.
 - [ ] 2.2 Observe first use on three external projects; record assistance, time, errors and useful outputs without public PII.
 - [ ] 2.3 Observe a second session and decision use; record non-return honestly.
 - [ ] 2.4 Prepare the complete case-study article and canonical URL for explicit publication approval; do not treat a reuse note as a finished draft.
