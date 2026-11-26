@@ -2,7 +2,7 @@
 
 This runbook covers the service behind the audit form on egeoagents.com (`POST /api/audit` and `GET /api/audit/{id}` at `https://api.egeoagents.com`).
 
-- Spec and design: `openspec/changes/add-public-url-audit/`.
+- Spec: `openspec/specs/url-audit-api/` and `openspec/specs/landing-url-audit/`. Design: `openspec/changes/archive/2026-11-05-add-public-url-audit/design.md`.
 - Code: `egeo/url_audit.py` (audit logic, stdlib only) and `egeo/audit_service.py` (HTTP layer, limits, store).
 - Deploy files: `deploy/audit-service/`.
 

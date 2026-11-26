@@ -1,7 +1,7 @@
 """Public URL audit core: one page -> checks, GEO feature breakdown, one rewritten section.
 
-Spec: ``openspec/changes/add-public-url-audit/specs/url-audit-api/spec.md``; design: same
-change, ``design.md``. Stdlib only: the HTTP layer lives in :mod:`egeo.audit_service` and
+Spec: ``openspec/specs/url-audit-api/spec.md``; design:
+``openspec/changes/archive/2026-11-05-add-public-url-audit/design.md``. Stdlib only: the HTTP layer lives in :mod:`egeo.audit_service` and
 is an optional extra, so ``import egeo.url_audit`` works on a plain ``pip install egeo``.
 
 Pipeline (:func:`audit_url`):

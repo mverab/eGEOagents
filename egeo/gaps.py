@@ -4,7 +4,7 @@ Reads a tracker export (geo-optimizer-skill ``geo citations --format json`` or a
 generic ``query``/``cited`` JSON/CSV), maps each uncited query to a local page
 through ``project.yaml`` (``queries[].target_pages`` → ``pages[].source``) and
 optimizes each affected page once with :func:`egeo.pipeline.optimize_content`.
-Source files are never modified. See ``openspec/changes/add-fix-gaps``.
+Source files are never modified. See ``openspec/specs/citation-gap-fixing``.
 """
 from __future__ import annotations
 

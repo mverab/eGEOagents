@@ -24,7 +24,11 @@ LEDGER_REL = Path("data") / "outcomes" / "ledger.jsonl"
 SCHEMA_VERSION = 1
 WINDOWS_DAYS = (7, 14, 28)
 OPEN_STATUSES = {"proposed", "applied"}
-OWNER_KINDS = {"escalate_absent", "propose_page_owner", "propose_schema"}
+OWNER_KINDS = {"escalate_uncited", "escalate_absent", "propose_page_owner", "propose_schema"}
+# escalate_uncited: how many consecutive AI Overview observations must leave the target out,
+# and how many competing domains the proposal lists.
+UNCITED_MIN_OBSERVATIONS = 3
+CITED_INSTEAD_LIMIT = 5
 GRADE_KIND = "grade_outcome"
 MARK_KINDS = {"applied": "mark_applied", "withdrawn": "mark_withdrawn"}
 # Grades that end a proposal before its last window.
@@ -177,6 +181,26 @@ def _query_stream(home: Path, text: str) -> Path:
     return workspace.data_dir("serp", home) / f"{_stream_slug(text)}.jsonl"
 
 
+def _overview_stream(home: Path, text: str) -> Path:
+    return workspace.data_dir("ai_overview", home) / f"{_stream_slug(text)}.jsonl"
+
+
+def _cited_instead(records: List[Dict[str, Any]], target_domain: str) -> List[Dict[str, Any]]:
+    """Domains cited across ``records``, most frequent first. Counts observations, not links."""
+    target = (target_domain or "").lower()
+    counts: Dict[str, int] = {}
+    for record in records:
+        seen = set()
+        for citation in record.get("citations") or []:
+            domain = str((citation or {}).get("domain") or "").lower()
+            if not domain or domain in seen or (target and (domain == target or domain.endswith("." + target))):
+                continue
+            seen.add(domain)
+            counts[domain] = counts.get(domain, 0) + 1
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:CITED_INSTEAD_LIMIT]
+    return [{"domain": domain, "observations": count} for domain, count in ranked]
+
+
 def _page_stream(home: Path, url: str) -> Path:
     return workspace.data_dir("page", home) / f"{_stream_slug(url)}.jsonl"
 
@@ -213,6 +237,7 @@ def _action(
     grade: Optional[str] = None,
     ledger_id: Optional[str] = None,
     window: Optional[int] = None,
+    details: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     return {
         "kind": kind,
@@ -224,6 +249,7 @@ def _action(
         "grade": grade,
         "ledger_id": ledger_id,
         "window": window,
+        "details": details or {},
         "auto_apply": False,
     }
 
@@ -304,6 +330,40 @@ def rank_action(home: Path, project: Dict[str, Any], now: Optional[datetime] = N
             grade=grade,
             window=window,
             **ids,
+        )
+
+    # 3. escalate_uncited: Google shows an AI Overview for the query and leaves the target out.
+    # Observations with `available: false` (no AI Overview shown) say nothing about citation and
+    # are skipped. A stream older than the cadence is stale and is not judged.
+    for query in queries:
+        stream = _overview_stream(home, query["text"])
+        records = read_jsonl(stream)
+        if not records or not records[-1].get("available"):
+            continue
+        latest = _parse_ts(records[-1].get("ts"))
+        if latest is None or (now - latest) > timedelta(days=cadence):
+            continue
+        shown = [r for r in records if r.get("available")][-UNCITED_MIN_OBSERVATIONS:]
+        if len(shown) < UNCITED_MIN_OBSERVATIONS or any(r.get("target_cited") for r in shown):
+            continue
+        key = _key("escalate_uncited", [query["id"]], list(query.get("target_pages") or []))
+        if key in open_keys:
+            continue
+        rel = str(stream.relative_to(home)) if stream.is_relative_to(home) else str(stream)
+        return _action(
+            kind="escalate_uncited",
+            reason=(
+                f"query {query['id']!r} has an AI Overview that did not cite the target "
+                f"in the last {UNCITED_MIN_OBSERVATIONS} observations that showed one"
+            ),
+            next_gate="owner",
+            query_ids=[query["id"]],
+            page_ids=list(query.get("target_pages") or []),
+            evidence=[rel],
+            details={
+                "cited_instead": _cited_instead(shown, str(shown[-1].get("target_domain") or "")),
+                "observations": [str(r.get("ts")) for r in shown],
+            },
         )
 
     # 4. escalate_absent
@@ -388,6 +448,23 @@ def _grade_row(home: Path, project: Dict[str, Any], row: Dict[str, Any]) -> Tupl
             evidence.append(str(stream.relative_to(home)) if stream.is_relative_to(home) else str(stream))
         return found
 
+    if kind == "escalate_uncited":
+        query_ids = set(row.get("query_ids") or [])
+        shown_later = False
+        for query in project.get("queries", []):
+            if query.get("id") not in query_ids:
+                continue
+            after = _after(_overview_stream(home, query["text"]))
+            if not after:
+                continue
+            later = True
+            if any(r.get("available") and r.get("target_cited") for r in after):
+                return ("verified" if applied else "resolved_unattributed"), evidence
+            shown_later = shown_later or any(r.get("available") for r in after)
+        if not later:
+            return None, evidence
+        # Every later pass showed no AI Overview at all: citation could not be observed.
+        return ("unchanged" if shown_later else "unobservable"), evidence
     if kind == "escalate_absent":
         query_ids = set(row.get("query_ids") or [])
         for query in project.get("queries", []):
@@ -447,6 +524,22 @@ def _proposal_markdown(action: Dict[str, Any], project: Dict[str, Any], ledger_i
         lines.extend(f"- `{path}`" for path in action["evidence"])
     else:
         lines.append("- (none)")
+    cited = (action.get("details") or {}).get("cited_instead") or []
+    if action["kind"] == "escalate_uncited":
+        lines.extend(["", "## Cited instead", ""])
+        if cited:
+            lines.append("Domains the AI Overview cited in those observations (number of observations):")
+            lines.append("")
+            lines.extend(f"- `{item['domain']}` ({item['observations']})" for item in cited)
+        else:
+            lines.append("- (the observations list no other cited domain)")
+        lines.extend(
+            [
+                "",
+                "This is what Google's AI Overview showed, as recorded by the collector. It does not say",
+                "why those sources were chosen. Compare them with your page before changing anything.",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -538,6 +631,8 @@ def apply_decision(home: Path, project: Dict[str, Any], action: Dict[str, Any], 
         "next_gate": action["next_gate"],
         "auto_apply": False,
     }
+    if action.get("details"):
+        row["details"] = action["details"]
     append_jsonl(ledger_path(home), row)
     result["written"].append(str(LEDGER_REL))
     result["ledger_row"] = row

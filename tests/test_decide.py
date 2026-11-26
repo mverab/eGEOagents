@@ -392,5 +392,160 @@ class LedgerLifecycleTests(DecideTests):
         self.assertIn("egeo loop mark", doc)
 
 
+class UncitedInAiOverviewTests(unittest.TestCase):
+    """openspec add-decide-ai-overview-citations: propose and grade from AI Overview citations."""
+
+    Q = "GEO evaluation harness open source"
+    QID = "generic-geo-evaluation"
+    T0 = NOW - timedelta(days=40)
+
+    def setUp(self) -> None:
+        self.home = Path(tempfile.mkdtemp(prefix="egeo-decide-aio-"))
+        shutil.copy(EXAMPLE, self.home / workspace.PROJECT_CONFIG_NAME)
+        workspace.bootstrap(self.home)
+        self.project = workspace.load_project_config(self.home)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.home)
+
+    def _day(self, n: float) -> datetime:
+        return self.T0 + timedelta(days=n)
+
+    def _fresh(self, when: datetime) -> None:
+        """Healthy SERP and page streams, so only the AI Overview data can trigger a proposal."""
+        stamp = when.strftime("%Y-%m-%dT%H:%M:%SZ")
+        for query in self.project["queries"]:
+            decide.append_jsonl(decide._query_stream(self.home, query["text"]), {"ts": stamp, "target_position": 1})
+        for page in self.project["pages"]:
+            decide.append_jsonl(decide._page_stream(self.home, page["url"]), {"ts": stamp, "jsonld_types": ["WebPage"]})
+
+    def _aio(self, when: datetime, *, available=True, cited=False, domains=("a.com", "b.org")) -> None:
+        citations = [{"position": i, "url": f"https://{d}/x", "domain": d} for i, d in enumerate(domains, 1)]
+        if cited:
+            citations.append({"position": len(citations) + 1, "url": "https://egeoagents.com/", "domain": "egeoagents.com"})
+        decide.append_jsonl(
+            decide._overview_stream(self.home, self.Q),
+            {
+                "v": 1,
+                "ts": when.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "query": self.Q,
+                "available": available,
+                "citations": citations if available else [],
+                "target_domain": "egeoagents.com",
+                "target_cited": bool(cited and available),
+            },
+        )
+
+    def _rank(self, when: datetime) -> dict:
+        return decide.rank_action(self.home, self.project, now=when)
+
+    def _step(self, when: datetime) -> dict:
+        return decide.apply_decision(self.home, self.project, self._rank(when), now=when)
+
+    def _propose(self) -> str:
+        self._aio(self._day(0), domains=("a.com", "b.org"))
+        self._aio(self._day(1), domains=("a.com",))
+        self._aio(self._day(2), domains=("a.com", "c.net"))
+        self._fresh(self._day(2))
+        result = self._step(self._day(3))
+        self.assertEqual(result["kind"], "escalate_uncited")
+        return result["ledger_row"]["id"]
+
+    def test_three_shown_and_uncited_observations_propose(self) -> None:
+        self._aio(self._day(0))
+        self._aio(self._day(1))
+        self._fresh(self._day(2))
+        self.assertEqual(self._rank(self._day(2))["kind"], "no_op")  # two are not enough
+        self._aio(self._day(2), domains=("a.com", "c.net"))
+        action = self._rank(self._day(3))
+        self.assertEqual((action["kind"], action["next_gate"]), ("escalate_uncited", "owner"))
+        self.assertEqual(action["query_ids"], [self.QID])
+        self.assertEqual(action["page_ids"], ["docs-evaluation"])
+        self.assertEqual(action["evidence"], ["data/ai_overview/geo-evaluation-harness-open-source.jsonl"])
+        self.assertEqual(
+            action["details"]["cited_instead"],
+            [{"domain": "a.com", "observations": 3}, {"domain": "b.org", "observations": 2}, {"domain": "c.net", "observations": 1}],
+        )
+
+    def test_missing_overview_is_not_counted_as_uncited(self) -> None:
+        self._aio(self._day(0))
+        self._aio(self._day(1), available=False)
+        self._aio(self._day(2))
+        self._fresh(self._day(2))
+        self.assertEqual(self._rank(self._day(3))["kind"], "no_op")  # only two shown observations
+        self._aio(self._day(3))
+        self.assertEqual(self._rank(self._day(3.5))["kind"], "escalate_uncited")
+        self._aio(self._day(4), available=False)  # latest pass shows no overview: nothing to judge now
+        self._fresh(self._day(4))
+        self.assertEqual(self._rank(self._day(4.5))["kind"], "no_op")
+
+    def test_one_citation_in_the_last_three_stops_the_proposal(self) -> None:
+        self._aio(self._day(0))
+        self._aio(self._day(1), cited=True)
+        self._aio(self._day(2))
+        self._fresh(self._day(2))
+        self.assertEqual(self._rank(self._day(3))["kind"], "no_op")
+
+    def test_stale_overview_stream_is_not_judged(self) -> None:
+        for day in range(3):
+            self._aio(self._day(day))
+        self._fresh(self._day(12))  # SERP/page are fresh, the AI Overview stream is 10 days old
+        self.assertEqual(self._rank(self._day(12.5))["kind"], "no_op")
+
+    def test_proposal_doc_and_ledger_row_carry_cited_instead(self) -> None:
+        pid = self._propose()
+        row = decide.load_ledger(self.home)[0]
+        self.assertEqual(row["details"]["cited_instead"][0], {"domain": "a.com", "observations": 3})
+        doc = next((self.home / "docs").glob("*-decide-escalate-uncited-*.md")).read_text(encoding="utf-8")
+        self.assertIn("## Cited instead", doc)
+        self.assertIn("`a.com` (3)", doc)
+        self.assertIn(f"egeo loop mark {pid} applied", doc)
+        self.assertEqual(self._rank(self._day(3.1))["kind"], "wait_for_window")  # not proposed twice
+
+    def test_citation_after_recorded_application_is_verified(self) -> None:
+        pid = self._propose()
+        decide.mark_row(self.home, pid, "applied", now=self._day(5))
+        self._aio(self._day(12), cited=True)
+        self._fresh(self._day(12))
+        graded = self._step(self._day(12.5))
+        self.assertEqual((graded["kind"], graded["grade"], graded["window"]), ("grade_outcome", "verified", 7))
+
+    def test_citation_without_application_is_unattributed(self) -> None:
+        self._propose()
+        self._aio(self._day(9), cited=True)
+        self._fresh(self._day(9))
+        self.assertEqual(self._step(self._day(10.5))["grade"], "resolved_unattributed")
+
+    def test_still_uncited_is_unchanged(self) -> None:
+        self._propose()
+        self._aio(self._day(9))
+        self._fresh(self._day(9))
+        self.assertEqual(self._step(self._day(10.5))["grade"], "unchanged")
+
+    def test_vanished_overview_is_unobservable_not_unchanged(self) -> None:
+        self._propose()
+        self._aio(self._day(9), available=False)
+        self._fresh(self._day(9))
+        graded = self._step(self._day(10.5))
+        self.assertEqual(graded["grade"], "unobservable")
+        state = decide.ledger_state(decide.load_ledger(self.home))[0]
+        self.assertFalse(state["closed"])  # not a result: stays open for the next window
+
+    def test_uncited_goes_before_serp_absence(self) -> None:
+        for day in range(3):
+            self._aio(self._day(day))
+            decide.append_jsonl(
+                decide._query_stream(self.home, "what is llms.txt"),
+                {"ts": self._day(day).strftime("%Y-%m-%dT%H:%M:%SZ"), "target_position": None},
+            )
+        for page in self.project["pages"]:
+            decide.append_jsonl(
+                decide._page_stream(self.home, page["url"]),
+                {"ts": self._day(2).strftime("%Y-%m-%dT%H:%M:%SZ"), "jsonld_types": ["WebPage"]},
+            )
+        self.assertEqual(self._step(self._day(3))["kind"], "escalate_uncited")
+        self.assertEqual(self._step(self._day(3.1))["kind"], "escalate_absent")
+
+
 if __name__ == "__main__":
     unittest.main()

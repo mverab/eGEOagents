@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `egeo loop decide` reads the AI Overview stream. New proposal `escalate_uncited`: Google showed an AI Overview in the last 3 observations that had one and never cited your domain. The proposal lists the domains cited instead. It is graded from later AI Overview observations, with a new grade `unobservable` when no overview was shown. Passes without an AI Overview are not counted as uncited, and workspaces without the optional `ai_overview` collector behave as before (openspec `add-decide-ai-overview-citations`).
 - Optional goanyapi engine for the loop-mode SERP collector (`GOANYAPI_API_KEY`), with an offline fixture and a provider-aware doctor check.
 - Loop-mode AI Overview collector (`collectors/ai_overview.py`) that records Google's AI Overview answer and citation list via the configured provider (`GOANYAPI_API_KEY`), with offline fixtures and loop-run deltas/signals.
 - `egeo loop mark <ledger-id> applied|withdrawn [--at TS] [--note TEXT]`: the owner records that a ledger proposal was applied or withdrawn. Grading windows count from the applied time (openspec `update-loop-ledger-lifecycle`).
