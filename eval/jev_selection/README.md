@@ -73,6 +73,11 @@ verification. Owner decision (2026-10-16): keep section mode experimental; demot
 from a verdict to a warning goes to a separate change. Files: `~/Sync/mkt/egeo-expansion/jev-selection/dataset-v3-2026-10-15.json`,
 `results-v3-2026-10-15.json`.
 
+Owner decision (2026-11-26): no further Jev validation rounds are planned. Section mode stays
+experimental and labeled; no Jev code is removed. Whether an intervention worked is judged from
+the loop's outcome ledger and later collector observations (`egeo loop decide`), not from Jev
+scores. A future validation would need a new pre-registration.
+
 ## v1 → v2 (2026-09-25 review)
 
 v1 (one Choice question over all candidates, n=10) reported mean AUC 0.6493 against a 0.65 gate and

@@ -7,7 +7,7 @@ Turn an AI-visibility tracker's citation report into page rewrites: `egeo fix-ga
 
 ### Requirement: Fix-Gaps Command Rewrites Pages For Uncited Queries
 
-The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode page|sections] [--dry-run] [--json] [--out-dir DIR] [--format markdown|html] [--project PATH] [--max-sources N] [--jev-model MODEL]`. The command SHALL read citation results from a tracker export, select the queries where the project domain is not cited, and map them to local pages through `project.yaml`. In `page` mode (the default) it SHALL optimize each affected page once with the existing `egeo optimize` pipeline. In `sections` mode (experimental, opt-in) it SHALL rewrite at most one section per page as specified by the section-mode requirements. Outside mock mode, `page` mode SHALL exit non-zero before any work, naming `OPENAI_API_KEY`, when no OpenAI-compatible key is configured.
+The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode page|sections] [--dry-run] [--json] [--out-dir DIR] [--format markdown|html] [--project PATH] [--max-sources N] [--jev-model MODEL]`. The command SHALL read citation results from a tracker export, select the queries where the project domain is not cited, and map them to local pages through `project.yaml`.
 
 #### Scenario: Uncited query maps to a page with a source file
 
@@ -26,7 +26,7 @@ The CLI SHALL expose `egeo fix-gaps <gaps-file> [--mode page|sections] [--dry-ru
 #### Scenario: Page mode is the default
 
 - **WHEN** `egeo fix-gaps gaps.json` runs without `--mode`, or with `--mode page`
-- **THEN** each affected page is optimized with the `egeo optimize` pipeline as in version 2.1.0
+- **THEN** each affected page is optimized with the `egeo optimize` pipeline, including its fidelity gate
 
 ### Requirement: Supported Input Formats Are Auto-Detected
 
@@ -77,34 +77,6 @@ A page targeted by several gap queries SHALL be optimized once, against the firs
 - **THEN** `home` is optimized once, against the first of them
 - **AND** the report lists the second query under `home.other_gaps`
 
-### Requirement: Report And Re-Measure List
-
-Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them. In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification, output paths and `offpage`, and the report SHALL include Jev usage and the thresholds used. Diagnosis and verification SHALL report per-candidate `scores` and the `scorer` used. Every non-null diagnosis SHALL carry a `warning` key, either null or `own_text_already_competitive`. `offpage` SHALL be non-null exactly when that warning is set, whatever the page status, and SHALL hold `reason` (`own_text_already_competitive`), a message and the URLs of the successfully fetched sources in fetch order. The CLI SHALL print one line per page: `<status>: <page_id>`, followed by ` (warning: own text already competitive; off-page: <n> cited sources)` when the warning is set. The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation. The report SHALL carry a `jev_validation` object with the latest pre-registered result for the configuration section mode actually runs (protocol, scorer, ids, unit, mean AUC, 95% interval, number of queries, gate, pass/fail, date). Until that result passes the gate, the Jev comparison SHALL be labeled experimental: `jev_validation.status` SHALL be `"experimental"` and every Jev diagnosis and verification SHALL carry `"experimental": true`.
-
-#### Scenario: Experimental labeling while the gate has not passed
-
-- **WHEN** the latest validation result is below the gate
-- **THEN** `fix-gaps.json` contains `jev_validation` with `"status": "experimental"` and `"gate_passed": false`
-- **AND** each non-null diagnosis and verification carries `"experimental": true`
-
-#### Scenario: Validation passed
-
-- **WHEN** the latest pre-registered result for the running configuration passes the gate
-- **THEN** `jev_validation` has `"status": "validated"` and `"gate_passed": true`
-- **AND** diagnosis and verification carry no `experimental` flag
-- **AND** the report still states that Jev is not a prediction of citation
-
-#### Scenario: Warning on a rewritten page
-
-- **WHEN** a page whose own text leads is rewritten and accepted
-- **THEN** its result has status `rewritten`, `diagnosis.warning` `own_text_already_competitive` and a non-null `offpage`
-- **AND** the CLI prints `rewritten: <page_id> (warning: own text already competitive; off-page: <n> cited sources)`
-
-#### Scenario: Report after a mock run
-
-- **WHEN** `GEO_EVAL_MOCK=1 egeo fix-gaps gaps.json --out-dir out` completes
-- **THEN** `out/fix-gaps.json` exists with keys `format`, `mode`, `pages`, `unmatched`, `skipped`, `remeasure`, `note`
-
 ### Requirement: Dry Run Writes Nothing
 
 `--dry-run` SHALL print the plan (pages to optimize, query per page, unmatched and skipped entries) and SHALL NOT write files or call any model.
@@ -126,7 +98,7 @@ Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, m
 
 ### Requirement: Diagnosis Against Real Cited Sources
 
-In `sections` mode, for each processed page the command SHALL fetch the text of the sources the tracker reports for the page's gap query (excluding the project's own domain, at most `--max-sources`, default 6) and score, in one Jev request, each of the page's own sections of at least 30 words and each successfully fetched source with an independent Noul question. The rewrite target SHALL be the own section with the highest score, with ties going to the earliest section in the document. When the best source score is greater than or equal to the best own-section score, the diagnosis status SHALL be `loses` and it SHALL carry no warning. When the best own-section score is strictly above every source score, the diagnosis status SHALL be `own_leads` and the diagnosis SHALL carry the warning `own_text_already_competitive`. The page SHALL still be rewritten, through the same fidelity rules, fidelity judge and verification as a losing page. A Jev score SHALL never by itself stop a page from being rewritten.
+In `sections` mode, for each processed page the command SHALL fetch the text of the sources the tracker reports for the page's gap query (excluding the project's own domain, at most `--max-sources`, default 6) and score, in one Jev request, each of the page's own sections of at least 30 words and each successfully fetched source with an independent Noul question.
 
 #### Scenario: A cited source beats every own section
 
@@ -191,7 +163,7 @@ After a rewrite passes fidelity, the command SHALL score the same candidates aga
 
 ### Requirement: Section Mode Fails Closed Without Jev
 
-`sections` mode SHALL exit non-zero with a message naming `TYPESAFE_API_KEY`, `GEO_EVAL_MOCK=1` and `--mode page` when no TypeSafe key is configured and mock mode is off. It SHALL never substitute heuristic scores for Jev answers. TypeSafe errors SHALL mark the page `jev_error` and never produce a rewrite. Outside mock mode, `sections` mode SHALL also exit non-zero before any work, naming `OPENAI_API_KEY`, when no rewriter key is configured; a rewriter failure (`LLMError`) SHALL mark that page `rewriter_error`, write no rewrite, and let the run continue.
+`sections` mode SHALL exit non-zero with a message naming `TYPESAFE_API_KEY`, `GEO_EVAL_MOCK=1` and `--mode page` when no TypeSafe key is configured and mock mode is off. It SHALL never substitute heuristic scores for Jev answers. TypeSafe errors SHALL mark the page `jev_error` and never produce a rewrite.
 
 #### Scenario: No key
 
@@ -209,7 +181,7 @@ With `GEO_EVAL_MOCK=1`, `sections` mode SHALL run without network access: source
 
 ### Requirement: Jev Selection Is Validated Against A Live Engine
 
-The repository SHALL include `eval/jev_selection/`. It SHALL score candidates with the same function and the same blind ids section mode uses. When a query maps to a local Markdown source, the page SHALL be represented by its sections as section mode builds them. Scores SHALL be compared against Perplexity's cited sources (positives) and uncited SERP results (negatives) per query, and the eval SHALL report the mean ROC AUC over sources with a bootstrap 95% interval, plus own-section outcomes (not gating). Each validation SHALL be pre-registered in a committed file before any result exists: query list hash, scorer, ids, unit, gate (mean AUC >= 0.65 with at least 25 scored queries) and the consequences of passing and failing. It SHALL use one collection and one evaluation, and SHALL NOT be re-tuned after seeing results. Documentation SHALL cite the latest result, its interval, its date and its pre-registration commit.
+The repository SHALL include `eval/jev_selection/`. It SHALL score candidates with the same function and the same blind ids section mode uses. When a query maps to a local Markdown source, the page SHALL be represented by its sections as section mode builds them.
 
 #### Scenario: Eval run
 
@@ -242,3 +214,155 @@ Every Jev request that compares candidates (diagnosis, verification and the vali
 
 - **WHEN** the target section is rewritten and verification runs
 - **THEN** every candidate keeps the id it had in the diagnosis request
+
+### Requirement: Fix-Gaps Modes
+
+In `page` mode (the default) the command SHALL optimize each affected page once with the existing `egeo optimize` pipeline. In `sections` mode (experimental, opt-in) it SHALL rewrite at most one section per page as specified by the section-mode requirements. Outside mock mode, `page` mode SHALL exit non-zero before any work, naming `OPENAI_API_KEY`, when no OpenAI-compatible key is configured.
+
+#### Scenario: Page mode without a key
+
+- **WHEN** `--mode page` runs outside mock mode with no OpenAI-compatible key configured
+- **THEN** the command exits non-zero before any work and names `OPENAI_API_KEY`
+
+### Requirement: Page Mode Reports The Fidelity Gate
+
+In `page` mode each page result in `fix-gaps.json` SHALL carry `content_type` and `fidelity` (`status`, `violations`, `attempts`) as reported by the `egeo optimize` pipeline. A page whose rewrite is rejected SHALL have no file under its `optimized/` directory, and the CLI SHALL say that the rewrite was rejected.
+
+#### Scenario: Rewrite passes the gate
+
+- **WHEN** a page-mode rewrite meets every fidelity rule
+- **THEN** the page result has `fidelity.status` `passed` and the rewrite is under `<out-dir>/<page_id>/optimized/`
+
+#### Scenario: Rewrite rejected
+
+- **WHEN** a page-mode rewrite still fails the fidelity rules after the repair attempt
+- **THEN** the page result has `fidelity.status` `rejected` with its violations
+- **AND** the rewrite is under `<out-dir>/<page_id>/rejected/`, not `optimized/`
+
+### Requirement: Fix-Gaps Report File And Re-Measure List
+
+Every non-dry run SHALL write `<out-dir>/fix-gaps.json` with the input format, mode, matched gaps, unmatched and skipped entries with reasons, per-page results and a `remeasure` list of gap queries. For geo-optimizer-skill input the report SHALL include the `geo citations` command to re-check them.
+
+#### Scenario: Report after a mock run
+
+- **WHEN** `GEO_EVAL_MOCK=1 egeo fix-gaps gaps.json --out-dir out` completes
+- **THEN** `out/fix-gaps.json` exists with keys `format`, `mode`, `pages`, `unmatched`, `skipped`, `remeasure`, `note`
+
+### Requirement: Section-Mode Results In The Report
+
+In `sections` mode each page result SHALL include its status, fetched sources with success flags, the diagnosis, fidelity results, verification, output paths and `offpage`, and the report SHALL include Jev usage and the thresholds used. Diagnosis and verification SHALL report per-candidate `scores` and the `scorer` used.
+
+#### Scenario: Sections-mode report
+
+- **WHEN** a `sections` mode run completes
+- **THEN** each page result includes its status, fetched sources with success flags, the diagnosis, fidelity results, verification, output paths and `offpage`
+- **AND** the report includes Jev usage, the thresholds used, per-candidate `scores` and the `scorer`
+
+### Requirement: Own-Text Warning And Off-Page Recommendation
+
+Every non-null diagnosis SHALL carry a `warning` key, either null or `own_text_already_competitive`. `offpage` SHALL be non-null exactly when that warning is set, whatever the page status, and SHALL hold `reason` (`own_text_already_competitive`), a message and the URLs of the successfully fetched sources in fetch order.
+
+#### Scenario: No warning, no off-page recommendation
+
+- **WHEN** a diagnosis has `warning` null
+- **THEN** the page result's `offpage` is null
+
+#### Scenario: Warning set on any page status
+
+- **WHEN** a diagnosis carries `own_text_already_competitive`
+- **THEN** `offpage` is non-null whatever the page status
+- **AND** it holds the reason, a message and the URLs of the successfully fetched sources in fetch order
+
+### Requirement: Section-Mode CLI Lines
+
+The CLI SHALL print one line per page: `<status>: <page_id>`, followed by ` (warning: own text already competitive; off-page: <n> cited sources)` when the warning is set.
+
+#### Scenario: Warning on a rewritten page
+
+- **WHEN** a page whose own text leads is rewritten and accepted
+- **THEN** its result has status `rewritten`, `diagnosis.warning` `own_text_already_competitive` and a non-null `offpage`
+- **AND** the CLI prints `rewritten: <page_id> (warning: own text already competitive; off-page: <n> cited sources)`
+
+### Requirement: Report States What Jev Measures
+
+The report SHALL state that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation.
+
+#### Scenario: Statement in a sections-mode report
+
+- **WHEN** a `sections` mode report is written
+- **THEN** it states that Jev scores text competitiveness, does not model authority or links, and is not a prediction of citation
+
+### Requirement: Jev Validation Labeling In The Report
+
+The report SHALL carry a `jev_validation` object with the latest pre-registered result for the configuration section mode actually runs (protocol, scorer, ids, unit, mean AUC, 95% interval, number of queries, gate, pass/fail, date). Until that result passes the gate, the Jev comparison SHALL be labeled experimental: `jev_validation.status` SHALL be `"experimental"` and every Jev diagnosis and verification SHALL carry `"experimental": true`.
+
+#### Scenario: Experimental labeling while the gate has not passed
+
+- **WHEN** the latest validation result is below the gate
+- **THEN** `fix-gaps.json` contains `jev_validation` with `"status": "experimental"` and `"gate_passed": false`
+- **AND** each non-null diagnosis and verification carries `"experimental": true`
+
+#### Scenario: Validation passed
+
+- **WHEN** the latest pre-registered result for the running configuration passes the gate
+- **THEN** `jev_validation` has `"status": "validated"` and `"gate_passed": true`
+- **AND** diagnosis and verification carry no `experimental` flag
+- **AND** the report still states that Jev is not a prediction of citation
+
+### Requirement: Rewrite Target And Diagnosis Status
+
+The rewrite target SHALL be the own section with the highest score, with ties going to the earliest section in the document. When the best source score is greater than or equal to the best own-section score, the diagnosis status SHALL be `loses` and it SHALL carry no warning. When the best own-section score is strictly above every source score, the diagnosis status SHALL be `own_leads` and the diagnosis SHALL carry the warning `own_text_already_competitive`.
+
+#### Scenario: Tie between the best source and the best own section
+
+- **WHEN** the best source score equals the best own-section score
+- **THEN** the diagnosis status is `loses` and it carries no warning
+
+#### Scenario: Two own sections share the highest score
+
+- **WHEN** two own sections have the same highest score
+- **THEN** the earlier section in the document is the rewrite target
+
+### Requirement: A Jev Score Never Blocks A Rewrite
+
+The page SHALL still be rewritten, through the same fidelity rules, fidelity judge and verification as a losing page. A Jev score SHALL never by itself stop a page from being rewritten.
+
+#### Scenario: Own text leads
+
+- **WHEN** the diagnosis status is `own_leads`
+- **THEN** the page is still rewritten through the same fidelity rules, fidelity judge and verification as a losing page
+
+### Requirement: Section Mode Needs A Rewriter Key
+
+Outside mock mode, `sections` mode SHALL also exit non-zero before any work, naming `OPENAI_API_KEY`, when no rewriter key is configured; a rewriter failure (`LLMError`) SHALL mark that page `rewriter_error`, write no rewrite, and let the run continue.
+
+#### Scenario: No rewriter key
+
+- **WHEN** `sections` mode runs outside mock mode with no rewriter key configured
+- **THEN** it exits non-zero before any work and names `OPENAI_API_KEY`
+
+#### Scenario: Rewriter fails on one page
+
+- **WHEN** the rewriter raises `LLMError` for a page
+- **THEN** that page is marked `rewriter_error` and no rewrite is written for it
+- **AND** the run continues with the remaining pages
+
+### Requirement: Jev Validation Metric
+
+Scores SHALL be compared against Perplexity's cited sources (positives) and uncited SERP results (negatives) per query, and the eval SHALL report the mean ROC AUC over sources with a bootstrap 95% interval, plus own-section outcomes (not gating).
+
+#### Scenario: Positives and negatives
+
+- **WHEN** the eval compares scores for a query
+- **THEN** Perplexity's cited sources are the positives and uncited SERP results are the negatives
+- **AND** own-section outcomes are reported and do not gate
+
+### Requirement: Jev Validation Is Pre-Registered
+
+Each validation SHALL be pre-registered in a committed file before any result exists: query list hash, scorer, ids, unit, gate (mean AUC >= 0.65 with at least 25 scored queries) and the consequences of passing and failing. It SHALL use one collection and one evaluation, and SHALL NOT be re-tuned after seeing results. Documentation SHALL cite the latest result, its interval, its date and its pre-registration commit.
+
+#### Scenario: Pre-registered run fails the gate
+
+- **WHEN** a pre-registered validation run finishes below the gate
+- **THEN** the result is reported as it is, with its interval, date and pre-registration commit
+- **AND** no re-run, prompt change or threshold change follows from it

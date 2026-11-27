@@ -152,7 +152,7 @@ class OptimizeResult:
             "title": self.title,
             "runtime": self.runtime,
             "query": self.query,
-            "geo_score": self.analysis.total_score,
+            "signals": dict(self.analysis.scores),
             "rank_before": self.rank_before,
             "rank_after": self.rank_after,
             "rank_improvement": self.rank_improvement,
@@ -209,16 +209,19 @@ def _derive_title_and_body(content: str) -> tuple[str, str, str, Dict[str, Any]]
         title = str(parsed_fm["title"]).strip()
 
     for i, ln in enumerate(lines):
-        if ln.strip().startswith("#"):
+        if not ln.strip():
+            continue
+        is_h1 = bool(re.match(r"^#[ \t]", ln.strip()))
+        if title and not is_h1:
+            # The title came from frontmatter, so this first line is content (an opening
+            # paragraph or a section heading) and must stay in the body. Dropping it here
+            # removed it from the output without the rewriter or the fidelity gate seeing it.
+            body_start = i
+        else:
             if not title:
-                title = ln.lstrip("#").strip()
+                title = ln.strip().lstrip("#").strip()
             body_start = i + 1
-            break
-        if ln.strip():
-            if not title:
-                title = ln.strip()
-            body_start = i + 1
-            break
+        break
     description = "\n".join(lines[body_start:]).strip() or body.strip()
     if not title:
         title = "Untitled"
@@ -460,7 +463,6 @@ def _build_report(result: "OptimizeResult") -> str:
 - **Title:** {result.title}
 - **Runtime:** `{result.runtime}`
 - **Content type:** `{result.content_type}`
-- **GEO Score:** {a.total_score}/100
 
 ## Rewrite Fidelity
 
@@ -479,10 +481,14 @@ Simulated against {len(DEFAULT_COMPETITORS)} generic competitor stubs (synthetic
 - **Rank after optimization:** #{result.rank_after}
 - **Improvement:** {delta_str} position(s)
 
-## GEO Feature Scores
+## GEO Signals (keyword heuristic)
 
-| Feature | Score |
-|---------|-------|
+Each row counts words and structure the offline analyzer looks for (for example "best",
+"unlike", bullet lists, numbers). It shows which signals were detected. It is not a quality or
+ranking score, and there is no total: a page can add these words and get worse.
+
+| Signal | Detected |
+|--------|----------|
 {score_rows}
 
 ## Strengths
@@ -503,7 +509,7 @@ Simulated against {len(DEFAULT_COMPETITORS)} generic competitor stubs (synthetic
 - `schema/` — JSON-LD markup (`{result.schema.schema_type}`)
 - `analysis.json` — raw analysis data
 
-> **Honest scope:** competitor stubs and the analyzer score are an offline
+> **Honest scope:** competitor stubs and the analyzer signals are an offline
 > proxy, not a measurement of real AI-engine rankings. Use the Claude Code
 > runtime with MCP validation, or the evaluation harness, for higher fidelity.
 """

@@ -51,7 +51,7 @@ pip install egeo
 GEO_EVAL_MOCK=1 egeo optimize your-page.md   # any Markdown page; mock run, no API key
 ```
 
-You get `geo-output/` with a GEO score, a rewritten page, JSON-LD schema and a report. Drop `GEO_EVAL_MOCK=1` and set an OpenAI-compatible key for a real run ([getting started](docs/getting-started.md)).
+You get `geo-output/` with a rewritten page, JSON-LD schema and a report that lists which of the ten GEO signals were detected. Drop `GEO_EVAL_MOCK=1` and set an OpenAI-compatible key for a real run ([getting started](docs/getting-started.md)).
 
 **Already using an AI-visibility tracker?** Trackers tell you where you're invisible; E-GEO fixes the page. Feed their report to `egeo fix-gaps` and it rewrites each page that loses a query:
 
