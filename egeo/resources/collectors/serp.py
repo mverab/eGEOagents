@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """SERP collector: position history for your queries, from the Brave Search API,
-the SerpBase Google Search API, the Serply Google Search API, or GoAnyAPI.
+the SerpBase Google Search API, the Serply Google Search API, GoAnyAPI, or Keenable.
 
 Deterministic, zero LLM calls. One record per query per pass, appended to
 ``$EGEO_HOME/data/serp/<query-slug>.jsonl``::
@@ -9,7 +9,7 @@ Deterministic, zero LLM calls. One record per query per pass, appended to
      "results": [{"position": 1, "url": "...", "domain": "...", "title": "..."}, ...],
      "target_domain": "example.com", "target_position": 3 | null}
 
-The engine is selected with ``--engine brave|serpbase|serply|goanyapi`` (or
+The engine is selected with ``--engine brave|serpbase|serply|goanyapi|keenable`` (or
 ``collectors.serp.engine`` in config.yaml; default ``brave``):
 
 - ``brave`` — Brave Search API over HTTP directly (``BRAVE_API_KEY``).
@@ -19,9 +19,11 @@ The engine is selected with ``--engine brave|serpbase|serply|goanyapi`` (or
   results as JSON over a GET request, no browser.
 - ``goanyapi`` — GoAnyAPI Google SERP API (``GOANYAPI_API_KEY``): structured
   organic results as JSON over a GET request, no browser.
+- ``keenable`` — Keenable Search API (optional ``KEENABLE_API_KEY``): returns
+  Keenable's index order (what an agent using Keenable sees), not Google's SERP.
 
 All are called over their HTTP API directly (``BRAVE_API_KEY`` /
-``SERPBASE_API_KEY`` / ``SERPLY_API_KEY`` / ``GOANYAPI_API_KEY``) rather than through an MCP: a cron-launched collector
+``SERPBASE_API_KEY`` / ``SERPLY_API_KEY`` / ``GOANYAPI_API_KEY`` / optional ``KEENABLE_API_KEY``) rather than through an MCP: a cron-launched collector
 has no agent, hence no MCP. Live passes are paced at ≤1 query/second and
 refuse to exceed ``budgets.queries_per_day``.
 
@@ -35,6 +37,7 @@ Usage::
     python collectors/serp.py --engine serpbase --fixture collectors/fixtures/serp_serpbase_response.json
     python collectors/serp.py --engine serply --fixture collectors/fixtures/serp_serply_response.json
     python collectors/serp.py --engine goanyapi --fixture collectors/fixtures/serp_goanyapi_response.json
+    python collectors/serp.py --engine keenable --fixture collectors/fixtures/serp_keenable_response.json
 """
 from __future__ import annotations
 
@@ -68,12 +71,18 @@ SERPLY_API_KEY_ENV = "SERPLY_API_KEY"
 GOANYAPI_ENGINE = "goanyapi"
 GOANYAPI_API_URL = "https://api.goanyapi.com/api/v1/serp"
 GOANYAPI_API_KEY_ENV = "GOANYAPI_API_KEY"
-ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE, GOANYAPI_ENGINE)
+KEENABLE_ENGINE = "keenable"
+KEENABLE_API_URL = "https://api.keenable.ai/v1/search"
+KEENABLE_PUBLIC_API_URL = "https://api.keenable.ai/v1/search/public"
+KEENABLE_API_KEY_ENV = "KEENABLE_API_KEY"
+KEENABLE_CLIENT_TITLE = "eGEOagents"
+ENGINES = (ENGINE, SERPBASE_ENGINE, SERPLY_ENGINE, GOANYAPI_ENGINE, KEENABLE_ENGINE)
 API_KEY_ENVS = {
     ENGINE: API_KEY_ENV,
     SERPBASE_ENGINE: SERPBASE_API_KEY_ENV,
     SERPLY_ENGINE: SERPLY_API_KEY_ENV,
     GOANYAPI_ENGINE: GOANYAPI_API_KEY_ENV,
+    KEENABLE_ENGINE: KEENABLE_API_KEY_ENV,
 }
 MAX_RESULTS = 10
 MIN_SECONDS_BETWEEN_QUERIES = 1.0
@@ -281,6 +290,50 @@ def parse_goanyapi_response(payload: Dict[str, Any], query: str, target_domain: 
     }
 
 
+def parse_keenable_response(payload: Dict[str, Any], query: str, target_domain: str) -> Dict[str, Any]:
+    """Turn a Keenable ``/v1/search`` body into one versioned observation record.
+
+    Positions reflect Keenable's own index order (what an agent using Keenable
+    sees), not Google's SERP.
+    """
+    if payload.get("error"):
+        raise common.CollectorError(f"Keenable reported {payload.get('error')!r} for {query!r}")
+    raw_results = payload.get("results")
+    if raw_results is None:
+        raw_results = []
+    if not isinstance(raw_results, list):
+        raise common.CollectorError(f"unexpected Keenable payload for {query!r}: results is not a list")
+
+    results: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw_results[:MAX_RESULTS], start=1):
+        if not isinstance(item, dict):
+            raise common.CollectorError(f"unexpected Keenable payload for {query!r}: result is not an object")
+        url = item.get("url")
+        if not isinstance(url, str) or not url:
+            raise common.CollectorError(f"unexpected Keenable payload for {query!r}: result url is missing")
+        results.append({
+            "position": index,
+            "url": url,
+            "domain": _domain_of(url),
+            "title": str(item.get("title") or ""),
+        })
+
+    target = _normalize_domain(target_domain)
+    target_position = next(
+        (item["position"] for item in results if target and (item["domain"] == target or item["domain"].endswith("." + target))),
+        None,
+    )
+    return {
+        "v": SCHEMA_VERSION,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "query": query,
+        "engine": KEENABLE_ENGINE,
+        "results": results,
+        "target_domain": target or None,
+        "target_position": target_position,
+    }
+
+
 def fetch_brave(query: str, api_key: str, count: int = MAX_RESULTS) -> Dict[str, Any]:
     """Call the Brave Search API and return the parsed JSON body."""
     url = f"{API_URL}?{urlencode({'q': query, 'count': count})}"
@@ -387,6 +440,37 @@ def fetch_goanyapi(query: str, api_key: str) -> Dict[str, Any]:
     return payload
 
 
+def fetch_keenable(query: str, api_key: str = "", count: int = MAX_RESULTS) -> Dict[str, Any]:
+    """Call Keenable Search POST API (keyed ``/v1/search`` or keyless ``/v1/search/public``)."""
+    key = api_key.strip()
+    if key:
+        url = KEENABLE_API_URL
+        headers = {"Accept": "application/json", "X-API-Key": key}
+    else:
+        url = KEENABLE_PUBLIC_API_URL
+        headers = {"Accept": "application/json", "X-Keenable-Title": KEENABLE_CLIENT_TITLE}
+    status, body = common.http_post(
+        url,
+        payload={"query": query, "max_results": min(count, MAX_RESULTS)},
+        headers=headers,
+    )
+    if status in (401, 403):
+        raise common.CollectorError(f"Keenable rejected the request (HTTP {status}). Check ${KEENABLE_API_KEY_ENV}.")
+    if status == 402:
+        raise common.CollectorError("Keenable credits are insufficient (HTTP 402). Check the account balance.")
+    if status == 429:
+        raise common.CollectorError("Keenable rate limit hit (HTTP 429); retry later or add KEENABLE_API_KEY.")
+    if status != 200:
+        raise common.CollectorError(f"Keenable returned HTTP {status} for {query!r}")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise common.CollectorError(f"Keenable returned invalid JSON for {query!r}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise common.CollectorError(f"Keenable returned a non-object body for {query!r}")
+    return payload
+
+
 def load_fixture(path: Path) -> Dict[str, Any]:
     """Read a recorded Brave response body from disk (fixture mode)."""
     try:
@@ -422,7 +506,7 @@ def collect(
 
     key_env = API_KEY_ENVS[engine]
     api_key = os.environ.get(key_env, "").strip()
-    if fixture is None and not api_key:
+    if fixture is None and not api_key and engine != KEENABLE_ENGINE:
         raise common.CollectorError(
             f"${key_env} is not set. Export a {engine} API key, or run with "
             "--fixture <recorded-response.json> for an offline pass."
@@ -453,6 +537,8 @@ def collect(
                 payload = fetch_serply(query, api_key)
             elif engine == GOANYAPI_ENGINE:
                 payload = fetch_goanyapi(query, api_key)
+            elif engine == KEENABLE_ENGINE:
+                payload = fetch_keenable(query, api_key)
             else:
                 payload = fetch_brave(query, api_key)
         if engine == SERPBASE_ENGINE:
@@ -461,6 +547,8 @@ def collect(
             record = parse_serply_response(payload, query, target_domain)
         elif engine == GOANYAPI_ENGINE:
             record = parse_goanyapi_response(payload, query, target_domain)
+        elif engine == KEENABLE_ENGINE:
+            record = parse_keenable_response(payload, query, target_domain)
         else:
             record = parse_brave_response(payload, query, target_domain)
         common.append_record(paths[query], record)
@@ -495,7 +583,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"SERP source engine: '{ENGINE}' (Brave Search API), '{SERPBASE_ENGINE}' "
         f"(SerpBase Google Search API), '{SERPLY_ENGINE}' (Serply Google Search API), "
-        f"or '{GOANYAPI_ENGINE}' (GoAnyAPI Google SERP API). "
+        f"'{GOANYAPI_ENGINE}' (GoAnyAPI Google SERP API), or '{KEENABLE_ENGINE}' (Keenable index order). "
         f"Default: collectors.serp.engine from config.yaml, else '{ENGINE}'.",
     )
     parser.add_argument(
